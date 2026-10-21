@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
-  MODEL_TOKEN_CATALOG,
+  PROVIDERS,
   SUPPORTED_MODELS,
   ThinkingLevel,
   ModelTokenBounds,
   getModelTokenBounds,
+  getModelsByProvider,
+  getModelMetadata,
   canSellerFulfillPrompt,
 } from "@shunya/core";
 import {
@@ -24,34 +27,52 @@ import {
   Coins,
   ArrowRight,
   Database,
+  Layers,
+  Info,
+  X,
+  Trash2,
+  Check,
 } from "lucide-react";
-import Link from "next/link";
 import {
   sealBuyerPromptAndFilesInBrowser,
   decryptBuyerOutputInBrowser,
 } from "@/lib/clientCrypto";
 
 export default function BuyerStudioPage() {
+  // Cascading Selection State
+  const [selectedProvider, setSelectedProvider] = useState<string>("anthropic");
   const [selectedModel, setSelectedModel] = useState<string>("claude-3-7-sonnet");
   const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("medium");
+
+  // Prompt & File Drop State
   const [promptText, setPromptText] = useState<string>(
     "Perform a comprehensive security audit on the attached smart contract. Check for reentrancy, access control flaws, and recommend remediations."
   );
   const [attachedFiles, setAttachedFiles] = useState<
     { name: string; size: number; type: string; base64: string }[]
   >([]);
+
+  // Sellers State
   const [eligibleSellers, setEligibleSellers] = useState<any[]>([]);
-  const [selectedSeller, setSelectedSeller] = useState<any>(null);
+  const [selectedSeller, setSelectedSeller] = useState<any | null>(null);
   const [loadingSellers, setLoadingSellers] = useState<boolean>(false);
+
+  // Execution & Decryption State
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
   const [executionStep, setExecutionStep] = useState<string>("");
   const [executionResult, setExecutionResult] = useState<any>(null);
-  const [decryptedResult, setDecryptedResult] = useState<{ aiOutputText: string; reasoningText: string } | null>(
-    null
-  );
+  const [decryptedResult, setDecryptedResult] = useState<{
+    aiOutputText: string;
+    reasoningText: string;
+  } | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const studioRef = useRef<HTMLDivElement>(null);
+
+  // Filter models by selected provider
+  const availableModels = getModelsByProvider(selectedProvider);
+  const activeModelMeta = getModelMetadata(selectedModel) || availableModels[0] || SUPPORTED_MODELS[0];
 
   // Active Model Token Bounds
   const bounds: ModelTokenBounds = getModelTokenBounds(selectedModel, thinkingLevel);
@@ -62,10 +83,10 @@ export default function BuyerStudioPage() {
     return acc + (f.type.startsWith("image/") ? 800 : Math.max(50, Math.ceil(f.size / 4)));
   }, 0);
   const totalEstimatedInputTokens = estimatedPromptTokens + estimatedFileTokens;
+  const isInputWithinLimits = totalEstimatedInputTokens <= bounds.maxInputAndFileTokens;
 
-  // Default file preload for demo
+  // Preload sample Solidity file for quick testing
   useEffect(() => {
-    // Preload a sample Solidity audit file
     const sampleSolidity = `// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -103,10 +124,10 @@ contract VaultLending {
     fetch(`/api/listings?model=${selectedModel}&tMax=${bounds.totalMaxTokens}`)
       .then((res) => res.json())
       .then((data) => {
-        setEligibleSellers(data.listings || []);
-        if (data.listings && data.listings.length > 0) {
-          setSelectedSeller(data.listings[0]);
-        } else {
+        const list = data.listings || [];
+        setEligibleSellers(list);
+        // If current selected seller is no longer in eligible list, reset
+        if (selectedSeller && !list.find((s: any) => s.id === selectedSeller.id)) {
           setSelectedSeller(null);
         }
         setLoadingSellers(false);
@@ -116,6 +137,44 @@ contract VaultLending {
         setLoadingSellers(false);
       });
   }, [selectedModel, bounds.totalMaxTokens]);
+
+  // Provider change handler
+  const handleProviderChange = (newProvider: string) => {
+    setSelectedProvider(newProvider);
+    const models = getModelsByProvider(newProvider);
+    if (models.length > 0) {
+      const first = models[0];
+      setSelectedModel(first.id);
+      setThinkingLevel(first.supportsThinking ? "medium" : "none");
+    }
+    setSelectedSeller(null);
+    setExecutionResult(null);
+    setDecryptedResult(null);
+  };
+
+  // Model change handler
+  const handleModelChange = (newModelId: string) => {
+    setSelectedModel(newModelId);
+    const meta = getModelMetadata(newModelId);
+    if (meta?.supportsThinking) {
+      if (thinkingLevel === "none") {
+        setThinkingLevel("medium");
+      }
+    } else {
+      setThinkingLevel("none");
+    }
+    setSelectedSeller(null);
+    setExecutionResult(null);
+    setDecryptedResult(null);
+  };
+
+  // Thinking level change handler
+  const handleThinkingChange = (newLevel: ThinkingLevel) => {
+    setThinkingLevel(newLevel);
+    setSelectedSeller(null);
+    setExecutionResult(null);
+    setDecryptedResult(null);
+  };
 
   // Process uploaded or dropped files
   const processFiles = (files: File[]) => {
@@ -140,13 +199,11 @@ contract VaultLending {
     }
   };
 
-  // Handle file input change
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) processFiles(Array.from(files));
   };
 
-  // Native HTML5 Drag and Drop handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -172,40 +229,17 @@ contract VaultLending {
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-
-  const loadSample = (type: "audit" | "finance" | "math") => {
-    if (type === "audit") {
-      setPromptText(
-        "Analyze the attached smart contract fragment and check for reentrancy, unchecked low-level calls, and front-running vulnerabilities. Provide corrected Solidity code."
-      );
-      setSelectedModel("claude-3-7-sonnet");
-      setThinkingLevel("medium");
-    } else if (type === "finance") {
-      setPromptText(
-        "Review this confidential Q3 ledger dataset. Identify churn inflection points, forecast Q4 customer acquisition cost (CAC), and summarize executive retention strategies."
-      );
-      setSelectedModel("o3-mini");
-      setThinkingLevel("medium");
-      const sampleCsv = `user_id,revenue,churn_risk,api_quota_utilization\n101,4500,0,94%\n102,9200,1,12%\n103,15000,0,88%\n104,3100,1,8%`;
-      setAttachedFiles([
-        {
-          name: "Q3_Ledger_Confidential.csv",
-          size: sampleCsv.length,
-          type: "text/csv",
-          base64: btoa(sampleCsv),
-        },
-      ]);
-    } else {
-      setPromptText(
-        "Compute the formal mathematical proof for zero-knowledge range verification over elliptic curve BN254. State constraints and verify boundary limits."
-      );
-      setSelectedModel("claude-3-7-sonnet");
-      setThinkingLevel("high");
-    }
+  // Handler when clicking "Prompt Now" on a listed seller
+  const handlePromptNow = (seller: any) => {
+    setSelectedSeller(seller);
+    // Smoothly scroll down to prompt studio section
+    setTimeout(() => {
+      studioRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
 
-  // Calculate upfront cost
-  const ratePer1k = selectedSeller ? selectedSeller.pricePer1kMicroUsdc : 10_000;
+  // Upfront cost calculations
+  const ratePer1k = selectedSeller ? selectedSeller.pricePer1kMicroUsdc : bounds.defaultPricePer1kMicroUsdc;
   const upfrontMicroUsdc = Math.ceil((bounds.totalMaxTokens / 1000) * ratePer1k);
   const upfrontUsdc = upfrontMicroUsdc / 1_000_000;
 
@@ -241,7 +275,6 @@ contract VaultLending {
       setExecutionStep(`2/4: Hedera x402 Paywall: Depositing $${upfrontUsdc.toFixed(6)} HTS USDC for T_max...`);
       await new Promise((r) => setTimeout(r, 600));
 
-      // Simulate payment transaction ID
       const paymentTxId = `0.0.482910@${Math.floor(Date.now() / 1000)}.778102910`;
 
       // Phase 3: Sealed Enclave Execution
@@ -263,7 +296,7 @@ contract VaultLending {
 
       if (!executeRes.ok) {
         const errJson = await executeRes.json();
-        throw new Error(errJson.reason || errJson.error || "Execution failed");
+        throw new Error(errJson.error || errJson.reason || "Enclave inference execution failed");
       }
 
       const executeData = await executeRes.json();
@@ -291,423 +324,685 @@ contract VaultLending {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      {/* Page Title */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-            <Cpu className="w-8 h-8 text-cyan-400" />
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5" />
+              EF CROPS Compliant Blind Inference
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+              x402 Hedera Escrow
+            </span>
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+            <Zap className="w-8 h-8 text-cyan-400" />
             Buyer Confidential Studio
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Zero-Cutoff AI inference with total seller surveillance blindness. Upfront Hedera x402 charge for T_max.
+          <p className="text-sm text-slate-400 mt-1">
+            Zero-Cutoff Guarantee &bull; Pre-flight T_max Quota Lock &bull; End-to-End Client Encryption
           </p>
         </div>
 
-        {/* Sample Prompt Chips */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-400 font-mono">Load Demo Scenario:</span>
-          <button
-            onClick={() => loadSample("audit")}
-            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800/40 transition"
+        <div className="flex items-center gap-3">
+          <Link
+            href="/seller"
+            className="px-4 py-2 rounded-xl text-xs font-medium bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5"
           >
-            🛡️ Smart Contract Audit
-          </button>
-          <button
-            onClick={() => loadSample("finance")}
-            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800/40 transition"
+            <Database className="w-3.5 h-3.5 text-cyan-400" />
+            Seller Hub
+          </Link>
+          <Link
+            href="/audit"
+            className="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-950/60 border border-indigo-800/40 hover:border-indigo-700 text-indigo-300 hover:text-white transition flex items-center gap-1.5"
           >
-            📊 Financial CSV
-          </button>
-          <button
-            onClick={() => loadSample("math")}
-            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-800/40 transition"
-          >
-            🧠 High Thinking Proof
-          </button>
+            <Lock className="w-3.5 h-3.5 text-indigo-400" />
+            Consensus Audit Logs
+          </Link>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Left Column: Model, Thinking, & Deterministic Bounds */}
-        <div className="space-y-6">
-          {/* Model Selector Card */}
-          <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
-            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              1. Select Model
-            </h2>
-
-            <div className="space-y-2">
-              {SUPPORTED_MODELS.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => {
-                    setSelectedModel(m.id);
-                    if (!m.supportsThinking) setThinkingLevel("none");
-                    else if (thinkingLevel === "none") setThinkingLevel("medium");
-                  }}
-                  className={`w-full text-left p-3 rounded-xl border text-sm transition flex items-center justify-between ${
-                    selectedModel === m.id
-                      ? "bg-indigo-950/70 border-indigo-500 text-white font-medium"
-                      : "bg-slate-900/50 border-slate-800 text-slate-300 hover:border-slate-700"
-                  }`}
-                >
-                  <div className="flex flex-col">
-                    <span className="font-semibold">{m.name}</span>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      Provider: {m.provider.toUpperCase()} • {m.supportsThinking ? "Reasoning Engine" : "Direct Mode"}
-                    </span>
-                  </div>
-                  {selectedModel === m.id && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
-                </button>
-              ))}
+      {/* ========================================================================= */}
+      {/* STEP 1: CASCADING SELECTION: AI PROVIDER -> MODEL -> THINKING LEVEL      */}
+      {/* ========================================================================= */}
+      <div className="glass-panel p-6 sm:p-7 rounded-2xl border border-slate-800 shadow-xl space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-sm">
+              1
             </div>
-
-            {/* Thinking Level Selector */}
-            <div className="pt-2 border-t border-slate-800/80 space-y-2">
-              <label className="text-xs font-mono text-slate-400 block">Thinking Level (Reasoning Tokens):</label>
-              <div className="grid grid-cols-4 gap-2">
-                {(["none", "low", "medium", "high"] as ThinkingLevel[]).map((level) => {
-                  const currentMeta = SUPPORTED_MODELS.find((m) => m.id === selectedModel);
-                  const disabled = !currentMeta?.supportsThinking && level !== "none";
-
-                  return (
-                    <button
-                      key={level}
-                      disabled={disabled}
-                      onClick={() => setThinkingLevel(level)}
-                      className={`py-1.5 px-2 rounded-lg text-xs font-mono uppercase transition ${
-                        disabled
-                          ? "opacity-30 cursor-not-allowed bg-slate-900 border border-slate-800 text-slate-500"
-                          : thinkingLevel === level
-                          ? "bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/30"
-                          : "bg-slate-800 hover:bg-slate-700 text-slate-300"
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  );
-                })}
-              </div>
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                Configure Target AI Architecture
+              </h2>
+              <p className="text-xs text-slate-400">
+                Select your AI provider, model, and thinking budget to determine exact zero-cutoff bounds (T_max).
+              </p>
             </div>
           </div>
+          <span className="text-xs font-mono text-cyan-400 bg-cyan-950/60 px-3 py-1 rounded-full border border-cyan-800/50 self-start sm:self-auto">
+            Zero-Cutoff Invariant: Q &ge; T_max
+          </span>
+        </div>
 
-          {/* Deterministic Token Bounds Matrix Card */}
-          <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-400" />
-                Deterministic Token Bounds
-              </h2>
-              <span className="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px] font-mono">
-                FT-01 Invariant
-              </span>
-            </div>
-
-            <div className="space-y-3 font-mono text-xs">
-              <div className="flex justify-between items-center text-slate-300 p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span>Reservation Floor (T_min):</span>
-                <span className="text-amber-400 font-bold">{bounds.minRequiredTokens.toLocaleString()} tokens</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-300 p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span>Input & File Cap (T_input_cap):</span>
-                <span className="text-slate-100 font-bold">{bounds.maxInputAndFileTokens.toLocaleString()} tokens</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-300 p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span>Thinking Budget (T_thinking):</span>
-                <span className="text-indigo-400 font-bold">
-                  {bounds.thinkingBudgetTokens.toLocaleString()} tokens
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-slate-300 p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span>Output Cap (T_output_cap):</span>
-                <span className="text-slate-100 font-bold">{bounds.maxOutputTokens.toLocaleString()} tokens</span>
-              </div>
-              <div className="flex justify-between items-center p-2.5 rounded-lg bg-cyan-950/50 border border-cyan-800/40 text-cyan-300 font-bold text-sm">
-                <span>Total Max Quota (T_max):</span>
-                <span>{bounds.totalMaxTokens.toLocaleString()} tokens</span>
+        {/* 3 Cascading Dropdown Selectors */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* 1. AI Provider Dropdown */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+              1. AI Provider
+            </label>
+            <div className="relative">
+              <select
+                value={selectedProvider}
+                onChange={(e) => handleProviderChange(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-cyan-500 rounded-xl px-3.5 py-3 text-sm text-white font-medium outline-none transition cursor-pointer appearance-none"
+              >
+                {PROVIDERS.map((p) => (
+                  <option key={p.id} value={p.id} className="bg-slate-900 text-white">
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400 text-xs">
+                ▼
               </div>
             </div>
-
-            <p className="text-[11px] text-slate-400 leading-normal">
-              Zero-Cutoff Guarantee: Sellers with available quota &lt; {bounds.totalMaxTokens.toLocaleString()} tokens are
-              automatically excluded to prevent mid-way failure.
+            <p className="text-[11px] text-slate-500">
+              Provider routing: {selectedProvider.toUpperCase()}
             </p>
           </div>
 
-          {/* Matched Seller Node */}
-          <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3">
-            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
-              <Database className="w-4 h-4 text-emerald-400" />
-              Matched Arkiv Seller Node
-            </h2>
+          {/* 2. Target Model Dropdown (Filtered by Provider) */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+              2. Target Model ({availableModels.length} available)
+            </label>
+            <div className="relative">
+              <select
+                value={selectedModel}
+                onChange={(e) => handleModelChange(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-cyan-500 rounded-xl px-3.5 py-3 text-sm text-white font-medium outline-none transition cursor-pointer appearance-none"
+              >
+                {availableModels.map((m) => (
+                  <option key={m.id} value={m.id} className="bg-slate-900 text-white">
+                    {m.name} ({Math.round(m.contextWindow / 1000)}k ctx)
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400 text-xs">
+                ▼
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 truncate" title={activeModelMeta.description}>
+              {activeModelMeta.description}
+            </p>
+          </div>
 
-            {loadingSellers ? (
-              <div className="text-xs text-slate-400 font-mono py-4 text-center">
-                Querying Arkiv via Anon-RPC harness...
+          {/* 3. Thinking Level Dropdown */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+              3. Thinking Budget Level
+            </label>
+            <div className="relative">
+              <select
+                value={thinkingLevel}
+                onChange={(e) => handleThinkingChange(e.target.value as ThinkingLevel)}
+                disabled={!activeModelMeta.supportsThinking}
+                className={`w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-3 text-sm font-medium outline-none transition appearance-none ${
+                  activeModelMeta.supportsThinking
+                    ? "hover:border-slate-600 focus:border-cyan-500 text-white cursor-pointer"
+                    : "opacity-60 cursor-not-allowed text-slate-400"
+                }`}
+              >
+                {activeModelMeta.supportsThinking ? (
+                  <>
+                    <option value="none" className="bg-slate-900 text-white">
+                      None (0 Thinking Tokens)
+                    </option>
+                    <option value="low" className="bg-slate-900 text-white">
+                      Low (~4,000 Thinking Tokens)
+                    </option>
+                    <option value="medium" className="bg-slate-900 text-white">
+                      Medium (~16,000 Thinking Tokens)
+                    </option>
+                    <option value="high" className="bg-slate-900 text-white">
+                      High (~32,000+ Thinking Tokens)
+                    </option>
+                  </>
+                ) : (
+                  <option value="none" className="bg-slate-900 text-white">
+                    Standard (No Reasoning Budget)
+                  </option>
+                )}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400 text-xs">
+                ▼
               </div>
-            ) : selectedSeller ? (
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs font-mono">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-100 font-semibold">{selectedSeller.ensName}</span>
-                  <span className="text-emerald-400 flex items-center gap-1 text-[11px]">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    World ID Verified
-                  </span>
-                </div>
-                <div className="text-slate-400">Available: {selectedSeller.availableTokens.toLocaleString()} tokens</div>
-                <div className="text-slate-400">
-                  Rate: ${(selectedSeller.pricePer1kMicroUsdc / 1000000).toFixed(4)} USDC / 1k
-                </div>
-                <div className="text-slate-500 text-[10px]">Payout Account: {selectedSeller.hedaraPayoutAccount}</div>
-              </div>
-            ) : (
-              <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800/40 text-rose-300 text-xs space-y-2">
-                <div className="font-bold flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" />
-                  No Seller with ≥ {bounds.totalMaxTokens.toLocaleString()} tokens!
-                </div>
-                <p className="text-[11px]">
-                  FT-01 Invariant enforced: Try lowering the thinking level to low or switch model.
-                </p>
-              </div>
-            )}
+            </div>
+            <p className="text-[11px] text-slate-500">
+              {activeModelMeta.supportsThinking
+                ? `Allocates ${bounds.thinkingBudgetTokens.toLocaleString()} tokens for internal chain-of-thought`
+                : "This model executes standard deterministic generation"}
+            </p>
           </div>
         </div>
 
-        {/* Center & Right Column: Prompt, File Dropzone, Hedera x402 & Execution */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Prompt Editor */}
-          <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
-                <FileText className="w-4 h-4 text-indigo-400" />
-                Prompt (Client-Side Encrypted)
-              </label>
-              <span className="text-xs text-indigo-300 font-mono flex items-center gap-2">
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800/40 text-[10px] text-indigo-300">
-                  ~{totalEstimatedInputTokens.toLocaleString()} tokens est. / {bounds.maxInputAndFileTokens.toLocaleString()} cap
-                </span>
-                <span className="flex items-center gap-1">
-                  <Lock className="w-3.5 h-3.5" />
-                  AES-256-GCM Sealed
-                </span>
-              </span>
-            </div>
-
-            <textarea
-              rows={4}
-              value={promptText}
-              onChange={(e) => setPromptText(e.target.value)}
-              placeholder="Type your prompt here..."
-              className="w-full rounded-xl bg-slate-900/90 border border-slate-800 p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono transition"
-            />
+        {/* Researched Token Bounds Card */}
+        <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <Info className="w-3.5 h-3.5 text-cyan-400" />
+              Mathematical Zero-Cutoff Token Invariant Bounds for {bounds.displayName}:
+            </span>
+            <span className="text-xs font-mono text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-800/50">
+              T_max = T_input + T_thinking + T_output = {bounds.totalMaxTokens.toLocaleString()} tokens
+            </span>
           </div>
 
-          {/* Any-File Dropzone */}
-          <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
-                <Upload className="w-4 h-4 text-cyan-400" />
-                Attach Any Files (PDF, Code, Images, CSV, ZIP)
-              </label>
-              <span className="text-xs text-slate-400 font-mono">Total Seller Blindness</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-xs font-mono">
+            <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+              <span className="text-slate-400 block text-[10px] uppercase">Total Upper Bound (T_max)</span>
+              <span className="text-cyan-400 font-bold text-sm">{bounds.totalMaxTokens.toLocaleString()}</span>
             </div>
+            <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+              <span className="text-slate-400 block text-[10px] uppercase">Min Barrier (T_min)</span>
+              <span className="text-slate-200 font-bold text-sm">{bounds.minRequiredTokens.toLocaleString()}</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+              <span className="text-slate-400 block text-[10px] uppercase">Input + Files Cap</span>
+              <span className="text-slate-200 font-bold text-sm">{bounds.maxInputAndFileTokens.toLocaleString()}</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+              <span className="text-slate-400 block text-[10px] uppercase">Thinking Budget</span>
+              <span className="text-purple-400 font-bold text-sm">{bounds.thinkingBudgetTokens.toLocaleString()}</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+              <span className="text-slate-400 block text-[10px] uppercase">Max Completion</span>
+              <span className="text-slate-200 font-bold text-sm">{bounds.maxOutputTokens.toLocaleString()}</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+              <span className="text-slate-400 block text-[10px] uppercase">Context Window</span>
+              <span className="text-indigo-400 font-bold text-sm">{Math.round(bounds.contextWindow / 1000)}k</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${
-                isDragging
-                  ? "border-cyan-400 bg-cyan-950/40 ring-2 ring-cyan-500/30 scale-[1.01]"
-                  : "border-slate-800 hover:border-cyan-500/50 bg-slate-900/30"
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <Upload
-                className={`w-8 h-8 mx-auto mb-2 transition ${
-                  isDragging ? "text-cyan-300 scale-110 animate-bounce" : "text-cyan-400"
-                }`}
-              />
-              <p className="text-sm text-slate-300 font-medium">
-                {isDragging ? "Drop your files here to seal with AES-256-GCM..." : "Click to upload or drag & drop arbitrary files"}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">
-                ≤ 128 KiB: 10-Min Arkiv Entity • &gt; 128 KiB: 0G Storage Node
+      {/* ========================================================================= */}
+      {/* STEP 2: ELIGIBLE ARKIV SELLERS TABLE WITH "PROMPT NOW" BUTTON            */}
+      {/* ========================================================================= */}
+      <div className="glass-panel p-6 sm:p-7 rounded-2xl border border-slate-800 shadow-xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-sm">
+              2
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                Eligible Arkiv Verified Sellers
+                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/40">
+                  {eligibleSellers.length} verified node{eligibleSellers.length === 1 ? "" : "s"}
+                </span>
+              </h2>
+              <p className="text-xs text-slate-400">
+                Only sellers with available quota Q &ge; T_max ({bounds.totalMaxTokens.toLocaleString()} tokens) are listed.
+                Click <strong>Prompt Now</strong> beside any seller to open the Confidential Prompt Studio.
               </p>
             </div>
+          </div>
 
-            {/* Attached Files List */}
-            {attachedFiles.length > 0 && (
-              <div className="space-y-2 pt-2">
-                {attachedFiles.map((file, idx) => {
-                  const isSmall = file.size <= 128 * 1024;
+          {selectedSeller && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-800/50 text-xs text-emerald-300">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Active Node: <strong>{selectedSeller.ensName}</strong></span>
+            </div>
+          )}
+        </div>
+
+        {/* Loading State */}
+        {loadingSellers && (
+          <div className="p-8 text-center text-slate-400 space-y-2 animate-pulse">
+            <Database className="w-6 h-6 mx-auto text-indigo-400 animate-spin" />
+            <p className="text-xs">Querying Arkiv decentralized storage for verified seller nodes...</p>
+          </div>
+        )}
+
+        {/* Empty State: No eligible sellers */}
+        {!loadingSellers && eligibleSellers.length === 0 && (
+          <div className="p-6 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-300 space-y-3">
+            <div className="flex items-center gap-2 font-bold text-sm">
+              <AlertCircle className="w-5 h-5 text-amber-400" />
+              No Arkiv sellers currently meet the Zero-Cutoff Invariant (Q &ge; {bounds.totalMaxTokens.toLocaleString()} tokens)
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              To guarantee your prompt will never be terminated midway, ShunyaGrid requires sellers to hold at least T_max available tokens.
+              You can:
+            </p>
+            <ul className="text-xs text-slate-400 list-disc list-inside space-y-1">
+              <li>Select a lower Thinking Budget Level (e.g. Low or None) to reduce T_max.</li>
+              <li>Choose a different model from the dropdown above.</li>
+              <li>
+                <Link href="/seller" className="text-cyan-400 underline hover:text-cyan-300">
+                  List your own API key as a seller node in the Seller Hub
+                </Link>{" "}
+                with sufficient quota to fulfill this tier.
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {/* Sellers Table */}
+        {!loadingSellers && eligibleSellers.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                  <th className="py-3 px-3">Seller Node / ENS</th>
+                  <th className="py-3 px-3">Available Quota</th>
+                  <th className="py-3 px-3">Rate / 1k</th>
+                  <th className="py-3 px-3">Upfront Deposit (T_max)</th>
+                  <th className="py-3 px-3">Payout Account</th>
+                  <th className="py-3 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono">
+                {eligibleSellers.map((seller) => {
+                  const isCurrent = selectedSeller?.id === seller.id;
+                  const sellerDepositUsdc = (bounds.totalMaxTokens / 1000) * (seller.pricePer1kMicroUsdc / 1_000_000);
+
                   return (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs font-mono"
+                    <tr
+                      key={seller.id}
+                      className={`transition ${
+                        isCurrent
+                          ? "bg-indigo-950/40 border-l-2 border-indigo-500"
+                          : "hover:bg-slate-900/60"
+                      }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-cyan-400" />
-                        <span className="text-slate-200 font-semibold">{file.name}</span>
-                        <span className="text-slate-500">({(file.size / 1024).toFixed(1)} KiB)</span>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] ${
-                            isSmall
-                              ? "bg-cyan-950/80 text-cyan-300 border border-cyan-800/40"
-                              : "bg-amber-950/80 text-amber-300 border border-amber-800/40"
-                          }`}
-                        >
-                          {isSmall ? "Arkiv Entity (10m Expiry)" : "0G Storage Node"}
+                      {/* Node & ENS */}
+                      <td className="py-3.5 px-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-200">{seller.ensName}</span>
+                          {seller.humanVerified && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-800/50">
+                              <Shield className="w-2.5 h-2.5" /> World ID
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-sans block mt-0.5">
+                          Owner: {seller.ownerAddress}
                         </span>
-                      </div>
-                      <button
-                        onClick={() => removeFile(idx)}
-                        className="text-slate-400 hover:text-rose-400 transition"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                      </td>
+
+                      {/* Quota */}
+                      <td className="py-3.5 px-3">
+                        <div className="flex items-center gap-1.5 text-slate-200 font-bold">
+                          <span>{seller.availableTokens.toLocaleString()}</span>
+                          <span className="text-[10px] text-slate-400 font-normal">tokens</span>
+                        </div>
+                        <div className="w-28 bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                          <div
+                            className="bg-cyan-400 h-full rounded-full"
+                            style={{
+                              width: `${Math.min(100, (seller.availableTokens / (bounds.totalMaxTokens * 1.5)) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </td>
+
+                      {/* Rate */}
+                      <td className="py-3.5 px-3 text-slate-300">
+                        ${(seller.pricePer1kMicroUsdc / 1_000_000).toFixed(4)}
+                      </td>
+
+                      {/* Upfront Deposit */}
+                      <td className="py-3.5 px-3">
+                        <span className="font-bold text-cyan-400">${sellerDepositUsdc.toFixed(4)}</span>
+                        <span className="text-[10px] text-slate-400 block">x402 escrow</span>
+                      </td>
+
+                      {/* Payout */}
+                      <td className="py-3.5 px-3 text-slate-400 text-[11px]">
+                        {seller.hedaraPayoutAccount}
+                      </td>
+
+                      {/* Action: Prompt Now Button */}
+                      <td className="py-3.5 px-3 text-right">
+                        {isCurrent ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold text-xs">
+                            <Check className="w-3.5 h-3.5" />
+                            Selected
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handlePromptNow(seller)}
+                            className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md transition transform active:scale-95"
+                          >
+                            <Zap className="w-3 h-3 text-cyan-200" />
+                            Prompt Now
+                            <ArrowRight className="w-3 h-3 ml-0.5" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
                   );
                 })}
-              </div>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* STEP 3: CONFIDENTIAL PROMPT STUDIO & FILE DROP (UNLOCKED AFTER PROMPT NOW) */}
+      {/* ========================================================================= */}
+      <div ref={studioRef} className="space-y-6">
+        {!selectedSeller ? (
+          /* Locked State Placeholder when no seller is chosen yet */
+          <div className="glass-panel p-8 sm:p-10 rounded-2xl border border-dashed border-slate-800 text-center space-y-4 bg-slate-950/40">
+            <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-500">
+              <Lock className="w-6 h-6 text-slate-400" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white">
+                Step 3: Confidential Prompt Studio is Locked
+              </h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Please select your desired AI model in Step 1, then click the <strong>&ldquo;Prompt Now&rdquo;</strong> button beside an eligible seller node in Step 2 to configure your prompt and upload files.
+              </p>
+            </div>
+            {eligibleSellers.length > 0 && (
+              <button
+                onClick={() => handlePromptNow(eligibleSellers[0])}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition inline-flex items-center gap-1.5 shadow-lg shadow-indigo-600/30"
+              >
+                <Zap className="w-3.5 h-3.5 text-cyan-300" />
+                Prompt with {eligibleSellers[0].ensName}
+              </button>
             )}
           </div>
-
-          {/* Upfront Hedera x402 Pricing & Execution Card */}
-          <div className="glass-panel p-5 rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-slate-900/90 to-indigo-950/30 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <span className="text-xs text-indigo-300 font-mono block">Upfront Hedera x402 Deposit:</span>
-                <div className="text-2xl font-extrabold text-white font-mono flex items-center gap-2">
-                  <span>${upfrontUsdc.toFixed(6)} USDC</span>
-                  <span className="text-xs text-slate-400 font-normal">
-                    (Governed by T_max: {bounds.totalMaxTokens.toLocaleString()} tokens)
-                  </span>
+        ) : (
+          /* Unlocked Confidential Prompt Studio & File Drop */
+          <div className="glass-panel p-6 sm:p-8 rounded-2xl border border-cyan-500/30 shadow-2xl space-y-6 relative overflow-hidden">
+            {/* Top Active Seller Badge */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-slate-900/90 border border-cyan-500/30">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">Active Seller Node:</span>
+                    <span className="text-sm font-bold text-white font-mono">{selectedSeller.ensName}</span>
+                    <span className="text-[10px] text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/50 font-mono">
+                      Hedera {selectedSeller.hedaraPayoutAccount}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Available Quota: <strong className="text-slate-200">{selectedSeller.availableTokens.toLocaleString()} tokens</strong> &bull; Locked for T_max: <strong className="text-cyan-400">{bounds.totalMaxTokens.toLocaleString()} tokens</strong>
+                  </p>
                 </div>
               </div>
 
+              <div className="flex items-center gap-3 self-end sm:self-auto">
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 uppercase block">Required Deposit</span>
+                  <span className="text-sm font-bold text-emerald-400 font-mono">${upfrontUsdc.toFixed(4)} USDC</span>
+                </div>
+                <button
+                  onClick={() => setSelectedSeller(null)}
+                  className="px-2.5 py-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+                  title="Choose a different seller"
+                >
+                  Change Seller
+                </button>
+              </div>
+            </div>
+
+            {/* Prompt Text Input */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-cyan-400" />
+                  Confidential Prompt
+                </label>
+                <span className="text-xs font-mono text-slate-400">
+                  ~{estimatedPromptTokens.toLocaleString()} prompt tokens ({promptText.length} chars)
+                </span>
+              </div>
+              <textarea
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                rows={5}
+                placeholder="Enter your confidential instructions or prompt here..."
+                className="w-full bg-slate-950/90 border border-slate-700 rounded-xl p-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans leading-relaxed transition"
+              />
+            </div>
+
+            {/* File Drop and Upload Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-indigo-400" />
+                  Confidential File Drop & Attachments
+                </label>
+                <span className="text-xs font-mono text-slate-400">
+                  {attachedFiles.length} file{attachedFiles.length === 1 ? "" : "s"} attached (~{estimatedFileTokens.toLocaleString()} tokens)
+                </span>
+              </div>
+
+              {/* Native Drag and Drop Zone */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`p-6 rounded-xl border-2 border-dashed transition text-center cursor-pointer flex flex-col items-center justify-center gap-2 ${
+                  isDragging
+                    ? "border-cyan-400 bg-cyan-950/20"
+                    : "border-slate-700 hover:border-slate-500 bg-slate-950/50"
+                }`}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  multiple
+                  className="hidden"
+                />
+                <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400">
+                  <Upload className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-bold text-slate-200">
+                    Drag and drop files here, or <span className="text-cyan-400 underline">browse files</span>
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    Supports Solidity (.sol), Code (.ts, .py, .rs), Text (.txt, .md), JSON, PDF & Images. Sealed in Enclave RAM.
+                  </p>
+                </div>
+              </div>
+
+              {/* Attached Files List */}
+              {attachedFiles.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                  {attachedFiles.map((f, idx) => {
+                    const estTokens = f.type.startsWith("image/") ? 800 : Math.max(50, Math.ceil(f.size / 4));
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <FileText className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                          <div className="truncate">
+                            <span className="text-slate-200 font-mono block truncate font-medium">{f.name}</span>
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              {(f.size / 1024).toFixed(1)} KB &bull; ~{estTokens} tokens
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFile(idx);
+                          }}
+                          className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-red-400 transition"
+                          title="Remove file"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Token Safety & Budget Check */}
+            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400">Total Input Payload:</span>
+                  <span className="text-xs font-mono font-bold text-slate-200">
+                    ~{totalEstimatedInputTokens.toLocaleString()} tokens
+                  </span>
+                  <span className="text-xs text-slate-500">/ max {bounds.maxInputAndFileTokens.toLocaleString()} tokens</span>
+                </div>
+                {!isInputWithinLimits ? (
+                  <p className="text-xs text-red-400 flex items-center gap-1 font-semibold">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Input payload exceeds model's T_input cap ({bounds.maxInputAndFileTokens.toLocaleString()} tokens). Please shorten prompt or files.
+                  </p>
+                ) : (
+                  <p className="text-xs text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Payload comfortably fits within input bounds. Zero cutoff risk.
+                  </p>
+                )}
+              </div>
+
+              {/* Action Button */}
               <button
-                disabled={!selectedSeller || isExecuting}
+                disabled={!selectedSeller || !isInputWithinLimits || isExecuting || !promptText.trim()}
                 onClick={executePrompt}
                 className={`px-6 py-3.5 rounded-xl font-bold text-white text-sm shadow-lg flex items-center justify-center gap-2 transition ${
-                  !selectedSeller || isExecuting
+                  !selectedSeller || !isInputWithinLimits || isExecuting || !promptText.trim()
                     ? "opacity-50 cursor-not-allowed bg-slate-800"
-                    : "bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 shadow-indigo-600/30"
+                    : "bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 shadow-indigo-600/30"
                 }`}
               >
                 <Shield className="w-4 h-4 text-cyan-300" />
-                {isExecuting ? "Executing Sealed Inference..." : "Encrypt & Run Blind Inference"}
+                {isExecuting ? "Executing Sealed Inference..." : `Lock & Execute with x402 ($${upfrontUsdc.toFixed(4)} USDC)`}
               </button>
             </div>
 
-            {/* Progress indicator */}
+            {/* Execution Progress Banner */}
             {isExecuting && (
-              <div className="p-3 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-xs font-mono text-cyan-300 space-y-1 animate-pulse">
+              <div className="p-4 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-xs font-mono text-cyan-300 space-y-1 animate-pulse">
                 <div className="font-bold flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
                   {executionStep}
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Decrypted Results Card */}
-          {decryptedResult && executionResult && (
-            <div className="glass-panel p-6 rounded-2xl border border-emerald-500/40 space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-lg font-bold text-emerald-400 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5" />
-                  Decrypted AI Output (Local Browser Custody)
-                </h3>
-                <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/40">
-                  Decrypted via K_return
-                </span>
-              </div>
-
-              {/* Reasoning Tokens Trace */}
-              {decryptedResult.reasoningText && (
-                <div className="p-4 rounded-xl bg-slate-950/70 border border-indigo-900/50 space-y-2">
-                  <span className="text-xs text-indigo-400 font-mono font-bold block">
-                    🧠 Frontier Reasoning Process ({selectedModel}):
+            {/* Decrypted Results Card */}
+            {decryptedResult && executionResult && (
+              <div className="glass-panel p-6 rounded-2xl border border-emerald-500/40 space-y-6 mt-6">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h3 className="text-lg font-bold text-emerald-400 flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5" />
+                    Decrypted AI Output (Local Browser Custody)
+                  </h3>
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/40">
+                    Decrypted via local K_return
                   </span>
-                  <div className="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
-                    {decryptedResult.reasoningText}
+                </div>
+
+                {/* Reasoning Tokens Trace */}
+                {decryptedResult.reasoningText && (
+                  <div className="p-4 rounded-xl bg-slate-950/70 border border-indigo-900/50 space-y-2">
+                    <span className="text-xs text-indigo-400 font-mono font-bold block">
+                      🧠 Frontier Reasoning Process ({selectedModel}):
+                    </span>
+                    <div className="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">
+                      {decryptedResult.reasoningText}
+                    </div>
+                  </div>
+                )}
+
+                {/* Final Synthesized Output */}
+                <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                  <span className="text-xs text-cyan-400 font-mono font-bold block">
+                    ⚡ Final Synthesized Response:
+                  </span>
+                  <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed font-sans">
+                    {decryptedResult.aiOutputText}
                   </div>
                 </div>
-              )}
 
-              {/* Output Content */}
-              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                <span className="text-xs text-cyan-400 font-mono font-bold block">⚡ Final Synthesized Response:</span>
-                <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed font-sans">
-                  {decryptedResult.aiOutputText}
+                {/* Token Settlement Accounting Breakdown */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800">
+                    <span className="text-slate-400 block text-[11px]">Tokens Reserved (T_max)</span>
+                    <span className="font-bold text-slate-200">
+                      {executionResult.tokenAccounting.tMaxReserved.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800">
+                    <span className="text-slate-400 block text-[11px]">Actual Used (T_used)</span>
+                    <span className="font-bold text-cyan-400">
+                      {executionResult.tokenAccounting.tUsedActual.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800">
+                    <span className="text-slate-400 block text-[11px]">Seller Payout</span>
+                    <span className="font-bold text-emerald-400">
+                      ${executionResult.tokenAccounting.sellerPayoutUsdc.toFixed(6)}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800">
+                    <span className="text-slate-400 block text-[11px]">Refund / Fee</span>
+                    <span className="font-bold text-indigo-400">
+                      ${executionResult.tokenAccounting.protocolCommissionUsdc.toFixed(6)}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Token Settlement Accounting Breakdown */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-                <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-slate-400 block text-[11px]">Tokens Reserved</span>
-                  <span className="font-bold text-slate-200">
-                    {executionResult.tokenAccounting.tMaxReserved.toLocaleString()}
-                  </span>
-                </div>
-                <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-slate-400 block text-[11px]">Actual Used (T_used)</span>
-                  <span className="font-bold text-cyan-400">
-                    {executionResult.tokenAccounting.tUsedActual.toLocaleString()}
-                  </span>
-                </div>
-                <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-slate-400 block text-[11px]">Seller Payout</span>
-                  <span className="font-bold text-emerald-400">
-                    ${executionResult.tokenAccounting.sellerPayoutUsdc.toFixed(6)}
-                  </span>
-                </div>
-                <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-slate-400 block text-[11px]">App Commission</span>
-                  <span className="font-bold text-indigo-400">
-                    ${executionResult.tokenAccounting.protocolCommissionUsdc.toFixed(6)}
-                  </span>
-                </div>
-              </div>
+                {/* Proofs & HashScan Links */}
+                <div className="pt-2 flex flex-wrap items-center justify-between gap-4 text-xs font-mono border-t border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400">Hedera HCS Settlement:</span>
+                    <a
+                      href={executionResult.hederaSettlement.hashscanUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-cyan-400 hover:underline flex items-center gap-1 font-bold"
+                    >
+                      {executionResult.hederaSettlement.sellerPayoutTxId}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
 
-              {/* Proofs & HashScan Links */}
-              <div className="pt-2 flex flex-wrap items-center justify-between gap-4 text-xs font-mono border-t border-slate-800">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400">Hedera HCS Tx:</span>
-                  <a
-                    href={executionResult.hederaSettlement.hashscanUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-cyan-400 hover:underline flex items-center gap-1 font-bold"
+                  <Link
+                    href="/audit"
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white font-medium flex items-center gap-1 transition"
                   >
-                    {executionResult.hederaSettlement.sellerPayoutTxId}
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                    Inspect in Audit Logs
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
-
-                <Link
-                  href="/audit"
-                  className="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white font-medium flex items-center gap-1 transition"
-                >
-                  Inspect in Judge Split View
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
