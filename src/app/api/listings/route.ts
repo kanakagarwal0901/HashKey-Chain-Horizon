@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { arkivDb, worldIdService, ensService } from "@shunya/core";
+import { arkivDb, worldIdService, ensService, getOrCreateEnclaveKeyPair, unwrapSellerApiKey } from "@shunya/core";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -60,6 +60,39 @@ export async function POST(request: NextRequest) {
 
     if (!ownerAddress || !model || !availableTokens || !sealedApiKey || !hedaraPayoutAccount) {
       return NextResponse.json({ error: "Missing mandatory fields" }, { status: 400 });
+    }
+
+    // Enclave Pre-flight Key & Provider format validation
+    try {
+      const { privateKey } = getOrCreateEnclaveKeyPair();
+      let rawKey = "";
+      if (sealedApiKey.startsWith("ENCLAVE_SEALED:")) {
+        rawKey = sealedApiKey.replace("ENCLAVE_SEALED:", "");
+      } else {
+        rawKey = unwrapSellerApiKey(sealedApiKey, privateKey);
+      }
+
+      const p = (provider || "").toLowerCase();
+      if (p === "anthropic" && !rawKey.startsWith("sk-ant-") && !rawKey.startsWith("mock-ant")) {
+        return NextResponse.json(
+          { error: "Invalid API key format: Anthropic keys must begin with 'sk-ant-'" },
+          { status: 400 }
+        );
+      }
+      if (p === "openai" && !rawKey.startsWith("sk-") && !rawKey.startsWith("mock-oai")) {
+        return NextResponse.json(
+          { error: "Invalid API key format: OpenAI keys must begin with 'sk-'" },
+          { status: 400 }
+        );
+      }
+      if (p === "gemini" && !rawKey.startsWith("AIza") && !rawKey.startsWith("mock-gemini")) {
+        return NextResponse.json(
+          { error: "Invalid API key format: Google Gemini keys must begin with 'AIza'" },
+          { status: 400 }
+        );
+      }
+    } catch {
+      return NextResponse.json({ error: "Malformed sealed API key envelope" }, { status: 400 });
     }
 
     // Verify World ID Proof if provided or generate verified proof
