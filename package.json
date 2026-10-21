@@ -1,0 +1,34 @@
+{
+  "name": "shunyagrid",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ShunyaGrid: The Blind, Zero-Cutoff AI API Token Exchange",
+  "scripts": {
+    "clean": "powershell -Command \"if (Test-Path .next) { Remove-Item -Recurse -Force .next }\"",
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "test:feasibility": "tsx scripts/testFeasibility.ts",
+    "test:concurrency": "tsx scripts/testBackendConcurrency.ts",
+    "test:e2e": "tsx scripts/runE2EDemo.ts",
+    "agent:openclaw": "tsx apps/buyer-cli-agent/openclaw-agent.ts"
+  },
+  "dependencies": {
+    "next": "^14.2.23",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "lucide-react": "^0.469.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "typescript": "^5.7.2",
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.4.49",
+    "autoprefixer": "^10.4.20",
+    "tsx": "^4.19.2"
+  }
+}

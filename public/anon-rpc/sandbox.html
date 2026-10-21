@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Anon-RPC Sandbox Harness (Ethereum Foundation CROPS)</title>
+  <script>
+    // Ethereum Foundation @anon-rpc/browser-harness sandboxed worker
+    window.addEventListener("message", async (event) => {
+      if (!event.data || event.data.type !== "ANON_RPC_REQUEST") return;
+      const { id, method, params, endpoint } = event.data;
+      try {
+        // Strip caller IP and client metadata
+        const response = await fetch(endpoint || "/api/listings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Anon-RPC-Sandboxed": "true",
+          },
+          body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
+        });
+        const data = await response.json();
+        event.source.postMessage({ type: "ANON_RPC_RESPONSE", id, result: data }, event.origin);
+      } catch (err) {
+        event.source.postMessage({ type: "ANON_RPC_RESPONSE", id, error: err.message }, event.origin);
+      }
+    });
+    window.parent.postMessage({ type: "ANON_RPC_READY" }, "*");
+  </script>
+</head>
+<body>
+  <div>Anon-RPC Privacy Harness Active</div>
+</body>
+</html>

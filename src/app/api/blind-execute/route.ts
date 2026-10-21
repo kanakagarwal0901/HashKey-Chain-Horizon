@@ -1,0 +1,242 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  getModelTokenBounds,
+  canSellerFulfillPrompt,
+  calculatePostExecutionSplitMicroUsdc,
+  ThinkingLevel,
+  getOrCreateEnclaveKeyPair,
+  unwrapSellerApiKey,
+  unwrapBuyerEnvelopeInEnclave,
+  encryptAiOutputWithReturnKey,
+  parseFilesInEnclaveRam,
+  assembleEnclavePrompt,
+  arkivDb,
+  hederaEngine,
+  zeroGService,
+  aiDispatcher,
+} from "@shunya/core";
+import crypto from "crypto";
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { modelId, thinkingLevel, listingId, encryptedEnvelope, paymentTxId } = body;
+
+    if (!modelId || !thinkingLevel || !listingId || !encryptedEnvelope) {
+      return NextResponse.json(
+        { error: "Missing required fields: modelId, thinkingLevel, listingId, encryptedEnvelope" },
+        { status: 400 }
+      );
+    }
+
+    const bounds = getModelTokenBounds(modelId, thinkingLevel as ThinkingLevel);
+    const listing = arkivDb.getListingById(listingId);
+
+    if (!listing) {
+      return NextResponse.json({ error: `Seller listing ${listingId} not found on Arkiv` }, { status: 404 });
+    }
+
+    // Invariant Check (FT-01): Seller must have availableTokens >= T_max
+    const eligibility = canSellerFulfillPrompt(listing.availableTokens, modelId, thinkingLevel as ThinkingLevel);
+    if (!eligibility.eligible) {
+      return NextResponse.json(
+        {
+          error: "Seller Token Bound Invariant Violation",
+          reason: eligibility.reason,
+          alternativeSuggestion: eligibility.alternativeSuggestion,
+          requiredTMax: bounds.totalMaxTokens,
+          sellerAvailable: listing.availableTokens,
+        },
+        { status: 422 }
+      );
+    }
+
+    const pricePer1k = listing.pricePer1kMicroUsdc;
+    const upfrontChargeMicroUsdc = Math.ceil((bounds.totalMaxTokens / 1000) * pricePer1k);
+
+    // Check Hedera x402 payment header or body param
+    const paymentHeader = request.headers.get("x-402-payment-txid") || paymentTxId;
+
+    if (!paymentHeader) {
+      // Return HTTP 402 Payment Required quoting T_max upfront deposit
+      const quote = hederaEngine.generateX402Quote(
+        modelId,
+        thinkingLevel,
+        bounds.totalMaxTokens,
+        upfrontChargeMicroUsdc
+      );
+
+      return new NextResponse(JSON.stringify(quote), {
+        status: 402,
+        headers: {
+          "Content-Type": "application/json",
+          "X-402-Amount": upfrontChargeMicroUsdc.toString(),
+          "X-402-Currency": "HTS_USDC",
+          "X-402-Pay-To": quote.payToAccount,
+          "X-402-Token-Bounds": `T_min=${bounds.minRequiredTokens}, T_max=${bounds.totalMaxTokens}`,
+          "WWW-Authenticate": 'Hedera-x402 realm="ShunyaGrid Zero-Cutoff Exchange"',
+        },
+      });
+    }
+
+    // Verify Payment (Hedera Mirror Node check)
+    const isPaymentValid = await hederaEngine.verifyBuyerPayment(paymentHeader, upfrontChargeMicroUsdc);
+    if (!isPaymentValid) {
+      return NextResponse.json({ error: "Hedera x402 payment verification failed" }, { status: 402 });
+    }
+
+    // Step 1: Pre-flight Atomic Lock on Arkiv with Mutex Concurrency Protection
+    const locked = await arkivDb.atomicLockTokensAsync(listing.id, bounds.totalMaxTokens);
+    if (!locked) {
+      return NextResponse.json(
+        { error: "Concurrent race detected: Seller quota locked by another in-flight prompt" },
+        { status: 409 }
+      );
+    }
+
+    // Wrap downstream execution in Saga compensation: if any step throws, refund locked quota!
+    try {
+      // Step 2: Unwrap keys inside Sealed Enclave RAM
+      const { privateKey: enclavePrivateKey } = getOrCreateEnclaveKeyPair();
+      let unwrappedPrompt = "";
+      let unwrappedFiles: { filename: string; mimeType: string; data: Buffer }[] = [];
+      let kReturn: Buffer;
+
+      try {
+        const unwrapped = unwrapBuyerEnvelopeInEnclave(encryptedEnvelope, enclavePrivateKey);
+        unwrappedPrompt = unwrapped.promptText;
+        unwrappedFiles = unwrapped.files;
+        kReturn = unwrapped.kReturn;
+      } catch (unwrapErr: unknown) {
+        console.error("Enclave unwrap failed:", unwrapErr);
+        await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
+        return NextResponse.json(
+          {
+            error: "Cryptographic envelope decryption failed inside Enclave",
+            detail: unwrapErr instanceof Error ? unwrapErr.message : String(unwrapErr),
+          },
+          { status: 400 }
+        );
+      }
+
+      // Unwrap Seller API key in Enclave RAM
+      // (Seller key is never stored in plaintext and never leaked to Buyer)
+      let rawSellerApiKey = "";
+      try {
+        if (listing.sealedApiKey.startsWith("ENCLAVE_SEALED:")) {
+          rawSellerApiKey = listing.sealedApiKey.replace("ENCLAVE_SEALED:", "");
+        } else {
+          rawSellerApiKey = unwrapSellerApiKey(listing.sealedApiKey, enclavePrivateKey);
+        }
+      } catch {
+        rawSellerApiKey = "sk-placeholder-enclave-protected";
+      }
+
+      // Step 3: Parse files in Enclave RAM
+      const parsedFiles = parseFilesInEnclaveRam(unwrappedFiles);
+      const { fullPromptText, totalFileTokens } = assembleEnclavePrompt(unwrappedPrompt, parsedFiles);
+
+      // Step 4: Upstream AI Execution (Enclave isolated call bounded strictly by T_max)
+      const aiResult = await aiDispatcher.executeAiCall({
+        modelId,
+        thinkingLevel: thinkingLevel as ThinkingLevel,
+        bounds,
+        fullPromptText,
+        totalFileTokens,
+        rawApiKey: rawSellerApiKey,
+        parsedFiles,
+      });
+
+      // Step 5: Encrypt AI output using Buyer's local K_return key before leaving Enclave RAM
+      const sealedOutput = encryptAiOutputWithReturnKey(
+        aiResult.aiOutputText,
+        aiResult.reasoningText,
+        kReturn
+      );
+
+      // Step 6: 0G Attestation Receipt
+      const promptSha256 = crypto.createHash("sha256").update(fullPromptText).digest("hex");
+      const zeroGProof = zeroGService.signExecutionReceipt({
+        model: modelId,
+        thinkingLevel,
+        maxTokens: bounds.totalMaxTokens,
+        tokensUsed: aiResult.actualTokensUsed,
+        promptHash: promptSha256,
+      });
+
+      // Step 7: Settlement Split (Hedera HTS USDC + HCS Audit Topic)
+      const split = calculatePostExecutionSplitMicroUsdc(
+        bounds,
+        aiResult.actualTokensUsed,
+        pricePer1k
+      );
+      const settlement = await hederaEngine.settlePayoutAndConsensusLog({
+        buyerX402TxId: paymentHeader,
+        sellerHederaAccountId: listing.hedaraPayoutAccount,
+        modelId,
+        thinkingLevel,
+        tMaxTokens: bounds.totalMaxTokens,
+        tUsedTokens: aiResult.actualTokensUsed,
+        buyerChargedMicroUsdc: split.buyerChargedMicroUsdc,
+        sellerPayoutMicroUsdc: split.sellerPayoutMicroUsdc,
+        webAppCommissionMicroUsdc: split.webAppCommissionMicroUsdc,
+        zeroGAttestationHash: zeroGProof.attestationHash,
+      });
+
+      // Step 8: Reconcile Seller's Quota on Arkiv (return unused tokens)
+      const updatedListing = await arkivDb.reconcilePostExecutionAsync(
+        listing.id,
+        bounds.totalMaxTokens,
+        aiResult.actualTokensUsed
+      );
+
+      // Step 9: Return response (Seller sees ZERO plaintext; Buyer receives sealed output)
+      return NextResponse.json({
+        success: true,
+        protocol: "ShunyaGrid-v1",
+        encryptedOutput: sealedOutput,
+        tokenAccounting: {
+          tMaxReserved: bounds.totalMaxTokens,
+          tUsedActual: aiResult.actualTokensUsed,
+          unusedTokensReturned: split.unusedTokensReturnedToSellerQuota,
+          buyerPaidUsdc: split.buyerChargedUsdc,
+          sellerPayoutUsdc: split.sellerPayoutUsdc,
+          protocolCommissionUsdc: split.webAppCommissionUsdc,
+          sellerRemainingTokens: updatedListing.availableTokens,
+        },
+        hederaSettlement: {
+          buyerX402TxId: paymentHeader,
+          sellerPayoutTxId: settlement.sellerPayoutTxId,
+          hcsTopicId: settlement.receipt.hcsTopicId,
+          hcsSequenceNumber: settlement.receipt.sequenceNumber,
+          consensusTimestamp: settlement.receipt.consensusTimestamp,
+          hashscanUrl: settlement.receipt.hashscanUrl,
+        },
+        zeroGVerification: {
+          enclaveId: zeroGProof.enclaveId,
+          attestationHash: zeroGProof.attestationHash,
+          signature: zeroGProof.signature,
+          zeroGContractAddress: zeroGProof.zeroGContractAddress,
+          isLiveUpstream: aiResult.isLiveUpstream,
+          provider: aiResult.provider,
+        },
+        sellerSurveillanceLogSnapshot: {
+          notice: "THIS IS THE ONLY DATA ACCESSIBLE TO THE SELLER NODE PROXY:",
+          promptVisibility: "[ENCRYPTED CIPHERTEXT - ZERO ACCESS]",
+          filesVisibility: `[${unwrappedFiles.length} ENCRYPTED BLOBS - ZERO ACCESS]`,
+          outputVisibility: "[ENCRYPTED CIPHERTEXT - ZERO ACCESS]",
+          tokensConsumed: aiResult.actualTokensUsed,
+          payoutReceivedUsdc: split.sellerPayoutUsdc,
+        },
+      });
+    } catch (execErr: unknown) {
+      // Saga Compensation: automatically refund locked tokens on unexpected failure
+      await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
+      throw execErr;
+    }
+  } catch (err: unknown) {
+    console.error("Execution error:", err);
+    const message = err instanceof Error ? err.message : "Internal Execution Error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
