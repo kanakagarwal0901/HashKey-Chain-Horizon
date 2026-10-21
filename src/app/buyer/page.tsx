@@ -369,9 +369,8 @@ contract VaultLending {
               <label className="text-xs font-mono text-slate-400 block">Thinking Level (Reasoning Tokens):</label>
               <div className="grid grid-cols-4 gap-2">
                 {(["none", "low", "medium", "high"] as ThinkingLevel[]).map((level) => {
-                  const isCurrentModelNoThinking =
-                    selectedModel === "gpt-4o" || selectedModel === "gpt-4o-mini";
-                  const disabled = isCurrentModelNoThinking && level !== "none";
+                  const currentMeta = SUPPORTED_MODELS.find((m) => m.id === selectedModel);
+                  const disabled = !currentMeta?.supportsThinking && level !== "none";
 
                   return (
                     <button

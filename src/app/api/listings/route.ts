@@ -91,6 +91,12 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      if (p === "groq" && !rawKey.startsWith("gsk_") && !rawKey.startsWith("mock-groq")) {
+        return NextResponse.json(
+          { error: "Invalid API key format: Groq keys must begin with 'gsk_'" },
+          { status: 400 }
+        );
+      }
     } catch {
       return NextResponse.json({ error: "Malformed sealed API key envelope" }, { status: 400 });
     }

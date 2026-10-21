@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Layers,
@@ -11,13 +11,22 @@ import {
   Coins,
   Cpu,
   Database,
-  ExternalLink,
   Sparkles,
   UserCheck,
   ArrowRightLeft,
   ArrowRight,
+  Info,
+  Zap,
 } from "lucide-react";
 import { sealSellerApiKeyInBrowser } from "@/lib/clientCrypto";
+import {
+  PROVIDERS,
+  SUPPORTED_MODELS,
+  getModelsByProvider,
+  getModelMetadata,
+  getModelTokenBounds,
+  ThinkingLevel,
+} from "@shunya/core";
 
 export default function SellerHubPage() {
   const [provider, setProvider] = useState<string>("anthropic");
@@ -25,7 +34,7 @@ export default function SellerHubPage() {
   const [rawApiKey, setRawApiKey] = useState<string>("sk-ant-api03-sample-developer-key-9912");
   const [sealedKeyCiphertext, setSealedKeyCiphertext] = useState<string>("");
   const [tokenQuota, setTokenQuota] = useState<number>(200_000);
-  const [pricePer1kUsdc, setPricePer1kUsdc] = useState<number>(0.01);
+  const [pricePer1kUsdc, setPricePer1kUsdc] = useState<number>(0.015);
   const [hederaAccount, setHederaAccount] = useState<string>("0.0.482910");
   const [ensLabel, setEnsLabel] = useState<string>("arjun-claude");
   const [worldIdVerified, setWorldIdVerified] = useState<boolean>(true);
@@ -36,6 +45,46 @@ export default function SellerHubPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [listings, setListings] = useState<any[]>([]);
   const [totalEarnedUsdc, setTotalEarnedUsdc] = useState<number>(0.14192);
+
+  // Filter models dynamically based on selected provider
+  const availableModels = useMemo(() => {
+    return getModelsByProvider(provider);
+  }, [provider]);
+
+  // Selected Model Metadata & Researched Specifications
+  const currentModelMeta = useMemo(() => {
+    return getModelMetadata(model) || availableModels[0] || SUPPORTED_MODELS[0];
+  }, [model, availableModels]);
+
+  // When provider changes, update model to the first model of that provider
+  const handleProviderChange = (newProvider: string) => {
+    setProvider(newProvider);
+    const modelsForNewProvider = getModelsByProvider(newProvider);
+    if (modelsForNewProvider.length > 0) {
+      const firstModel = modelsForNewProvider[0];
+      setModel(firstModel.id);
+      
+      // Auto-set default price based on medium or default bounds
+      const defaultBounds = getModelTokenBounds(firstModel.id, firstModel.supportsThinking ? "medium" : "none");
+      setPricePer1kUsdc(defaultBounds.defaultPricePer1kMicroUsdc / 1_000_000);
+    }
+
+    // Set appropriate placeholder for raw API key
+    const pInfo = PROVIDERS.find((p) => p.id === newProvider);
+    if (pInfo) {
+      setRawApiKey(`${pInfo.keyPrefix}sample-key-${Math.random().toString(36).slice(2, 8)}`);
+    }
+  };
+
+  // When model changes, adjust price and recommended quota
+  const handleModelChange = (newModelId: string) => {
+    setModel(newModelId);
+    const meta = getModelMetadata(newModelId);
+    if (meta) {
+      const defaultBounds = getModelTokenBounds(newModelId, meta.supportsThinking ? "medium" : "none");
+      setPricePer1kUsdc(defaultBounds.defaultPricePer1kMicroUsdc / 1_000_000);
+    }
+  };
 
   // Fetch all active listings & earnings
   const fetchListings = () => {
@@ -136,6 +185,25 @@ export default function SellerHubPage() {
     }
   };
 
+  // Compute thinking token bounds for the selected model
+  const thinkingBreakdown = useMemo(() => {
+    if (!currentModelMeta) return [];
+    if (!currentModelMeta.supportsThinking) {
+      const b = getModelTokenBounds(currentModelMeta.id, "none");
+      return [{ level: "none" as ThinkingLevel, label: "Direct Mode (No Thinking)", bounds: b }];
+    }
+    return [
+      { level: "low" as ThinkingLevel, label: "Low Thinking", bounds: getModelTokenBounds(currentModelMeta.id, "low") },
+      { level: "medium" as ThinkingLevel, label: "Medium Thinking", bounds: getModelTokenBounds(currentModelMeta.id, "medium") },
+      { level: "high" as ThinkingLevel, label: "High Thinking", bounds: getModelTokenBounds(currentModelMeta.id, "high") },
+    ];
+  }, [currentModelMeta]);
+
+  const maxTMaxRequired = useMemo(() => {
+    if (thinkingBreakdown.length === 0) return 20000;
+    return Math.max(...thinkingBreakdown.map((t) => t.bounds.totalMaxTokens));
+  }, [thinkingBreakdown]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       {/* Title */}
@@ -159,41 +227,116 @@ export default function SellerHubPage() {
           </h2>
 
           <form onSubmit={handleSubmitListing} className="space-y-6">
-            {/* Step 1: Provider & Model */}
+            {/* Step 1: Provider & Model (Dynamic Filtering) */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-mono text-slate-300 block">AI Provider:</label>
+                <label className="text-xs font-mono text-slate-300 block flex items-center justify-between">
+                  <span>AI Provider:</span>
+                  <span className="text-[10px] text-cyan-400">Step 1</span>
+                </label>
                 <select
                   value={provider}
-                  onChange={(e) => setProvider(e.target.value)}
+                  onChange={(e) => handleProviderChange(e.target.value)}
                   className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="anthropic">Anthropic (Claude)</option>
-                  <option value="openai">OpenAI (o3-mini / GPT-4o)</option>
-                  <option value="gemini">Google Gemini</option>
-                  <option value="groq">Groq High-Speed LPU</option>
+                  {PROVIDERS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-mono text-slate-300 block">Target Model:</label>
+                <label className="text-xs font-mono text-slate-300 block flex items-center justify-between">
+                  <span>Target Model (Filtered):</span>
+                  <span className="text-[10px] text-emerald-400 font-mono">{availableModels.length} models for {provider}</span>
+                </label>
                 <select
                   value={model}
-                  onChange={(e) => setModel(e.target.value)}
+                  onChange={(e) => handleModelChange(e.target.value)}
                   className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="claude-3-7-sonnet">Claude 3.7 Sonnet</option>
-                  <option value="o3-mini">o3-mini Reasoning</option>
-                  <option value="gpt-4o">GPT-4o Omnimodal</option>
-                  <option value="gpt-4o-mini">GPT-4o Mini</option>
+                  {availableModels.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
+            {/* Researched Model Specifications & Zero-Cutoff Bounds Matrix */}
+            {currentModelMeta && (
+              <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-cyan-400" />
+                    <span className="text-xs font-bold text-slate-200 font-mono">
+                      {currentModelMeta.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] font-mono">
+                    <span className="px-2 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/40">
+                      Context: {currentModelMeta.contextWindow.toLocaleString()} tokens
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/40">
+                      Max Output: {currentModelMeta.maxOutputTokens.toLocaleString()} tokens
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-400">
+                  {currentModelMeta.description}
+                </p>
+
+                {/* Token Bounds Table */}
+                <div className="pt-2">
+                  <span className="text-[11px] font-mono text-slate-300 font-semibold block mb-1.5 flex items-center gap-1">
+                    <Info className="w-3.5 h-3.5 text-indigo-400" />
+                    Deterministic Token Bounds & Zero-Cutoff Gate (T_max):
+                  </span>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-[11px] font-mono">
+                      <thead className="bg-slate-950/60 text-slate-400 border-b border-slate-800">
+                        <tr>
+                          <th className="py-1.5 px-2">Thinking Level</th>
+                          <th className="py-1.5 px-2">Thinking Budget</th>
+                          <th className="py-1.5 px-2">Output Cap</th>
+                          <th className="py-1.5 px-2">Input Cap</th>
+                          <th className="py-1.5 px-2 text-right text-cyan-400">T_max (Gate)</th>
+                          <th className="py-1.5 px-2 text-right text-emerald-400">Default Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/40 text-slate-300">
+                        {thinkingBreakdown.map((t) => (
+                          <tr key={t.level}>
+                            <td className="py-1.5 px-2 font-semibold capitalize text-slate-200">{t.level}</td>
+                            <td className="py-1.5 px-2 text-slate-400">{t.bounds.thinkingBudgetTokens.toLocaleString()}</td>
+                            <td className="py-1.5 px-2 text-slate-400">{t.bounds.maxOutputTokens.toLocaleString()}</td>
+                            <td className="py-1.5 px-2 text-slate-400">{t.bounds.maxInputAndFileTokens.toLocaleString()}</td>
+                            <td className="py-1.5 px-2 text-right font-bold text-cyan-400">
+                              {t.bounds.totalMaxTokens.toLocaleString()}
+                            </td>
+                            <td className="py-1.5 px-2 text-right text-emerald-400">
+                              ${(t.bounds.defaultPricePer1kMicroUsdc / 1_000_000).toFixed(4)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Step 2: Raw API Key -> Instant Client-Side Encryption */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-mono text-slate-300">Raw API Key (Sealed in Browser):</label>
+                <label className="text-xs font-mono text-slate-300">
+                  Raw API Key (Provider: {provider.toUpperCase()}):
+                </label>
                 <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5" />
                   0G Enclave RSA-OAEP Protected
@@ -203,7 +346,7 @@ export default function SellerHubPage() {
                 type="password"
                 value={rawApiKey}
                 onChange={(e) => setRawApiKey(e.target.value)}
-                placeholder="sk-ant-... or sk-proj-..."
+                placeholder={PROVIDERS.find((p) => p.id === provider)?.keyPlaceholder || "sk-..."}
                 className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
               />
 
@@ -218,19 +361,26 @@ export default function SellerHubPage() {
             {/* Step 3: Quota & Pricing */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-mono text-slate-300 block">Total Quota to Share (Tokens):</label>
+                <label className="text-xs font-mono text-slate-300 block">
+                  Total Quota to Share (Tokens):
+                </label>
                 <input
                   type="number"
-                  min="25000"
+                  min={maxTMaxRequired}
                   step="5000"
                   value={tokenQuota}
                   onChange={(e) => setTokenQuota(Number(e.target.value))}
                   className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-cyan-400 font-bold font-mono focus:outline-none focus:border-indigo-500"
                 />
+                <span className="text-[10px] text-slate-400 font-mono block">
+                  Minimum recommended: {maxTMaxRequired.toLocaleString()} tokens (guarantees zero cutoffs).
+                </span>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-mono text-slate-300 block">Price per 1,000 Tokens (USDC):</label>
+                <label className="text-xs font-mono text-slate-300 block">
+                  Price per 1,000 Tokens (USDC):
+                </label>
                 <input
                   type="number"
                   step="0.001"
@@ -239,6 +389,9 @@ export default function SellerHubPage() {
                   onChange={(e) => setPricePer1kUsdc(Number(e.target.value))}
                   className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-emerald-400 font-bold font-mono focus:outline-none focus:border-indigo-500"
                 />
+                <span className="text-[10px] text-slate-400 font-mono block">
+                  e.g., $0.015 USDC per 1,000 tokens
+                </span>
               </div>
             </div>
 
@@ -299,8 +452,8 @@ export default function SellerHubPage() {
               disabled={isSubmitting}
               className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 font-bold text-white text-sm shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2"
             >
-              <Database className="w-4 h-4" />
-              {isSubmitting ? "Creating Arkiv Entity..." : "Publish to Arkiv Orderbook (1-Hour Expiry)"}
+              <Sparkles className="w-4 h-4" />
+              {isSubmitting ? "Broadcasting to Arkiv..." : "Publish 1-Hour Token Listing on Arkiv"}
             </button>
           </form>
         </div>
