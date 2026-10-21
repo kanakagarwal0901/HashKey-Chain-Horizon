@@ -25,6 +25,7 @@ import {
   getModelsByProvider,
   getModelMetadata,
   getModelTokenBounds,
+  getMinimumListingQuotaForModel,
   ThinkingLevel,
 } from "@shunya/core";
 
@@ -149,6 +150,12 @@ export default function SellerHubPage() {
       alert("Please verify your human identity via World ID first.");
       return;
     }
+    if (Number(tokenQuota) < minRequiredQuota) {
+      alert(
+        `Insufficient Quota: ${currentModelMeta.name} requires a minimum quota of at least ${minRequiredQuota.toLocaleString()} tokens to satisfy the zero-cutoff condition.`
+      );
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -203,6 +210,10 @@ export default function SellerHubPage() {
     if (thinkingBreakdown.length === 0) return 20000;
     return Math.max(...thinkingBreakdown.map((t) => t.bounds.totalMaxTokens));
   }, [thinkingBreakdown]);
+
+  const minRequiredQuota = useMemo(() => {
+    return getMinimumListingQuotaForModel(model);
+  }, [model]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
@@ -305,6 +316,7 @@ export default function SellerHubPage() {
                           <th className="py-1.5 px-2">Thinking Budget</th>
                           <th className="py-1.5 px-2">Output Cap</th>
                           <th className="py-1.5 px-2">Input Cap</th>
+                          <th className="py-1.5 px-2 text-right text-amber-400">T_min (Floor)</th>
                           <th className="py-1.5 px-2 text-right text-cyan-400">T_max (Gate)</th>
                           <th className="py-1.5 px-2 text-right text-emerald-400">Default Rate</th>
                         </tr>
@@ -316,6 +328,9 @@ export default function SellerHubPage() {
                             <td className="py-1.5 px-2 text-slate-400">{t.bounds.thinkingBudgetTokens.toLocaleString()}</td>
                             <td className="py-1.5 px-2 text-slate-400">{t.bounds.maxOutputTokens.toLocaleString()}</td>
                             <td className="py-1.5 px-2 text-slate-400">{t.bounds.maxInputAndFileTokens.toLocaleString()}</td>
+                            <td className="py-1.5 px-2 text-right font-medium text-amber-400">
+                              {t.bounds.minRequiredTokens.toLocaleString()}
+                            </td>
                             <td className="py-1.5 px-2 text-right font-bold text-cyan-400">
                               {t.bounds.totalMaxTokens.toLocaleString()}
                             </td>
@@ -366,14 +381,14 @@ export default function SellerHubPage() {
                 </label>
                 <input
                   type="number"
-                  min={maxTMaxRequired}
-                  step="5000"
+                  min={minRequiredQuota}
+                  step="any"
                   value={tokenQuota}
                   onChange={(e) => setTokenQuota(Number(e.target.value))}
                   className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-cyan-400 font-bold font-mono focus:outline-none focus:border-indigo-500"
                 />
-                <span className="text-[10px] text-slate-400 font-mono block">
-                  Minimum recommended: {maxTMaxRequired.toLocaleString()} tokens (guarantees zero cutoffs).
+                <span className="text-[10px] text-cyan-400 font-mono block">
+                  Minimum required for {currentModelMeta?.name}: &ge; {minRequiredQuota.toLocaleString()} tokens (Zero-Cutoff Gate).
                 </span>
               </div>
 
@@ -383,8 +398,8 @@ export default function SellerHubPage() {
                 </label>
                 <input
                   type="number"
-                  step="0.001"
-                  min="0.001"
+                  step="any"
+                  min={0.0001}
                   value={pricePer1kUsdc}
                   onChange={(e) => setPricePer1kUsdc(Number(e.target.value))}
                   className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-emerald-400 font-bold font-mono focus:outline-none focus:border-indigo-500"

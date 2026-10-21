@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { arkivDb, worldIdService, ensService, getOrCreateEnclaveKeyPair, unwrapSellerApiKey } from "@shunya/core";
+import {
+  arkivDb,
+  worldIdService,
+  ensService,
+  getOrCreateEnclaveKeyPair,
+  unwrapSellerApiKey,
+  getMinimumListingQuotaForModel,
+} from "@shunya/core";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -60,6 +67,17 @@ export async function POST(request: NextRequest) {
 
     if (!ownerAddress || !model || !availableTokens || !sealedApiKey || !hedaraPayoutAccount) {
       return NextResponse.json({ error: "Missing mandatory fields" }, { status: 400 });
+    }
+
+    // Minimum Token Quota Condition Check
+    const minRequiredQuota = getMinimumListingQuotaForModel(model);
+    if (Number(availableTokens) < minRequiredQuota) {
+      return NextResponse.json(
+        {
+          error: `Insufficient quota: ${model} requires at least ${minRequiredQuota.toLocaleString()} tokens to satisfy the Zero-Cutoff listing condition.`,
+        },
+        { status: 400 }
+      );
     }
 
     // Enclave Pre-flight Key & Provider format validation

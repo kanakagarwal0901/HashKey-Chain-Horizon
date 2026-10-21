@@ -512,6 +512,18 @@ export function getSupportedThinkingLevels(modelId: string): ThinkingLevel[] {
   return ["low", "medium", "high"];
 }
 
+// Helper: Get minimum quota required to list a model (T_max of its lowest tier)
+export function getMinimumListingQuotaForModel(modelId: string): number {
+  const meta = getModelMetadata(modelId);
+  if (!meta) return 6000;
+  if (!meta.supportsThinking) {
+    const b = getModelTokenBounds(modelId, "none");
+    return b ? b.totalMaxTokens : 6000;
+  }
+  const lowB = getModelTokenBounds(modelId, "low");
+  return lowB ? lowB.totalMaxTokens : 12000;
+}
+
 // Helper: Get bounds for a model and thinking level
 export function getModelTokenBounds(modelId: string, thinkingLevel: ThinkingLevel): ModelTokenBounds {
   const key = `${modelId}:${thinkingLevel}`;

@@ -407,6 +407,10 @@ contract VaultLending {
 
             <div className="space-y-3 font-mono text-xs">
               <div className="flex justify-between items-center text-slate-300 p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span>Reservation Floor (T_min):</span>
+                <span className="text-amber-400 font-bold">{bounds.minRequiredTokens.toLocaleString()} tokens</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-300 p-2 rounded-lg bg-slate-900/60 border border-slate-800">
                 <span>Input & File Cap (T_input_cap):</span>
                 <span className="text-slate-100 font-bold">{bounds.maxInputAndFileTokens.toLocaleString()} tokens</span>
               </div>
