@@ -1,7 +1,31 @@
 import fs from "fs";
 import path from "path";
 import { ethers } from "ethers";
+import {
+  Client,
+  AccountId,
+  PrivateKey,
+  TransferTransaction,
+  Hbar,
+} from "@hashgraph/sdk";
 import { compileContracts } from "./compileContracts";
+
+// Ensure .env.local is loaded in standalone execution
+const envLocalPath = path.join(process.cwd(), ".env.local");
+if (fs.existsSync(envLocalPath)) {
+  const content = fs.readFileSync(envLocalPath, "utf8");
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith("#") && trimmed.includes("=")) {
+      const idx = trimmed.indexOf("=");
+      const key = trimmed.slice(0, idx).trim();
+      const val = trimmed.slice(idx + 1).trim();
+      if (!process.env[key]) {
+        process.env[key] = val;
+      }
+    }
+  }
+}
 
 export interface NetworkConfig {
   name: string;
@@ -54,6 +78,17 @@ export interface DeploymentManifest {
   updatedAt: string;
 }
 
+function parseHederaPrivateKey(keyStr: string): PrivateKey {
+  const cleanKey = keyStr.trim().replace(/^0x/, "");
+  if (cleanKey.length === 64) {
+    try { return PrivateKey.fromStringECDSA(cleanKey); } catch {}
+  }
+  try { return PrivateKey.fromStringDer(cleanKey); } catch {}
+  try { return PrivateKey.fromStringECDSA(cleanKey); } catch {}
+  try { return PrivateKey.fromStringED25519(cleanKey); } catch {}
+  return PrivateKey.fromString(cleanKey);
+}
+
 export async function deployContracts(targetNetworkKey: string = "hedera") {
   console.log("\n===========================================================================");
   console.log("   SHUNYAGRID SMART CONTRACT DEPLOYMENT ENGINE (ETHGlobal 2026)");
@@ -88,30 +123,89 @@ export async function deployContracts(targetNetworkKey: string = "hedera") {
   // 2. Setup Provider & Signer Wallet
   const provider = new ethers.JsonRpcProvider(network.rpcUrl);
   let privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
+  const operatorIdStr =
+    process.env.HEDERA_OPERATOR_ID ||
+    process.env.SHUNYA_TREASURY_HEDERA_ID ||
+    process.env.NEXT_PUBLIC_SHUNYA_TREASURY_HEDERA_ID;
+  const operatorKeyStr =
+    process.env.HEDERA_OPERATOR_KEY ||
+    process.env.SHUNYA_TREASURY_PRIVATE_KEY;
 
-  let wallet: ethers.Wallet;
+  let wallet: ethers.Wallet | ethers.HDNodeWallet = ethers.Wallet.createRandom(provider);
   let isSimulated = false;
 
-  if (privateKey && privateKey.trim().length >= 64) {
+  if (privateKey && privateKey.trim().length >= 64 && !privateKey.includes("...")) {
     if (!privateKey.startsWith("0x")) privateKey = `0x${privateKey}`;
     wallet = new ethers.Wallet(privateKey, provider);
     console.log(`\n[2/4] Deployer Wallet Connected: ${wallet.address}`);
+  } else if (operatorKeyStr && operatorIdStr && !operatorKeyStr.includes("...")) {
+    console.log(`\n[2/4] Auto-provisioning EVM deployer from Hedera operator ${operatorIdStr}...`);
     try {
-      const balance = await provider.getBalance(wallet.address);
-      console.log(`      Wallet Balance: ${ethers.formatEther(balance)} ${network.currencySymbol}`);
-      if (balance === 0n) {
-        console.warn(`      ⚠️ Balance is 0 ${network.currencySymbol}. Broadcast might fail without faucet funding.`);
+      const cleanKey = operatorKeyStr.trim().replace(/^0x/, "");
+      let isEcdsa = false;
+      try {
+        const testWallet = new ethers.Wallet(`0x${cleanKey}`, provider);
+        wallet = testWallet;
+        isEcdsa = true;
+        console.log(`      Operator key is ECDSA. Using directly as EVM deployer: ${wallet.address}`);
+      } catch {
+        isEcdsa = false;
+      }
+
+      if (!isEcdsa) {
+        console.log(`      Operator key is ED25519. Generating dedicated EVM deployer wallet...`);
+        const freshWallet = ethers.Wallet.createRandom();
+        const hederaClient = Client.forTestnet().setOperator(
+          AccountId.fromString(operatorIdStr),
+          parseHederaPrivateKey(operatorKeyStr)
+        );
+
+        console.log(`      Transferring 25 HBAR from operator to EVM alias ${freshWallet.address}...`);
+        const targetAccountId = AccountId.fromEvmAddress(0, 0, freshWallet.address);
+        const fundTx = await new TransferTransaction()
+          .addHbarTransfer(AccountId.fromString(operatorIdStr), new Hbar(-25))
+          .addHbarTransfer(targetAccountId, new Hbar(25))
+          .setTransactionMemo("ShunyaGrid EVM Deployer Auto-Funding")
+          .execute(hederaClient);
+
+        await fundTx.getReceipt(hederaClient);
+        console.log(`      ✔ Successfully funded EVM deployer ${freshWallet.address} with 25 HBAR`);
+
+        wallet = new ethers.Wallet(freshWallet.privateKey, provider);
+
+        const envLocalPath = path.join(process.cwd(), ".env.local");
+        let envContent = fs.existsSync(envLocalPath) ? fs.readFileSync(envLocalPath, "utf8") : "";
+        if (envContent.includes("DEPLOYER_PRIVATE_KEY=")) {
+          envContent = envContent.replace(/DEPLOYER_PRIVATE_KEY=.*/, `DEPLOYER_PRIVATE_KEY=${freshWallet.privateKey}`);
+        } else {
+          envContent += `\nDEPLOYER_PRIVATE_KEY=${freshWallet.privateKey}`;
+        }
+        fs.writeFileSync(envLocalPath, envContent.trim() + "\n");
+        console.log(`      ✔ Saved DEPLOYER_PRIVATE_KEY to .env.local`);
       }
     } catch (err: any) {
-      console.warn(`      Could not fetch wallet balance: ${err.message}`);
+      console.warn(`      Auto-provisioning failed (${err.message}). Falling back to simulation mode.`);
+      const randomWallet = ethers.Wallet.createRandom();
+      wallet = new ethers.Wallet(randomWallet.privateKey, provider);
+      isSimulated = true;
     }
   } else {
     isSimulated = true;
     const randomWallet = ethers.Wallet.createRandom();
     wallet = new ethers.Wallet(randomWallet.privateKey, provider);
-    console.log(`\n[2/4] No DEPLOYER_PRIVATE_KEY found in .env.local.`);
+    console.log(`\n[2/4] No DEPLOYER_PRIVATE_KEY or HEDERA_OPERATOR_KEY found in .env.local.`);
     console.log(`      Generated deterministic deployer address: ${wallet.address}`);
-    console.log(`      (Running verified deployment simulation. Add DEPLOYER_PRIVATE_KEY to broadcast on-chain).`);
+    console.log(`      (Running deployment simulation. Add HEDERA_OPERATOR_KEY to broadcast on-chain).`);
+  }
+
+  try {
+    const balance = await provider.getBalance(wallet.address);
+    console.log(`      Deployer On-Chain Balance: ${ethers.formatEther(balance)} ${network.currencySymbol}`);
+    if (balance === 0n && !isSimulated) {
+      console.warn(`      ⚠️ Balance is 0 ${network.currencySymbol}. Broadcast will fail unless funded.`);
+    }
+  } catch (err: any) {
+    console.warn(`      Could not fetch wallet balance: ${err.message}`);
   }
 
   // 3. Deployment sequence
@@ -161,7 +255,13 @@ export async function deployContracts(targetNetworkKey: string = "hedera") {
         const address = await contract.getAddress();
         const txHash = contract.deploymentTransaction()?.hash || "0x00000000000000000000000000000000";
 
+        // Check on-chain bytecode
+        const code = await provider.getCode(address);
+        const isVerifiedOnChain = code !== "0x" && code.length > 2;
+
         console.log(`    ✔ ${item.name} deployed at: ${address}`);
+        console.log(`      On-chain Bytecode Verified: ${isVerifiedOnChain}`);
+        console.log(`      Explorer: ${network.explorerUrl}/${txHash}`);
 
         deployedContracts[item.name] = {
           contractName: item.name,
@@ -170,16 +270,16 @@ export async function deployContracts(targetNetworkKey: string = "hedera") {
           blockNumber: currentBlock,
           deployer: wallet.address,
           explorerUrl: `${network.explorerUrl}/${txHash}`,
-          verified: true,
+          verified: isVerifiedOnChain,
           deployedAt: new Date().toISOString(),
         };
         continue;
       } catch (deployErr: any) {
-        console.warn(`    Broadcast failed (${deployErr.message}). Recording verified simulation for manifest.`);
+        console.warn(`    Broadcast failed (${deployErr.message}). Recording simulation entry for manifest.`);
       }
     }
 
-    // Deterministic simulation address computation (CREATE opcode: hash(rlp([sender, nonce])))
+    // Simulation address
     const nonce = Object.keys(deployedContracts).length;
     const simulatedAddress = ethers.getCreateAddress({ from: wallet.address, nonce });
     const simulatedTxHash = ethers.keccak256(
@@ -197,7 +297,7 @@ export async function deployContracts(targetNetworkKey: string = "hedera") {
       blockNumber: currentBlock + nonce,
       deployer: wallet.address,
       explorerUrl: `${network.explorerUrl}/${simulatedTxHash}`,
-      verified: true,
+      verified: false,
       deployedAt: new Date().toISOString(),
     };
   }

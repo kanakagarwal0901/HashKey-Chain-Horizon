@@ -5,34 +5,34 @@
   "contracts": {
     "VaultLending": {
       "contractName": "VaultLending",
-      "address": "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444",
-      "transactionHash": "0x1bb17d1d5a913c12e5189449fc78f9574e4bf691c4b05191d5437ec05da89f47",
-      "blockNumber": 42115869,
-      "deployer": "0xf8E28aA43a29b4ebA8c80DcFd33A91131cF9a02f",
-      "explorerUrl": "https://hashscan.io/testnet/transaction/0x1bb17d1d5a913c12e5189449fc78f9574e4bf691c4b05191d5437ec05da89f47",
+      "address": "0xd30c57fAB49FFB50D3A291d26eA08044D55e11EA",
+      "transactionHash": "0x30a3735e5f8eada6d43bae71f916325e3814d677c2a07081a81532f211ec5dbb",
+      "blockNumber": 42121482,
+      "deployer": "0x9b3b7375b0591E8A304A8f66D11186Fb07672625",
+      "explorerUrl": "https://hashscan.io/testnet/transaction/0x30a3735e5f8eada6d43bae71f916325e3814d677c2a07081a81532f211ec5dbb",
       "verified": true,
-      "deployedAt": "2026-10-22T18:05:08.578Z"
+      "deployedAt": "2026-10-22T21:17:10.691Z"
     },
     "SecureVault": {
       "contractName": "SecureVault",
-      "address": "0x8c67a2AD36764F1cD7c0F76dF53b7b0FEB223b59",
-      "transactionHash": "0x708bf8f7e754c102f6ef419c1ce5008af198599a504617f2a50e6d21c37b506b",
-      "blockNumber": 42115870,
-      "deployer": "0xf8E28aA43a29b4ebA8c80DcFd33A91131cF9a02f",
-      "explorerUrl": "https://hashscan.io/testnet/transaction/0x708bf8f7e754c102f6ef419c1ce5008af198599a504617f2a50e6d21c37b506b",
+      "address": "0x5BC453836485a2E4c80a2F171ed69438fbEa8C37",
+      "transactionHash": "0x2296d9cf3e7a51189c9308fddb9a0ef604632e04f08eb6c596eef71b98cf1a9d",
+      "blockNumber": 42121482,
+      "deployer": "0x9b3b7375b0591E8A304A8f66D11186Fb07672625",
+      "explorerUrl": "https://hashscan.io/testnet/transaction/0x2296d9cf3e7a51189c9308fddb9a0ef604632e04f08eb6c596eef71b98cf1a9d",
       "verified": true,
-      "deployedAt": "2026-10-22T18:05:08.579Z"
+      "deployedAt": "2026-10-22T21:17:19.448Z"
     },
     "ShunyaGridEscrow": {
       "contractName": "ShunyaGridEscrow",
-      "address": "0x74c7DbD18e8c2c6DB2aB8664a68938CF96975Dc7",
-      "transactionHash": "0xf322f103a4e47cb2d6272ecde38be99752e9cd26a6a4e13326c93a979b4b077d",
-      "blockNumber": 42115871,
-      "deployer": "0xf8E28aA43a29b4ebA8c80DcFd33A91131cF9a02f",
-      "explorerUrl": "https://hashscan.io/testnet/transaction/0xf322f103a4e47cb2d6272ecde38be99752e9cd26a6a4e13326c93a979b4b077d",
+      "address": "0x710fDB3AC31551dB14ea3226d0995a65B82463A2",
+      "transactionHash": "0xcf79ecfc0d5a136423d1a45e52f08539bfa136eb126cfdc9debea52b03c2f5f5",
+      "blockNumber": 42121482,
+      "deployer": "0x9b3b7375b0591E8A304A8f66D11186Fb07672625",
+      "explorerUrl": "https://hashscan.io/testnet/transaction/0xcf79ecfc0d5a136423d1a45e52f08539bfa136eb126cfdc9debea52b03c2f5f5",
       "verified": true,
-      "deployedAt": "2026-10-22T18:05:08.580Z"
+      "deployedAt": "2026-10-22T21:17:28.699Z"
     }
   },
-  "updatedAt": "2026-10-22T18:05:08.580Z"
+  "updatedAt": "2026-10-22T21:17:28.699Z"
 }

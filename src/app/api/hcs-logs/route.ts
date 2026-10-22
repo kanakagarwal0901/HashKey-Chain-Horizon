@@ -16,25 +16,29 @@ export async function GET() {
         // Merge mirror node receipts
         const existingTxIds = new Set(localReceipts.map((r) => r.sellerPayoutTxId));
         for (const msg of mirrorMessages) {
-          if (msg.sellerPayoutTxId && !existingTxIds.has(msg.sellerPayoutTxId)) {
+          const txKey = msg.sellerPayoutTxId || `hcs_init_${msg.sequenceNumber}`;
+          if (!existingTxIds.has(txKey)) {
+            existingTxIds.add(txKey);
             mergedReceipts.push({
               hcsTopicId: topicId,
               sequenceNumber: msg.sequenceNumber || 1000,
               consensusTimestamp: msg.consensusTimestamp || new Date().toISOString(),
-              buyerUpfrontTxId: msg.buyerUpfrontTxId || "0.0.unknown",
-              sellerPayoutTxId: msg.sellerPayoutTxId,
-              hashscanUrl: `https://hashscan.io/testnet/transaction/${msg.sellerPayoutTxId}`,
-              model: msg.model || "claude-3-7-sonnet",
-              thinkingLevel: msg.thinkingLevel || "medium",
-              tMaxTokens: msg.tMaxTokens || 24192,
-              tUsedTokens: msg.tUsedTokens || 14192,
-              buyerPaidMicroUsdc: (msg.buyerChargedUsdc || 0.24) * 1_000_000,
-              buyerPaidUsdc: msg.buyerChargedUsdc || 0.24,
-              sellerReceivedMicroUsdc: (msg.sellerPayoutUsdc || 0.14) * 1_000_000,
-              sellerReceivedUsdc: msg.sellerPayoutUsdc || 0.14,
-              webAppCommissionMicroUsdc: (msg.protocolCommissionUsdc || 0.10) * 1_000_000,
-              webAppCommissionUsdc: msg.protocolCommissionUsdc || 0.10,
-              zeroGProofHash: msg.zeroGProofHash || "0xverified_proof",
+              buyerUpfrontTxId: msg.buyerUpfrontTxId || "0.0.operator",
+              sellerPayoutTxId: msg.sellerPayoutTxId || `0.0.operator@${msg.sequenceNumber}`,
+              hashscanUrl: msg.sellerPayoutTxId
+                ? `https://hashscan.io/testnet/transaction/${msg.sellerPayoutTxId}`
+                : `https://hashscan.io/testnet/topic/${topicId}`,
+              model: msg.model || (msg.event === "HCS_TOPIC_INITIALIZED" ? "System / Genesis Verification" : "claude-3-7-sonnet"),
+              thinkingLevel: msg.thinkingLevel || "N/A",
+              tMaxTokens: msg.tMaxTokens || 0,
+              tUsedTokens: msg.tUsedTokens || 0,
+              buyerPaidMicroUsdc: (msg.buyerChargedUsdc || 0) * 1_000_000,
+              buyerPaidUsdc: msg.buyerChargedUsdc || 0,
+              sellerReceivedMicroUsdc: (msg.sellerPayoutUsdc || 0) * 1_000_000,
+              sellerReceivedUsdc: msg.sellerPayoutUsdc || 0,
+              webAppCommissionMicroUsdc: (msg.protocolCommissionUsdc || 0) * 1_000_000,
+              webAppCommissionUsdc: msg.protocolCommissionUsdc || 0,
+              zeroGProofHash: msg.zeroGProofHash || "0xgenesis_root",
               privacyGuarantee: "PROMPT_FILES_OUTPUT_SEALED",
             });
           }

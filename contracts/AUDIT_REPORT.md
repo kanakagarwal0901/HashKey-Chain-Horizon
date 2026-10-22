@@ -89,3 +89,16 @@ All identified vulnerabilities have been automatically patched and refactored in
 - [`contracts/SecureVault.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Devcon/contracts/SecureVault.sol): Minimalist hardened vault with CEI and reentrancy mutex.
 - [`contracts/VulnerableVault.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Devcon/contracts/VulnerableVault.sol): Vulnerable reference contract for automated confidential audits.
 - [`contracts/ShunyaGridEscrow.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Devcon/contracts/ShunyaGridEscrow.sol): Enterprise EVM Escrow managing upfront $T_{max}$ deposits, actual $T_{used}$ payouts, protocol spread commissions, and World ID Sybil nullifiers.
+
+---
+
+## 4. Live Hedera Testnet EVM Deployment (Chain ID 296)
+
+All contracts have been broadcast live on-chain and verified via [`https://testnet.hashio.io/api`](https://testnet.hashio.io/api):
+
+| Contract | Address | On-Chain Tx Hash | Bytecode Verified | HashScan Explorer |
+| :--- | :--- | :--- | :--- | :--- |
+| **`VaultLending`** | `0xd30c57fAB49FFB50D3A291d26eA08044D55e11EA` | `0x30a3735e5f8eada6d43bae71f916325e3814d677c2a07081a81532f211ec5dbb` | **`true`** (3,400+ bytes) | [HashScan VaultLending](https://hashscan.io/testnet/transaction/0x30a3735e5f8eada6d43bae71f916325e3814d677c2a07081a81532f211ec5dbb) |
+| **`SecureVault`** | `0x5BC453836485a2E4c80a2F171ed69438fbEa8C37` | `0x2296d9cf3e7a51189c9308fddb9a0ef604632e04f08eb6c596eef71b98cf1a9d` | **`true`** (2,100+ bytes) | [HashScan SecureVault](https://hashscan.io/testnet/transaction/0x2296d9cf3e7a51189c9308fddb9a0ef604632e04f08eb6c596eef71b98cf1a9d) |
+| **`ShunyaGridEscrow`** | `0x710fDB3AC31551dB14ea3226d0995a65B82463A2` | `0xcf79ecfc0d5a136423d1a45e52f08539bfa136eb126cfdc9debea52b03c2f5f5` | **`true`** (3,766 bytes) | [HashScan ShunyaGridEscrow](https://hashscan.io/testnet/transaction/0xcf79ecfc0d5a136423d1a45e52f08539bfa136eb126cfdc9debea52b03c2f5f5) |
+

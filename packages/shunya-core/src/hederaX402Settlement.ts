@@ -112,10 +112,24 @@ export class HederaSettlementEngine {
     // If live Hedera client is configured with operator credentials, execute real HCS and HBAR payout
     if (hederaNetworkClient.isLiveConfigured()) {
       try {
-        // 1. Submit real HCS consensus message
+        // 1. Transfer live payout to seller's Hedera account FIRST to obtain real on-chain transfer TxId
+        const payoutResult = await hederaNetworkClient.transferSellerPayout({
+          sellerHederaAccountId: params.sellerHederaAccountId,
+          payoutUsdc: params.sellerPayoutMicroUsdc / 1_000_000,
+        });
+
+        if (payoutResult) {
+          sellerPayoutTxId = payoutResult.txId;
+          hashscanUrl = payoutResult.hashscanUrl;
+        }
+
+        // 2. Submit real HCS consensus message containing the real CryptoTransfer TxId
         const hcsResult = await hederaNetworkClient.submitHcsConsensusMessage({
           protocol: "ShunyaGrid-v1",
           event: "ZERO_CUTOFF_JOB_SETTLED",
+          sellerPayoutTxId,
+          hashscanUrl,
+          sellerHederaAccountId: params.sellerHederaAccountId,
           model: params.modelId,
           thinkingLevel: params.thinkingLevel,
           tMaxTokens: params.tMaxTokens,
@@ -131,17 +145,6 @@ export class HederaSettlementEngine {
         if (hcsResult) {
           sequenceNumber = hcsResult.sequenceNumber;
           consensusTimestamp = hcsResult.consensusTimestamp;
-        }
-
-        // 2. Transfer live payout to seller's Hedera account
-        const payoutResult = await hederaNetworkClient.transferSellerPayout({
-          sellerHederaAccountId: params.sellerHederaAccountId,
-          payoutUsdc: params.sellerPayoutMicroUsdc / 1_000_000,
-        });
-
-        if (payoutResult) {
-          sellerPayoutTxId = payoutResult.txId;
-          hashscanUrl = payoutResult.hashscanUrl;
         }
       } catch (liveErr) {
         console.warn("[HederaSettlement] Real Hedera testnet execution warning, maintaining valid receipt:", liveErr);
