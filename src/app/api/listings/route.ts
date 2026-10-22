@@ -6,7 +6,15 @@ import {
   getOrCreateEnclaveKeyPair,
   unwrapSellerApiKey,
   getMinimumListingQuotaForModel,
+  verifyApiKeyWithProvider,
 } from "@shunya/core";
+
+function sanitizeListings(listings: any[]) {
+  return listings.map((l) => {
+    const { sealedApiKey, ...rest } = l;
+    return { ...rest, hasSealedKey: Boolean(sealedApiKey) };
+  });
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -21,17 +29,17 @@ export async function GET(request: NextRequest) {
       query: { model, tMax },
       currentBlock: arkivDb.getCurrentBlock(),
       count: eligible.length,
-      listings: eligible,
+      listings: sanitizeListings(eligible),
     });
   }
 
-  // Return all listings
+  // Return all listings (sealedApiKey stripped for public orderbook privacy)
   const all = arkivDb.getAllListings();
   return NextResponse.json({
     success: true,
     currentBlock: arkivDb.getCurrentBlock(),
     count: all.length,
-    listings: all,
+    listings: sanitizeListings(all),
   });
 }
 
@@ -69,7 +77,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing mandatory fields" }, { status: 400 });
     }
 
-    // Minimum Token Quota Condition Check
+    // 1. Valid Crypto Wallet Address Check
+    const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+    if (!ethAddressRegex.test(ownerAddress)) {
+      return NextResponse.json(
+        { error: "Invalid crypto wallet address: Must be a connected 42-character Ethereum address (0x...)" },
+        { status: 400 }
+      );
+    }
+
+    // 2. Minimum Token Quota Condition Check
     const minRequiredQuota = getMinimumListingQuotaForModel(model);
     if (Number(availableTokens) < minRequiredQuota) {
       return NextResponse.json(
@@ -80,56 +97,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Enclave Pre-flight Key & Provider format validation
+    // 3. Enclave Pre-flight Key & Provider live test call validation
+    let rawKey = "";
     try {
       const { privateKey } = getOrCreateEnclaveKeyPair();
-      let rawKey = "";
       if (sealedApiKey.startsWith("ENCLAVE_SEALED:")) {
         rawKey = sealedApiKey.replace("ENCLAVE_SEALED:", "");
       } else {
         rawKey = unwrapSellerApiKey(sealedApiKey, privateKey);
       }
-
-      const p = (provider || "").toLowerCase();
-      if (p === "anthropic" && !rawKey.startsWith("sk-ant-") && !rawKey.startsWith("mock-ant")) {
-        return NextResponse.json(
-          { error: "Invalid API key format: Anthropic keys must begin with 'sk-ant-'" },
-          { status: 400 }
-        );
-      }
-      if (p === "openai" && !rawKey.startsWith("sk-") && !rawKey.startsWith("mock-oai")) {
-        return NextResponse.json(
-          { error: "Invalid API key format: OpenAI keys must begin with 'sk-'" },
-          { status: 400 }
-        );
-      }
-      if (p === "gemini" && !rawKey.startsWith("AIza") && !rawKey.startsWith("mock-gemini")) {
-        return NextResponse.json(
-          { error: "Invalid API key format: Google Gemini keys must begin with 'AIza'" },
-          { status: 400 }
-        );
-      }
-      if (p === "groq" && !rawKey.startsWith("gsk_") && !rawKey.startsWith("mock-groq")) {
-        return NextResponse.json(
-          { error: "Invalid API key format: Groq keys must begin with 'gsk_'" },
-          { status: 400 }
-        );
-      }
     } catch {
       return NextResponse.json({ error: "Malformed sealed API key envelope" }, { status: 400 });
     }
 
-    // Verify World ID Proof if provided or generate verified proof
-    let humanVerified = true;
-    let nullifier = "0xworld_id_verified_manual";
-    if (worldIdProof) {
-      const verifyRes = await worldIdService.verifyProof({
-        action: "shunyagrid-seller-listing",
-        nullifier_hash: worldIdProof.nullifier_hash,
-      });
-      humanVerified = verifyRes.success;
-      nullifier = verifyRes.nullifier_hash;
+    // Perform live test call to the provider API to verify model access & remaining tokens
+    const keyVerdict = await verifyApiKeyWithProvider(provider || "", model, rawKey);
+    if (!keyVerdict.valid) {
+      return NextResponse.json(
+        {
+          error: `API Key Verification Failed: ${keyVerdict.error || "The provider rejected this API key for the selected model."}`,
+          details: keyVerdict,
+        },
+        { status: 400 }
+      );
     }
+
+    // 4. Verify World ID Proof (Mandatory for Seller Onboarding)
+    if (!worldIdProof || !worldIdProof.nullifier_hash) {
+      return NextResponse.json(
+        { error: "World ID verification required: You must verify your human identity with World ID to list on Arkiv." },
+        { status: 403 }
+      );
+    }
+
+    const verifyRes = await worldIdService.verifyProof({
+      action: "seller-listing",
+      nullifier_hash: worldIdProof.nullifier_hash,
+      merkle_root: worldIdProof.merkle_root,
+      proof: worldIdProof.proof,
+    });
+
+    if (!verifyRes.success) {
+      return NextResponse.json(
+        { error: "World ID proof verification failed: Invalid proof or duplicate nullifier." },
+        { status: 403 }
+      );
+    }
+
+    const humanVerified = true;
+    const nullifier = verifyRes.nullifier_hash;
 
     // Register or resolve ENS subname
     const ensName = ensLabel

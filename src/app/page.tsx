@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   Shield,
-  Lock,
   Cpu,
   ArrowRight,
   Database,
@@ -14,10 +13,23 @@ import {
   Zap,
   Globe,
   Terminal,
+  Wallet,
+  LogOut,
+  ExternalLink,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import LoginGateway from "@/components/LoginGateway";
 
 export default function HomePage() {
+  const {
+    walletAddress,
+    worldIdVerified,
+    nullifierHash,
+    isAuthenticated,
+    logout,
+  } = useAuth();
+
   const [activeListings, setActiveListings] = useState<any[]>([]);
 
   useEffect(() => {
@@ -32,16 +44,16 @@ export default function HomePage() {
   return (
     <div className="space-y-20 pb-20">
       {/* Hero Section */}
-      <section className="relative pt-12 pb-16 overflow-hidden">
+      <section className="relative pt-8 pb-16 overflow-hidden">
         {/* Ambient Gradient Glows */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute top-1/3 left-1/3 w-[300px] h-[200px] bg-cyan-500/15 blur-[100px] rounded-full pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 space-y-8">
-          {/* Hackathon Badge */}
+          {/* Protocol Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-indigo-500/30 text-xs font-mono text-indigo-300">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            ETHGlobal Mumbai 2026 • 7 Track Architecture • $64,500+ Prize Pool
+            ShunyaGrid Protocol • Privacy-Preserving AI Token Exchange
           </div>
 
           {/* Headline */}
@@ -58,34 +70,67 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+          {/* Primary Call to Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <Link
               href="/buyer"
-              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 font-semibold text-white shadow-lg shadow-indigo-600/25 flex items-center gap-2 transition transform hover:-translate-y-0.5"
+              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 font-semibold text-white shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition transform hover:-translate-y-0.5 text-sm sm:text-base"
             >
-              <Cpu className="w-5 h-5" />
+              <Cpu className="w-5 h-5 text-cyan-200" />
               Launch Buyer Studio
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/seller"
-              className="px-6 py-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-semibold flex items-center gap-2 transition transform hover:-translate-y-0.5"
+              className="px-6 py-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-slate-200 font-semibold flex items-center gap-2 transition transform hover:-translate-y-0.5 text-sm sm:text-base"
             >
               <Coins className="w-5 h-5 text-emerald-400" />
               Sell Idle API Tokens
-            </Link>
-            <Link
-              href="/audit"
-              className="px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-indigo-500/40 text-indigo-300 font-semibold flex items-center gap-2 transition"
-            >
-              <Lock className="w-5 h-5 text-indigo-400" />
-              Judge Split Audit View
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
+          {/* Authenticated Dashboard Bar OR Login Gateway */}
+          {isAuthenticated ? (
+            <div className="max-w-2xl mx-auto glass-panel p-5 sm:p-6 rounded-3xl border border-emerald-500/30 shadow-2xl space-y-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-400 flex items-center justify-center text-slate-950 font-bold text-sm shadow-md">
+                    {walletAddress ? walletAddress.slice(2, 4).toUpperCase() : "SG"}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white font-mono">
+                        {walletAddress ? `${walletAddress.slice(0, 10)}...${walletAddress.slice(-6)}` : "Connected"}
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-mono bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800/40 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        World ID Verified
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-400 font-mono">
+                      Nullifier: {nullifierHash ? `${nullifierHash.slice(0, 18)}...` : "Active"}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={logout}
+                  className="px-3.5 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/50 text-red-400 border border-red-900/50 text-xs font-mono font-semibold flex items-center gap-1.5 transition"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Log Out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="pt-2">
+              <LoginGateway targetService="general" />
+            </div>
+          )}
+
           {/* Live Invariant Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto pt-4">
             <div className="glass-panel p-4 rounded-xl text-left border-l-2 border-l-cyan-500">
               <span className="text-xs text-slate-400 block font-mono">Cutoff Failure Rate</span>
               <span className="text-2xl font-bold text-cyan-400 font-mono">0.00%</span>
@@ -248,43 +293,6 @@ export default function HomePage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Sponsor Tracks Matrix */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold text-white">7-Track Sponsor Architecture Matrix</h2>
-          <p className="text-slate-400 text-sm">
-            Architected specifically for ETHGlobal Mumbai 2026 across 7 tracks with 100% technical compliance.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
-          <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-2">
-            <span className="text-indigo-400 font-bold block">1. Ethereum Foundation ($15k)</span>
-            <p className="text-slate-300 font-sans">
-              Anon-RPC browser harness proxy masking Buyer IP. Full CROPS privacy adherence (zero trackers, local keys).
-            </p>
-          </div>
-          <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-2">
-            <span className="text-cyan-400 font-bold block">2. Hedera ($15k)</span>
-            <p className="text-slate-300 font-sans">
-              HTTP 402 (x402) paywall with HTS USDC settlement and tamper-evident HCS topic audit logging (Zero Solidity).
-            </p>
-          </div>
-          <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-2">
-            <span className="text-emerald-400 font-bold block">3. Arkiv ($15k)</span>
-            <p className="text-slate-300 font-sans">
-              Time-scoped Web3 database entities: 1-hour Seller listings and 10-minute temporary encrypted file blobs.
-            </p>
-          </div>
-          <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-2">
-            <span className="text-amber-400 font-bold block">4. 0G ($15k)</span>
-            <p className="text-slate-300 font-sans">
-              0G Compute Sealed TEE Enclave holding keys + 0G Storage for encrypted attachments &gt;128 KiB + OpenClaw Agent.
-            </p>
           </div>
         </div>
       </section>

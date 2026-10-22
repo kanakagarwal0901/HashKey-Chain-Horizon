@@ -1,0 +1,38 @@
+{
+  "network": "Hedera Testnet (EVM)",
+  "chainId": 296,
+  "rpcUrl": "https://testnet.hashio.io/api",
+  "contracts": {
+    "VaultLending": {
+      "contractName": "VaultLending",
+      "address": "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444",
+      "transactionHash": "0x1bb17d1d5a913c12e5189449fc78f9574e4bf691c4b05191d5437ec05da89f47",
+      "blockNumber": 42115869,
+      "deployer": "0xf8E28aA43a29b4ebA8c80DcFd33A91131cF9a02f",
+      "explorerUrl": "https://hashscan.io/testnet/transaction/0x1bb17d1d5a913c12e5189449fc78f9574e4bf691c4b05191d5437ec05da89f47",
+      "verified": true,
+      "deployedAt": "2026-10-22T18:05:08.578Z"
+    },
+    "SecureVault": {
+      "contractName": "SecureVault",
+      "address": "0x8c67a2AD36764F1cD7c0F76dF53b7b0FEB223b59",
+      "transactionHash": "0x708bf8f7e754c102f6ef419c1ce5008af198599a504617f2a50e6d21c37b506b",
+      "blockNumber": 42115870,
+      "deployer": "0xf8E28aA43a29b4ebA8c80DcFd33A91131cF9a02f",
+      "explorerUrl": "https://hashscan.io/testnet/transaction/0x708bf8f7e754c102f6ef419c1ce5008af198599a504617f2a50e6d21c37b506b",
+      "verified": true,
+      "deployedAt": "2026-10-22T18:05:08.579Z"
+    },
+    "ShunyaGridEscrow": {
+      "contractName": "ShunyaGridEscrow",
+      "address": "0x74c7DbD18e8c2c6DB2aB8664a68938CF96975Dc7",
+      "transactionHash": "0xf322f103a4e47cb2d6272ecde38be99752e9cd26a6a4e13326c93a979b4b077d",
+      "blockNumber": 42115871,
+      "deployer": "0xf8E28aA43a29b4ebA8c80DcFd33A91131cF9a02f",
+      "explorerUrl": "https://hashscan.io/testnet/transaction/0xf322f103a4e47cb2d6272ecde38be99752e9cd26a6a4e13326c93a979b4b077d",
+      "verified": true,
+      "deployedAt": "2026-10-22T18:05:08.580Z"
+    }
+  },
+  "updatedAt": "2026-10-22T18:05:08.580Z"
+}

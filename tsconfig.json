@@ -22,7 +22,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@shunya/core": ["./packages/shunya-core/src/index.ts"],
-      "@shunya/core/*": ["./packages/shunya-core/src/*"]
+      "@shunya/core/*": ["./packages/shunya-core/src/*"],
+      "@arkiv/sdk": ["./packages/arkiv-sdk/index.ts"]
     }
   },
   "include": [

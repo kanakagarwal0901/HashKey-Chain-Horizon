@@ -1,0 +1,305 @@
+{
+  "contractName": "ShunyaGridEscrow",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_protocolFeeRecipient",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "InsufficientAllowance",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "jobId",
+          "type": "bytes32"
+        }
+      ],
+      "name": "JobAlreadyExists",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "jobId",
+          "type": "bytes32"
+        }
+      ],
+      "name": "JobAlreadySettled",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "jobId",
+          "type": "bytes32"
+        }
+      ],
+      "name": "JobNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "nullifier",
+          "type": "bytes32"
+        }
+      ],
+      "name": "NullifierAlreadySpent",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ReentrancyAttempt",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TokenTransferFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "Unauthorized",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAmount",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "jobId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "buyer",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "seller",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "maxUpfrontAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "worldIdNullifier",
+          "type": "bytes32"
+        }
+      ],
+      "name": "JobEscrowCreated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "jobId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "seller",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "sellerPayout",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "protocolCommission",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "buyerRefund",
+          "type": "uint256"
+        }
+      ],
+      "name": "JobSettled",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "jobId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "seller",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "worldIdNullifier",
+          "type": "bytes32"
+        }
+      ],
+      "name": "createJobEscrow",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "jobs",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "buyer",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "seller",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maxUpfrontAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "settled",
+          "type": "bool"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "worldIdNullifier",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "createdAt",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "protocolFeeRecipient",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "jobId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "sellerPayout",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "protocolCommission",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "buyerRefund",
+          "type": "uint256"
+        }
+      ],
+      "name": "settleJob",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "usedNullifiers",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "608060405234801561000f575f80fd5b5060405161081e38038061081e83398101604081905261002e9161008a565b6001600160a01b0381166100555760405163d92e233d60e01b815260040160405180910390fd5b5f8054336001600160a01b031991821617909155600180549091166001600160a01b03929092169190911781556004556100b7565b5f6020828403121561009a575f80fd5b81516001600160a01b03811681146100b0575f80fd5b9392505050565b61075a806100c45f395ff3fe608060405260043610610054575f3560e01c8063206137aa1461005857806338ed7cfc1461009b57806364df049e146101365780638da5cb5b1461016d578063c99e1ffb1461018b578063d8872d40146101a0575b5f80fd5b348015610063575f80fd5b50610086610072366004610679565b60036020525f908152604090205460ff1681565b60405190151581526020015b60405180910390f35b3480156100a6575f80fd5b506100fc6100b5366004610679565b600260208190525f91825260409091208054600182015492820154600383015460048401546005909401546001600160a01b039384169590931693919260ff909116919086565b604080516001600160a01b0397881681529690951660208701529385019290925215156060840152608083015260a082015260c001610092565b348015610141575f80fd5b50600154610155906001600160a01b031681565b6040516001600160a01b039091168152602001610092565b348015610178575f80fd5b505f54610155906001600160a01b031681565b61019e610199366004610690565b6101bf565b005b3480156101ab575f80fd5b5061019e6101ba3660046106d0565b6103b0565b6002600454036101e25760405163648fef1360e01b815260040160405180910390fd5b6002600455345f0361020757604051631f2a200560e01b815260040160405180910390fd5b6001600160a01b03821661022e5760405163d92e233d60e01b815260040160405180910390fd5b5f838152600260205260409020546001600160a01b03161561026b5760405163b6a8d58360e01b8152600481018490526024015b60405180910390fd5b801580159061028757505f8181526003602052604090205460ff165b156102a857604051633c4f911160e01b815260048101829052602401610262565b80156102c7575f818152600360205260409020805460ff191660011790555b6040805160c081018252338082526001600160a01b038581166020808501828152348688018181525f6060890181815260808a018c81524260a08c019081528f84526002808952938d90209b518c54908b166001600160a01b0319918216178d55965160018d01805491909b169716969096179098559151908901555160038801805491151560ff19909216919091179055935160048701555160059095019490945584519182529281018590529192909186917f9e5659e55e0aee58bb7e5f9fd672a9305697b355fd028e08fd9d140edfc10ba9910160405180910390a45050600160045550565b5f546001600160a01b031633146103d9576040516282b42960e81b815260040160405180910390fd5b6002600454036103fc5760405163648fef1360e01b815260040160405180910390fd5b600260048190555f8581526020919091526040902080546001600160a01b031661043c5760405163c182b72d60e01b815260048101869052602401610262565b600381015460ff1615610465576040516343a335fd60e11b815260048101869052602401610262565b60028101548261047585876106ff565b61047f91906106ff565b1461049d57604051631f2a200560e01b815260040160405180910390fd5b60038101805460ff1916600190811790915581015460408051868152602081018690529081018490526001600160a01b039091169086907ff652251764ac9620800fca53518c0ae38f64d649c840f493250af392bd4a3e669060600160405180910390a3831561057c5760018101546040515f916001600160a01b03169086908381818185875af1925050503d805f8114610553576040519150601f19603f3d011682016040523d82523d5f602084013e610558565b606091505b505090508061057a5760405163022e258160e11b815260040160405180910390fd5b505b82156105f5576001546040515f916001600160a01b03169085908381818185875af1925050503d805f81146105cc576040519150601f19603f3d011682016040523d82523d5f602084013e6105d1565b606091505b50509050806105f35760405163022e258160e11b815260040160405180910390fd5b505b811561066d5780546040515f916001600160a01b03169084908381818185875af1925050503d805f8114610644576040519150601f19603f3d011682016040523d82523d5f602084013e610649565b606091505b505090508061066b5760405163022e258160e11b815260040160405180910390fd5b505b50506001600455505050565b5f60208284031215610689575f80fd5b5035919050565b5f805f606084860312156106a2575f80fd5b8335925060208401356001600160a01b03811681146106bf575f80fd5b929592945050506040919091013590565b5f805f80608085870312156106e3575f80fd5b5050823594602084013594506040840135936060013592509050565b8082018082111561071e57634e487b7160e01b5f52601160045260245ffd5b9291505056fea2646970667358221220a8474699c2884dae724b6fb26037503f3685094fcdccb200f5247d3fc671250e64736f6c63430008140033"
+}

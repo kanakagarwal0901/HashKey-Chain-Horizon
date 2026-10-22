@@ -21,18 +21,7 @@ export class ArcBridgeService {
   }
 
   private seedDefaultTransactions() {
-    this.transactions.push({
-      id: "arc_cctp_01",
-      sourceChain: "hedera",
-      destinationChain: "arc",
-      amountUsdc: 45.5,
-      recipientAddress: "0x71C2a8b940e4e8B",
-      cctpMessageBytes: "0x000000030000000000000000000000000000000000000000",
-      cctpAttestation: "0xattest_circle_cctp_valid_burn_signature_sample",
-      status: "minted_on_destination",
-      txHash: "0x892a01d98124801b924081029481902481029481",
-      timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    });
+    // Clean bridge transaction history: transactions are populated upon authentic user CCTP sweeps
   }
 
   // Initiate Circle CCTP sweep from Hedera to Arc / other EVM chains
@@ -69,6 +58,6 @@ export class ArcBridgeService {
 }
 
 // Global Singleton
+export const arcBridgeService = new ArcBridgeService();
 const globalForArc = globalThis as unknown as { arcBridgeService?: ArcBridgeService };
-export const arcBridgeService = globalForArc.arcBridgeService ?? new ArcBridgeService();
-if (process.env.NODE_ENV !== "production") globalForArc.arcBridgeService = arcBridgeService;
+globalForArc.arcBridgeService = arcBridgeService;

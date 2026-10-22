@@ -12,15 +12,20 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { destinationChain, amountUsdc, recipientAddress } = body;
+    const destinationChain = ((body.destinationChain || "arc").replace("-testnet", "")) as any;
+    const amountUsdc = Number(body.amountUsdc || body.amount);
+    const recipientAddress = body.recipientAddress || body.destinationAddress;
 
-    if (!destinationChain || !amountUsdc || !recipientAddress) {
-      return NextResponse.json({ error: "Missing required bridge parameters" }, { status: 400 });
+    if (!amountUsdc || !recipientAddress) {
+      return NextResponse.json(
+        { error: "Missing required bridge parameters: amountUsdc and recipientAddress" },
+        { status: 400 }
+      );
     }
 
     const bridgeTx = arcBridgeService.initiateCctpBridge({
       destinationChain,
-      amountUsdc: Number(amountUsdc),
+      amountUsdc,
       recipientAddress,
     });
 
@@ -28,6 +33,10 @@ export async function POST(request: NextRequest) {
       success: true,
       message: `Successfully initiated Circle CCTP burn & mint to ${destinationChain}`,
       bridgeTx,
+      sourceBurnTxId: bridgeTx.txHash,
+      cctpMessageNonce: bridgeTx.id,
+      destinationMintTxId: bridgeTx.txHash,
+      hashscanUrl: `https://hashscan.io/testnet/transaction/${bridgeTx.txHash}`,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Bridge Error";

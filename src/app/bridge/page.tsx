@@ -2,13 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { ArrowRightLeft, Shield, CheckCircle2, ExternalLink, Coins, Layers, ArrowRight } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ArcBridgePage() {
+  const { walletAddress } = useAuth();
   const [destinationChain, setDestinationChain] = useState<string>("arc");
   const [amountUsdc, setAmountUsdc] = useState<number>(50);
   const [recipientAddress, setRecipientAddress] = useState<string>("0x71C2a8b940e4e8B");
   const [isBridging, setIsBridging] = useState<boolean>(false);
   const [bridgeHistory, setBridgeHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (walletAddress && recipientAddress === "0x71C2a8b940e4e8B") {
+      setRecipientAddress(walletAddress);
+    }
+  }, [walletAddress]);
 
   const fetchHistory = () => {
     fetch("/api/bridge/cctp")

@@ -35,6 +35,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Temporary scratch & runtime data
+.data/
+scratch/
+
 # OS Files
 .DS_Store
 Thumbs.db

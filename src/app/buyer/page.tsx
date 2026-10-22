@@ -37,12 +37,21 @@ import {
   sealBuyerPromptAndFilesInBrowser,
   decryptBuyerOutputInBrowser,
 } from "@/lib/clientCrypto";
+import { useAuth } from "@/context/AuthContext";
+import WorldIdModal from "@/components/WorldIdModal";
 
 export default function BuyerStudioPage() {
+  const {
+    isAuthenticated,
+    walletAddress,
+    worldIdVerified,
+    nullifierHash,
+  } = useAuth();
   // Cascading Selection State
   const [selectedProvider, setSelectedProvider] = useState<string>("anthropic");
   const [selectedModel, setSelectedModel] = useState<string>("claude-3-7-sonnet");
   const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("medium");
+  const [showWorldIdModal, setShowWorldIdModal] = useState<boolean>(false);
 
   // Prompt & File Drop State
   const [promptText, setPromptText] = useState<string>(
@@ -246,6 +255,10 @@ contract VaultLending {
   // Execute blind inference
   const executePrompt = async () => {
     if (!selectedSeller) return;
+    if (!isAuthenticated) {
+      setShowWorldIdModal(true);
+      return;
+    }
     setIsExecuting(true);
     setExecutionResult(null);
     setDecryptedResult(null);
@@ -255,7 +268,7 @@ contract VaultLending {
       setExecutionStep("1/4: Sealing prompt & files with AES-256-GCM in local browser RAM...");
       const pubKeyRes = await fetch("/api/enclave-pubkey");
       const pubKeyData = await pubKeyRes.json();
-      const enclavePubKeyPem = pubKeyData.publicKeyPem;
+      const enclavePubKeyPem = pubKeyData.publicKeyPem || pubKeyData.enclavePublicKeyPem || pubKeyData.publicKey;
 
       const filesForCrypto = attachedFiles
         .filter((f) => f && f.base64)
@@ -275,7 +288,7 @@ contract VaultLending {
       setExecutionStep(`2/4: Hedera x402 Paywall: Depositing $${upfrontUsdc.toFixed(6)} HTS USDC for T_max...`);
       await new Promise((r) => setTimeout(r, 600));
 
-      const paymentTxId = `0.0.482910@${Math.floor(Date.now() / 1000)}.778102910`;
+      const paymentTxId = `${walletAddress ? walletAddress.slice(0, 10) : "0.0.482910"}@${Math.floor(Date.now() / 1000)}.778102910`;
 
       // Phase 3: Sealed Enclave Execution
       setExecutionStep("3/4: 0G Sealed Enclave executing inference with zero seller visibility...");
@@ -346,20 +359,30 @@ contract VaultLending {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-slate-200 font-bold">
+                {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "Connected"}
+              </span>
+              <span className="text-emerald-400 font-semibold">&bull; World ID Verified</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowWorldIdModal(true)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-900/80 to-cyan-900/80 border border-cyan-500/40 hover:border-cyan-400 text-xs font-mono text-cyan-200 hover:text-white transition shadow-sm"
+            >
+              <Shield className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Connect & Verify World ID</span>
+            </button>
+          )}
           <Link
             href="/seller"
             className="px-4 py-2 rounded-xl text-xs font-medium bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5"
           >
             <Database className="w-3.5 h-3.5 text-cyan-400" />
             Seller Hub
-          </Link>
-          <Link
-            href="/audit"
-            className="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-950/60 border border-indigo-800/40 hover:border-indigo-700 text-indigo-300 hover:text-white transition flex items-center gap-1.5"
-          >
-            <Lock className="w-3.5 h-3.5 text-indigo-400" />
-            Consensus Audit Logs
           </Link>
         </div>
       </div>
@@ -899,7 +922,11 @@ contract VaultLending {
                 }`}
               >
                 <Shield className="w-4 h-4 text-cyan-300" />
-                {isExecuting ? "Executing Sealed Inference..." : `Lock & Execute with x402 ($${upfrontUsdc.toFixed(4)} USDC)`}
+                {isExecuting
+                  ? "Executing Sealed Inference..."
+                  : !isAuthenticated
+                  ? `Connect & Verify to Lock ($${upfrontUsdc.toFixed(4)} USDC)`
+                  : `Lock & Execute with x402 ($${upfrontUsdc.toFixed(4)} USDC)`}
               </button>
             </div>
 
@@ -990,20 +1017,18 @@ contract VaultLending {
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
-
-                  <Link
-                    href="/audit"
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white font-medium flex items-center gap-1 transition"
-                  >
-                    Inspect in Audit Logs
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
                 </div>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* World ID Verification Modal */}
+      <WorldIdModal
+        isOpen={showWorldIdModal}
+        onClose={() => setShowWorldIdModal(false)}
+      />
     </div>
   );
 }

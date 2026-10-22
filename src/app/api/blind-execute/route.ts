@@ -54,8 +54,15 @@ export async function POST(request: NextRequest) {
     const pricePer1k = listing.pricePer1kMicroUsdc;
     const upfrontChargeMicroUsdc = Math.ceil((bounds.totalMaxTokens / 1000) * pricePer1k);
 
-    // Check Hedera x402 payment header or body param
-    const paymentHeader = request.headers.get("x-402-payment-txid") || paymentTxId;
+    // Check Hedera x402 payment header (supports Authorization: x402 <txId>, x-402-payment-txid, or body param)
+    const authHeader = request.headers.get("authorization");
+    let paymentHeader = request.headers.get("x-402-payment-txid") || paymentTxId;
+    if (!paymentHeader && authHeader) {
+      const match = authHeader.match(/^x402\s+(.+)$/i);
+      if (match) {
+        paymentHeader = match[1].trim();
+      }
+    }
 
     if (!paymentHeader) {
       // Return HTTP 402 Payment Required quoting T_max upfront deposit
@@ -128,8 +135,16 @@ export async function POST(request: NextRequest) {
         } else {
           rawSellerApiKey = unwrapSellerApiKey(listing.sealedApiKey, enclavePrivateKey);
         }
-      } catch {
-        rawSellerApiKey = "sk-placeholder-enclave-protected";
+      } catch (unwrapKeyErr: any) {
+        console.error("Seller key unwrap failed:", unwrapKeyErr);
+        await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
+        return NextResponse.json(
+          {
+            error: "Failed to unwrap Seller API key inside Enclave",
+            detail: unwrapKeyErr instanceof Error ? unwrapKeyErr.message : String(unwrapKeyErr),
+          },
+          { status: 500 }
+        );
       }
 
       // Step 3: Parse files in Enclave RAM

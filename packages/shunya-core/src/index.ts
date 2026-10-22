@@ -8,3 +8,5 @@ export * from "./worldIdVerification";
 export * from "./ensNamespace";
 export * from "./arcBridge";
 export * from "./aiProviderDispatcher";
+export * from "./hederaClient";
+export * from "./apiKeyVerifier";

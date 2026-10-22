@@ -17,8 +17,17 @@ import {
   ArrowRight,
   Info,
   Zap,
+  Wallet,
+  QrCode,
+  ExternalLink,
+  X,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { sealSellerApiKeyInBrowser } from "@/lib/clientCrypto";
+import { useAuth } from "@/context/AuthContext";
+import WorldIdModal from "@/components/WorldIdModal";
+import ArcBridgeDrawer from "@/components/ArcBridgeDrawer";
 import {
   PROVIDERS,
   SUPPORTED_MODELS,
@@ -30,22 +39,65 @@ import {
 } from "@shunya/core";
 
 export default function SellerHubPage() {
+  const {
+    walletAddress,
+    walletChainId,
+    isConnectingWallet,
+    worldIdVerified,
+    nullifierHash,
+    merkleRoot,
+    proofPayload,
+    isAuthenticated,
+    connectWallet,
+    disconnectWallet,
+    logout,
+  } = useAuth();
+
+  // Provider & Model
   const [provider, setProvider] = useState<string>("anthropic");
   const [model, setModel] = useState<string>("claude-3-7-sonnet");
-  const [rawApiKey, setRawApiKey] = useState<string>("sk-ant-api03-sample-developer-key-9912");
+
+  // Real API Key (No placeholder / sample default)
+  const [rawApiKey, setRawApiKey] = useState<string>("");
   const [sealedKeyCiphertext, setSealedKeyCiphertext] = useState<string>("");
-  const [tokenQuota, setTokenQuota] = useState<number>(200_000);
-  const [pricePer1kUsdc, setPricePer1kUsdc] = useState<number>(0.015);
+
+  // Quota & Pricing
+  const [tokenQuota, setTokenQuota] = useState<number>(150_000);
+  const [pricePer1kUsdc, setPricePer1kUsdc] = useState<number>(0.012);
+
+  // Hedera Payout Account & ENS
   const [hederaAccount, setHederaAccount] = useState<string>("0.0.482910");
-  const [ensLabel, setEnsLabel] = useState<string>("arjun-claude");
-  const [worldIdVerified, setWorldIdVerified] = useState<boolean>(true);
-  const [nullifierHash, setNullifierHash] = useState<string>(
-    "0xworld_id_nullifier_arjun_verified"
-  );
+  const [ensLabel, setEnsLabel] = useState<string>("seller-node");
+
+  // World ID Modal Trigger
+  const [showWorldIdModal, setShowWorldIdModal] = useState<boolean>(false);
+  const [showBridgeDrawer, setShowBridgeDrawer] = useState<boolean>(false);
+
+  // Submission State
   const [isSealing, setIsSealing] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [listings, setListings] = useState<any[]>([]);
   const [totalEarnedUsdc, setTotalEarnedUsdc] = useState<number>(0.14192);
+
+  // Live API Key Test & Remaining Token Detection
+  const [isTestingKey, setIsTestingKey] = useState<boolean>(false);
+  const [keyVerification, setKeyVerification] = useState<{
+    tested: boolean;
+    valid: boolean;
+    model: string;
+    modelDisplayName?: string;
+    tokensRemaining?: number;
+    tokenLimit?: number;
+    requestsRemaining?: number;
+    error?: string;
+  } | null>(null);
+
+  // Derive ENS label when wallet address changes
+  useEffect(() => {
+    if (walletAddress && (!ensLabel || ensLabel === "seller-node")) {
+      setEnsLabel(`node-${walletAddress.slice(2, 6).toLowerCase()}`);
+    }
+  }, [walletAddress]);
 
   // Filter models dynamically based on selected provider
   const availableModels = useMemo(() => {
@@ -57,24 +109,34 @@ export default function SellerHubPage() {
     return getModelMetadata(model) || availableModels[0] || SUPPORTED_MODELS[0];
   }, [model, availableModels]);
 
-  // When provider changes, update model to the first model of that provider
+  const minRequiredQuota = useMemo(() => {
+    return getMinimumListingQuotaForModel(model);
+  }, [model]);
+
+  // Auto-set recommended quota when model changes
+  useEffect(() => {
+    if (tokenQuota < minRequiredQuota) {
+      setTokenQuota(minRequiredQuota);
+    }
+  }, [minRequiredQuota]);
+
+  // When provider changes, update model but DO NOT generate fake sample keys
   const handleProviderChange = (newProvider: string) => {
     setProvider(newProvider);
     const modelsForNewProvider = getModelsByProvider(newProvider);
     if (modelsForNewProvider.length > 0) {
       const firstModel = modelsForNewProvider[0];
       setModel(firstModel.id);
-      
-      // Auto-set default price based on medium or default bounds
-      const defaultBounds = getModelTokenBounds(firstModel.id, firstModel.supportsThinking ? "medium" : "none");
+
+      const defaultBounds = getModelTokenBounds(
+        firstModel.id,
+        firstModel.supportsThinking ? "medium" : "none"
+      );
       setPricePer1kUsdc(defaultBounds.defaultPricePer1kMicroUsdc / 1_000_000);
     }
-
-    // Set appropriate placeholder for raw API key
-    const pInfo = PROVIDERS.find((p) => p.id === newProvider);
-    if (pInfo) {
-      setRawApiKey(`${pInfo.keyPrefix}sample-key-${Math.random().toString(36).slice(2, 8)}`);
-    }
+    // Clean API key for security
+    setRawApiKey("");
+    setSealedKeyCiphertext("");
   };
 
   // When model changes, adjust price and recommended quota
@@ -82,7 +144,10 @@ export default function SellerHubPage() {
     setModel(newModelId);
     const meta = getModelMetadata(newModelId);
     if (meta) {
-      const defaultBounds = getModelTokenBounds(newModelId, meta.supportsThinking ? "medium" : "none");
+      const defaultBounds = getModelTokenBounds(
+        newModelId,
+        meta.supportsThinking ? "medium" : "none"
+      );
       setPricePer1kUsdc(defaultBounds.defaultPricePer1kMicroUsdc / 1_000_000);
     }
   };
@@ -116,7 +181,10 @@ export default function SellerHubPage() {
 
   // Seal raw API key to 0G Enclave Public Key on input change
   const handleSealApiKey = async () => {
-    if (!rawApiKey) return;
+    if (!rawApiKey || rawApiKey.length < 15) {
+      setSealedKeyCiphertext("");
+      return;
+    }
     setIsSealing(true);
     try {
       const res = await fetch("/api/enclave-pubkey");
@@ -136,34 +204,118 @@ export default function SellerHubPage() {
     handleSealApiKey();
   }, [rawApiKey]);
 
-  // World ID IDKit simulation
-  const verifyWorldId = async () => {
-    const mockNullifier = `0xworld_id_nullifier_${Math.random().toString(16).slice(2, 10)}_verified`;
-    setNullifierHash(mockNullifier);
-    setWorldIdVerified(true);
+  // Live test call to verify API key with provider and fetch model & remaining tokens
+  const handleTestApiKey = async () => {
+    if (!rawApiKey || rawApiKey.trim().length < 15) {
+      alert("Please enter an API key to test.");
+      return;
+    }
+
+    setIsTestingKey(true);
+    setKeyVerification(null);
+
+    try {
+      const res = await fetch("/api/verify-api-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider,
+          model,
+          apiKey: rawApiKey.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      setKeyVerification({
+        tested: true,
+        valid: data.valid,
+        model: data.model || model,
+        modelDisplayName: data.modelDisplayName || currentModelMeta?.name,
+        tokensRemaining: data.tokensRemaining,
+        tokenLimit: data.tokenLimit,
+        requestsRemaining: data.requestsRemaining,
+        error: data.error,
+      });
+    } catch (err: any) {
+      setKeyVerification({
+        tested: true,
+        valid: false,
+        model,
+        error: `Network error verifying key: ${err.message}`,
+      });
+    } finally {
+      setIsTestingKey(false);
+    }
   };
 
   // Submit new listing to Arkiv
   const handleSubmitListing = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!worldIdVerified) {
-      alert("Please verify your human identity via World ID first.");
+
+    // 1. Wallet Guard
+    if (!walletAddress) {
+      alert("Wallet Connection Required: Please connect your Web3 wallet (MetaMask, Coinbase, etc.) before registering.");
       return;
     }
+
+    // 2. World ID Guard
+    if (!worldIdVerified || !nullifierHash) {
+      alert("World ID Proof Required: Please complete World ID Proof of Human verification to prove uniqueness and prevent orderbook spam.");
+      return;
+    }
+
+    // 3. Authentic API Key Guard with Upstream Test Call
+    if (!rawApiKey || rawApiKey.trim().length < 15) {
+      alert("Authentic API Key Required: Please enter your authentic, active provider API key.");
+      return;
+    }
+
+    // 4. Token Quota Guard
     if (Number(tokenQuota) < minRequiredQuota) {
       alert(
-        `Insufficient Quota: ${currentModelMeta.name} requires a minimum quota of at least ${minRequiredQuota.toLocaleString()} tokens to satisfy the zero-cutoff condition.`
+        `Insufficient Quota: ${currentModelMeta.name} requires a minimum quota of at least ${minRequiredQuota.toLocaleString()} tokens to satisfy the Zero-Cutoff condition.`
       );
       return;
     }
+
     setIsSubmitting(true);
 
     try {
+      // Test key if not already tested and confirmed
+      if (!keyVerification || !keyVerification.valid) {
+        const testRes = await fetch("/api/verify-api-key", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider,
+            model,
+            apiKey: rawApiKey.trim(),
+          }),
+        });
+        const testData = await testRes.json();
+        setKeyVerification({
+          tested: true,
+          valid: testData.valid,
+          model: testData.model || model,
+          modelDisplayName: testData.modelDisplayName || currentModelMeta?.name,
+          tokensRemaining: testData.tokensRemaining,
+          tokenLimit: testData.tokenLimit,
+          requestsRemaining: testData.requestsRemaining,
+          error: testData.error,
+        });
+
+        if (!testData.valid) {
+          alert(`API Key Verification Failed: ${testData.error || "The provider rejected this key for the selected model."}`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const res = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ownerAddress: "0x71C2a8b940e4e8B",
+          ownerAddress: walletAddress,
           ensLabel,
           model,
           provider,
@@ -173,7 +325,9 @@ export default function SellerHubPage() {
           hedaraPayoutAccount: hederaAccount,
           worldIdProof: {
             nullifier_hash: nullifierHash,
-            action: "shunyagrid-seller-listing",
+            merkle_root: merkleRoot,
+            proof: proofPayload,
+            action: "seller-listing",
           },
         }),
       });
@@ -183,7 +337,9 @@ export default function SellerHubPage() {
         throw new Error(err.error || "Failed to create listing");
       }
 
-      alert("Success! Wallet-owned Arkiv Entity created with 1-hour block expiration.");
+      alert("Success! Your authentic Seller Node has been published to Arkiv with 1-hour block expiration.");
+      setRawApiKey("");
+      setSealedKeyCiphertext("");
       fetchListings();
     } catch (err: any) {
       alert(err.message);
@@ -206,49 +362,95 @@ export default function SellerHubPage() {
     ];
   }, [currentModelMeta]);
 
-  const maxTMaxRequired = useMemo(() => {
-    if (thinkingBreakdown.length === 0) return 20000;
-    return Math.max(...thinkingBreakdown.map((t) => t.bounds.totalMaxTokens));
-  }, [thinkingBreakdown]);
-
-  const minRequiredQuota = useMemo(() => {
-    return getMinimumListingQuotaForModel(model);
-  }, [model]);
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-      {/* Title */}
-      <div className="border-b border-slate-800 pb-6">
-        <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-          <Layers className="w-8 h-8 text-emerald-400" />
-          Seller Quota Hub & Monetization
-        </h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Monetize your unused AI API quotas without hardware setup. Your API key is sealed to the 0G Enclave—you never
-          see Buyer prompts or files, and Buyers never see your raw key.
-        </p>
+      {/* Title & Wallet Connection Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div>
+          <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
+            <Layers className="w-8 h-8 text-emerald-400" />
+            Seller Quota Hub & Monetization
+          </h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Connect your Web3 wallet, verify your World ID, and list your unused API quota with Enclave privacy.
+          </p>
+        </div>
+
+        {/* Crypto Wallet Connector */}
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          {walletAddress ? (
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-emerald-500/40 text-xs font-mono">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <div>
+                <span className="text-slate-400 block text-[10px]">Connected Wallet</span>
+                <span className="text-emerald-300 font-bold">
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                </span>
+              </div>
+              <button
+                onClick={disconnectWallet}
+                className="ml-2 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition text-[10px]"
+                title="Disconnect wallet"
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={connectWallet}
+              disabled={isConnectingWallet}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs font-mono shadow-md flex items-center gap-2 transition"
+            >
+              <Wallet className="w-4 h-4 text-cyan-200" />
+              {isConnectingWallet ? "Connecting..." : "Connect Crypto Wallet"}
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* Main Grid: Form & Info Cards */}
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Form: List API Tokens */}
-        <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-slate-800 space-y-6">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-400" />
-            Create Time-Scoped Token Pool (Arkiv Entity)
-          </h2>
+        <div className="lg:col-span-2 glass-panel p-6 sm:p-7 rounded-2xl border border-slate-800 space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-indigo-400" />
+              Register Authentic Arkiv Seller Entity
+            </h2>
+            <span className="text-xs font-mono text-cyan-400 bg-cyan-950/60 px-2.5 py-0.5 rounded border border-cyan-800/40">
+              1-Hour Block Expiration
+            </span>
+          </div>
+
+          {/* Wallet Verification Alert if disconnected */}
+          {!walletAddress && (
+            <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-amber-300 text-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 font-medium">
+                <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <span>Please connect your Web3 crypto wallet (MetaMask, Coinbase Wallet) to register as an Arkiv Seller.</span>
+              </div>
+              <button
+                type="button"
+                onClick={connectWallet}
+                className="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold font-mono text-xs hover:bg-amber-400 transition flex-shrink-0"
+              >
+                Connect Now
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleSubmitListing} className="space-y-6">
-            {/* Step 1: Provider & Model (Dynamic Filtering) */}
+            {/* Step 1: Provider & Model */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-mono text-slate-300 block flex items-center justify-between">
-                  <span>AI Provider:</span>
-                  <span className="text-[10px] text-cyan-400">Step 1</span>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+                  <span>1. AI Provider:</span>
+                  <span className="text-[10px] text-cyan-400 font-mono">4 Providers</span>
                 </label>
                 <select
                   value={provider}
                   onChange={(e) => handleProviderChange(e.target.value)}
-                  className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-cyan-500 transition cursor-pointer"
                 >
                   {PROVIDERS.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -259,14 +461,16 @@ export default function SellerHubPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-mono text-slate-300 block flex items-center justify-between">
-                  <span>Target Model (Filtered):</span>
-                  <span className="text-[10px] text-emerald-400 font-mono">{availableModels.length} models for {provider}</span>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+                  <span>2. Target Model:</span>
+                  <span className="text-[10px] text-emerald-400 font-mono">
+                    {availableModels.length} models for {provider}
+                  </span>
                 </label>
                 <select
                   value={model}
                   onChange={(e) => handleModelChange(e.target.value)}
-                  className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-cyan-500 transition cursor-pointer"
                 >
                   {availableModels.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -297,15 +501,15 @@ export default function SellerHubPage() {
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 font-sans">
                   {currentModelMeta.description}
                 </p>
 
                 {/* Token Bounds Table */}
-                <div className="pt-2">
+                <div className="pt-1">
                   <span className="text-[11px] font-mono text-slate-300 font-semibold block mb-1.5 flex items-center gap-1">
                     <Info className="w-3.5 h-3.5 text-indigo-400" />
-                    Deterministic Token Bounds & Zero-Cutoff Gate (T_max):
+                    Deterministic Token Bounds & Zero-Cutoff Invariant (T_max):
                   </span>
 
                   <div className="overflow-x-auto">
@@ -346,28 +550,106 @@ export default function SellerHubPage() {
               </div>
             )}
 
-            {/* Step 2: Raw API Key -> Instant Client-Side Encryption */}
+            {/* Step 2: Authentic Raw API Key */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-mono text-slate-300">
-                  Raw API Key (Provider: {provider.toUpperCase()}):
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-emerald-400" />
+                  3. Authentic Provider API Key:
                 </label>
                 <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
-                  <Lock className="w-3.5 h-3.5" />
-                  0G Enclave RSA-OAEP Protected
+                  <Shield className="w-3.5 h-3.5" />
+                  Client-Side RSA-OAEP Sealing
                 </span>
               </div>
-              <input
-                type="password"
-                value={rawApiKey}
-                onChange={(e) => setRawApiKey(e.target.value)}
-                placeholder={PROVIDERS.find((p) => p.id === provider)?.keyPlaceholder || "sk-..."}
-                className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
-              />
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="password"
+                  value={rawApiKey}
+                  onChange={(e) => {
+                    setRawApiKey(e.target.value);
+                    setKeyVerification(null);
+                  }}
+                  placeholder={PROVIDERS.find((p) => p.id === provider)?.keyPlaceholder || "Enter authentic API key..."}
+                  className="flex-1 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-cyan-500 transition"
+                />
+                <button
+                  type="button"
+                  onClick={handleTestApiKey}
+                  disabled={isTestingKey || !rawApiKey}
+                  className="px-4 py-3 rounded-xl bg-indigo-600/80 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-mono font-bold text-white transition flex items-center justify-center gap-1.5 flex-shrink-0 shadow-md"
+                >
+                  {isTestingKey ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-300" />
+                      Testing Upstream...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-3.5 h-3.5 text-cyan-300" />
+                      Test Key & Detect Tokens
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Key Verification Live Upstream Feedback */}
+              {keyVerification && keyVerification.tested && (
+                <div className="pt-1">
+                  {keyVerification.valid ? (
+                    <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs font-mono space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          API Key Verified: {keyVerification.modelDisplayName || currentModelMeta?.name}
+                        </span>
+                        <span className="text-[10px] bg-emerald-900/60 text-emerald-300 px-2 py-0.5 rounded border border-emerald-700/50">
+                          Live Active
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-emerald-900/40 text-slate-300">
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Tokens Left on Provider Account:</span>
+                          <span className="text-emerald-300 font-bold text-sm">
+                            {keyVerification.tokensRemaining ? keyVerification.tokensRemaining.toLocaleString() : "Unlimited"}{" "}
+                            tokens
+                          </span>
+                        </div>
+                        {keyVerification.tokensRemaining && keyVerification.tokensRemaining > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setTokenQuota(keyVerification.tokensRemaining!)}
+                            className="px-2.5 py-1 rounded bg-emerald-900/50 hover:bg-emerald-800 text-emerald-200 text-xs font-mono font-semibold transition border border-emerald-700/50"
+                          >
+                            Set Quota to {keyVerification.tokensRemaining.toLocaleString()} &rarr;
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-red-950/40 border border-red-500/40 text-xs font-mono space-y-1.5 text-red-300">
+                      <div className="font-bold flex items-center gap-1.5 text-red-400">
+                        <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                        Provider Rejected Key for Model {model}
+                      </div>
+                      <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
+                        {keyVerification.error || "The upstream AI provider rejected this API key. Please check your credentials and model permissions."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <p className="text-[11px] text-slate-500 font-sans">
+                Your plaintext key is verified directly via an upstream test call, then encrypted in client RAM before transmission. It is never stored in plaintext and never leaked to buyers.
+              </p>
 
               {sealedKeyCiphertext && (
                 <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] font-mono text-slate-400 space-y-1">
-                  <span className="text-indigo-400 font-bold block">Enclave Ciphertext Preview:</span>
+                  <span className="text-indigo-400 font-bold block flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-indigo-400" />
+                    Enclave RSA-OAEP Ciphertext Generated (Safe to Broadcast):
+                  </span>
                   <div className="truncate text-slate-500">{sealedKeyCiphertext}</div>
                 </div>
               )}
@@ -376,8 +658,8 @@ export default function SellerHubPage() {
             {/* Step 3: Quota & Pricing */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-mono text-slate-300 block">
-                  Total Quota to Share (Tokens):
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  4. Token Quota to List (Tokens):
                 </label>
                 <input
                   type="number"
@@ -385,16 +667,16 @@ export default function SellerHubPage() {
                   step="any"
                   value={tokenQuota}
                   onChange={(e) => setTokenQuota(Number(e.target.value))}
-                  className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-cyan-400 font-bold font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 p-3 text-sm text-cyan-400 font-bold font-mono focus:outline-none focus:border-cyan-500 transition"
                 />
                 <span className="text-[10px] text-cyan-400 font-mono block">
-                  Minimum required for {currentModelMeta?.name}: &ge; {minRequiredQuota.toLocaleString()} tokens (Zero-Cutoff Gate).
+                  Minimum required for {currentModelMeta?.name}: &ge; {minRequiredQuota.toLocaleString()} tokens.
                 </span>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-mono text-slate-300 block">
-                  Price per 1,000 Tokens (USDC):
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  5. Price per 1,000 Tokens (USDC):
                 </label>
                 <input
                   type="number"
@@ -402,10 +684,10 @@ export default function SellerHubPage() {
                   min={0.0001}
                   value={pricePer1kUsdc}
                   onChange={(e) => setPricePer1kUsdc(Number(e.target.value))}
-                  className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-emerald-400 font-bold font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 p-3 text-sm text-emerald-400 font-bold font-mono focus:outline-none focus:border-cyan-500 transition"
                 />
                 <span className="text-[10px] text-slate-400 font-mono block">
-                  e.g., $0.015 USDC per 1,000 tokens
+                  e.g., $0.012 USDC per 1,000 tokens
                 </span>
               </div>
             </div>
@@ -413,95 +695,124 @@ export default function SellerHubPage() {
             {/* Step 4: World ID Verification & ENS Subname */}
             <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
               <div className="space-y-2">
-                <label className="text-xs font-mono text-slate-300 block">World ID Proof of Human:</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={verifyWorldId}
-                    className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-2 border transition ${
-                      worldIdVerified
-                        ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-400"
-                        : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800"
-                    }`}
-                  >
-                    <UserCheck className="w-4 h-4" />
-                    {worldIdVerified ? "World ID Verified ✔" : "Verify with World ID"}
-                  </button>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  6. World ID Proof of Human:
+                </label>
+                <div>
+                  {worldIdVerified ? (
+                    <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-400 flex items-center justify-between text-xs font-mono">
+                      <span className="flex items-center gap-1.5 font-bold">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        World ID Verified ✔
+                      </span>
+                      <span className="text-[10px] text-emerald-500 truncate max-w-[120px]" title={nullifierHash || undefined}>
+                        {nullifierHash ? `${nullifierHash.slice(0, 14)}...` : "Verified"}
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowWorldIdModal(true)}
+                      className="w-full py-3 px-4 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-2 border border-indigo-500/40 bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 transition"
+                    >
+                      <UserCheck className="w-4 h-4 text-indigo-400" />
+                      Verify with World ID
+                    </button>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-mono text-slate-300 block">ENS Subname (Namespace SDK):</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  7. ENS Subname Alias:
+                </label>
                 <div className="flex items-center">
                   <input
                     type="text"
                     value={ensLabel}
                     onChange={(e) => setEnsLabel(e.target.value)}
-                    placeholder="your-alias"
-                    className="flex-1 rounded-l-xl bg-slate-900 border border-r-0 border-slate-800 p-3 text-sm text-slate-100 font-mono focus:outline-none"
+                    placeholder="alias-node"
+                    className="flex-1 rounded-l-xl bg-slate-900 border border-r-0 border-slate-700 hover:border-slate-600 p-3 text-sm text-slate-100 font-mono focus:outline-none"
                   />
-                  <span className="px-3 py-3 rounded-r-xl bg-slate-800/80 border border-slate-800 text-xs font-mono text-slate-400">
+                  <span className="px-3 py-3 rounded-r-xl bg-slate-800 border border-slate-700 text-xs font-mono text-slate-400">
                     .shunyagrid.eth
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Hedera Payout Account */}
+            {/* Step 5: Hedera Payout Account */}
             <div className="space-y-2">
-              <label className="text-xs font-mono text-slate-300 block">
-                Hedera Payout Account ID (Receives HTS USDC for T_used):
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                8. Hedera Payout Account ID (Receives HTS USDC):
               </label>
               <input
                 type="text"
                 value={hederaAccount}
                 onChange={(e) => setHederaAccount(e.target.value)}
                 placeholder="0.0.xxxxx"
-                className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-cyan-500 transition"
               />
+              <p className="text-[11px] text-slate-500 font-sans">
+                When prompts consume your quota, payouts are settled automatically to this Hedera account.
+              </p>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 font-bold text-white text-sm shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2"
+              disabled={isSubmitting || !walletAddress || !worldIdVerified || !rawApiKey}
+              className={`w-full py-4 px-6 rounded-xl font-bold text-white text-sm shadow-lg transition flex items-center justify-center gap-2 ${
+                isSubmitting || !walletAddress || !worldIdVerified || !rawApiKey
+                  ? "opacity-50 cursor-not-allowed bg-slate-800 text-slate-400"
+                  : "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 shadow-emerald-600/20"
+              }`}
             >
               <Sparkles className="w-4 h-4" />
-              {isSubmitting ? "Broadcasting to Arkiv..." : "Publish 1-Hour Token Listing on Arkiv"}
+              {isSubmitting
+                ? "Broadcasting to Arkiv..."
+                : !walletAddress
+                ? "Connect Crypto Wallet to Publish"
+                : !worldIdVerified
+                ? "Verify World ID to Publish"
+                : !rawApiKey
+                ? "Enter API Key to Publish"
+                : "Publish Verified Token Listing on Arkiv"}
             </button>
           </form>
         </div>
 
-        {/* Right Info Card: How Payouts & Quota Work */}
+        {/* Right Info Cards: Privacy & Economics */}
         <div className="space-y-6">
           <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
               <Coins className="w-4 h-4 text-emerald-400" />
-              How You Get Paid
+              How Sellers Monetize
             </h3>
 
             <div className="space-y-3 text-xs text-slate-300 font-sans leading-relaxed">
               <p>
-                1. <strong className="text-white">Pre-Flight Reservation:</strong> When a Buyer requests your node,
-                our interface locks <span className="text-cyan-400 font-mono">T_max</span> tokens from your quota to ensure zero cutoffs.
+                1. <strong className="text-white">Zero Idle Waste:</strong> Pre-paid or monthly token quotas that normally expire unused are now monetized on-demand.
               </p>
               <p>
                 2. <strong className="text-white">Actual Token Payout:</strong> Once inference finishes, you receive an
-                instant <strong className="text-emerald-400">HTS USDC</strong> transfer directly to your Hedera account for the exact{" "}
+                instant <strong className="text-emerald-400 font-mono">HTS USDC</strong> transfer directly to your Hedera account for the exact{" "}
                 <span className="text-emerald-400 font-mono">T_used</span> tokens consumed.
               </p>
               <p>
-                3. <strong className="text-white">Quota Restored:</strong> Unused tokens (<span className="font-mono">T_max - T_used</span>) are
+                3. <strong className="text-white">Unused Quota Restored:</strong> Any unused token reservation (<span className="font-mono">T_max - T_used</span>) is
                 credited straight back to your Arkiv listing so you can keep monetizing!
               </p>
             </div>
           </div>
 
           <div className="glass-panel p-6 rounded-2xl border border-indigo-500/30 space-y-3 text-xs font-mono">
-            <span className="text-indigo-400 font-bold block">🔒 Zero Surveillance Guarantee:</span>
-            <p className="text-slate-400 font-sans">
-              You will never receive or see the Buyer&apos;s prompt text, uploaded documents, or AI output. Your node log only
+            <span className="text-indigo-400 font-bold block flex items-center gap-1.5">
+              <Shield className="w-4 h-4 text-indigo-400" />
+              Zero Seller Surveillance Guarantee
+            </span>
+            <p className="text-slate-400 font-sans leading-relaxed">
+              You will never receive or see the Buyer&apos;s prompt text, uploaded documents, or AI output. Your node proxy log only
               shows the Hedera consensus timestamp, tokens consumed, and the USDC payout received.
             </p>
           </div>
@@ -525,66 +836,110 @@ export default function SellerHubPage() {
           </p>
         </div>
 
-        <Link
-          href={`/bridge?amount=${Math.max(totalEarnedUsdc, 1).toFixed(2)}&recipient=${encodeURIComponent(
-            "0x71C2a8b940e4e8B"
-          )}`}
-          className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider font-mono flex items-center gap-2.5 transition shadow-lg shadow-amber-500/20 whitespace-nowrap"
-        >
-          <ArrowRightLeft className="w-4 h-4" />
-          Sweep Payouts to Arc via CCTP
-          <ArrowRight className="w-4 h-4" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowBridgeDrawer(true)}
+            className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider font-mono flex items-center gap-2.5 transition shadow-lg shadow-amber-500/20 whitespace-nowrap"
+          >
+            <ArrowRightLeft className="w-4 h-4" />
+            Sweep Payouts to Arc (CCTP)
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Active Listings Table */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <Database className="w-5 h-5 text-cyan-400" />
-          Active Arkiv Orderbook Entities
-        </h2>
-
-        <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm font-mono text-xs">
-              <thead className="bg-slate-900/80 text-slate-400 uppercase border-b border-slate-800">
-                <tr>
-                  <th className="px-6 py-4">ENS Subname</th>
-                  <th className="px-6 py-4">Model</th>
-                  <th className="px-6 py-4">Available Quota</th>
-                  <th className="px-6 py-4">Price / 1k</th>
-                  <th className="px-6 py-4">World ID</th>
-                  <th className="px-6 py-4">Hedera Payout</th>
-                  <th className="px-6 py-4">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {listings.map((l) => (
-                  <tr key={l.id} className="hover:bg-slate-800/30">
-                    <td className="px-6 py-4 font-bold text-slate-200">{l.ensName}</td>
-                    <td className="px-6 py-4 text-cyan-300">{l.model}</td>
-                    <td className="px-6 py-4 font-bold text-emerald-400">{l.availableTokens.toLocaleString()} tokens</td>
-                    <td className="px-6 py-4">${(l.pricePer1kMicroUsdc / 1000000).toFixed(4)} USDC</td>
-                    <td className="px-6 py-4">
-                      {l.humanVerified ? (
-                        <span className="text-emerald-400">Verified</span>
-                      ) : (
-                        <span className="text-slate-500">No</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-slate-300">{l.hedaraPayoutAccount}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">
-                        {l.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Database className="w-5 h-5 text-cyan-400" />
+            Active Arkiv Orderbook Entities
+            <span className="text-xs font-mono font-normal text-slate-400 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
+              {listings.length} node{listings.length === 1 ? "" : "s"} listed
+            </span>
+          </h2>
+          <button
+            onClick={fetchListings}
+            className="text-xs font-mono text-slate-400 hover:text-white transition"
+          >
+            ↻ Refresh Orderbook
+          </button>
         </div>
+
+        {listings.length === 0 ? (
+          <div className="p-8 rounded-2xl glass-panel border border-dashed border-slate-800 text-center space-y-2">
+            <Database className="w-6 h-6 mx-auto text-slate-500" />
+            <h4 className="text-sm font-bold text-slate-300">Orderbook is currently empty</h4>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              No mock sellers exist. Connect your wallet above, verify your World ID, and list your authentic API key to create the first active seller entity!
+            </p>
+          </div>
+        ) : (
+          <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm font-mono text-xs">
+                <thead className="bg-slate-900/80 text-slate-400 uppercase border-b border-slate-800">
+                  <tr>
+                    <th className="px-6 py-4">ENS Subname</th>
+                    <th className="px-6 py-4">Model</th>
+                    <th className="px-6 py-4">Available Quota</th>
+                    <th className="px-6 py-4">Price / 1k</th>
+                    <th className="px-6 py-4">World ID</th>
+                    <th className="px-6 py-4">Hedera Payout</th>
+                    <th className="px-6 py-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {listings.map((l) => (
+                    <tr key={l.id} className="hover:bg-slate-800/30">
+                      <td className="px-6 py-4 font-bold text-slate-200">
+                        {l.ensName}
+                        <span className="text-[10px] text-slate-500 block font-normal">
+                          {l.ownerAddress ? `${l.ownerAddress.slice(0, 6)}...${l.ownerAddress.slice(-4)}` : ""}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-cyan-300">{l.model}</td>
+                      <td className="px-6 py-4 font-bold text-emerald-400">
+                        {l.availableTokens.toLocaleString()} tokens
+                      </td>
+                      <td className="px-6 py-4">${(l.pricePer1kMicroUsdc / 1000000).toFixed(4)} USDC</td>
+                      <td className="px-6 py-4">
+                        {l.humanVerified ? (
+                          <span className="text-emerald-400 font-bold inline-flex items-center gap-1">
+                            <Check className="w-3 h-3" /> Verified
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">Unverified</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-slate-300">{l.hedaraPayoutAccount}</td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">
+                          {l.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Authentic World ID Verification Modal (Zero Fake Buttons) */}
+      <WorldIdModal
+        isOpen={showWorldIdModal}
+        onClose={() => setShowWorldIdModal(false)}
+      />
+
+      {/* Circle CCTP Settlement Bridge Drawer */}
+      <ArcBridgeDrawer
+        isOpen={showBridgeDrawer}
+        onClose={() => setShowBridgeDrawer(false)}
+        availableUsdcEarnings={totalEarnedUsdc}
+        sellerHederaAccountId={hederaAccount}
+      />
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 
 export interface ArkivSellerListingEntity {
   id: string; // Arkiv Entity UID (e.g. 0xarkiv_...)
@@ -62,121 +64,37 @@ export class ArkivDatabaseEngine {
   private files: Map<string, ArkivFileEntity> = new Map();
   private entityMutexes: Map<string, AsyncMutex> = new Map();
   private currentBlock: number = 19_482_100;
+  private persistencePath: string = path.join(process.cwd(), ".data", "arkiv_listings.json");
 
   constructor() {
     this.seedDefaultListings();
+    this.loadFromDisk();
   }
 
-  // Seed default human-verified sellers for instant live demo
-  public seedDefaultListings() {
-    const defaultListings: ArkivSellerListingEntity[] = [
-      {
-        id: "arkiv_entity_claude_arjun_01",
-        ownerAddress: "0x71C...4e8B",
-        ensName: "arjun-claude.shunyagrid.eth",
-        model: "claude-3-7-sonnet",
-        provider: "anthropic",
-        availableTokens: 150_000,
-        lockedTokens: 0,
-        pricePer1kMicroUsdc: 12_000, // $0.012 per 1k tokens
-        humanVerified: true,
-        worldIdNullifier: "0xworld_id_nullifier_arjun_verified",
-        sealedApiKey: "ENCLAVE_SEALED:sk-ant-sample-key-arjun",
-        hedaraPayoutAccount: "0.0.482910",
-        createdAtBlock: this.currentBlock,
-        expiresAtBlock: this.currentBlock + 1200,
-        status: "active",
-      },
-      {
-        id: "arkiv_entity_claude_rohan_02",
-        ownerAddress: "0x44B...99Cc",
-        ensName: "rohan-claude.shunyagrid.eth",
-        model: "claude-3-5-sonnet",
-        provider: "anthropic",
-        availableTokens: 180_000,
-        lockedTokens: 0,
-        pricePer1kMicroUsdc: 8_000, // $0.008 per 1k tokens
-        humanVerified: true,
-        worldIdNullifier: "0xworld_id_nullifier_rohan_verified",
-        sealedApiKey: "ENCLAVE_SEALED:sk-ant-sample-key-rohan",
-        hedaraPayoutAccount: "0.0.483100",
-        createdAtBlock: this.currentBlock,
-        expiresAtBlock: this.currentBlock + 1200,
-        status: "active",
-      },
-      {
-        id: "arkiv_entity_o3_priya_03",
-        ownerAddress: "0x98A...21Df",
-        ensName: "priya-o3.shunyagrid.eth",
-        model: "o3-mini",
-        provider: "openai",
-        availableTokens: 95_000,
-        lockedTokens: 0,
-        pricePer1kMicroUsdc: 8_000, // $0.008 per 1k tokens
-        humanVerified: true,
-        worldIdNullifier: "0xworld_id_nullifier_priya_verified",
-        sealedApiKey: "ENCLAVE_SEALED:sk-proj-sample-key-priya",
-        hedaraPayoutAccount: "0.0.491204",
-        createdAtBlock: this.currentBlock,
-        expiresAtBlock: this.currentBlock + 1200,
-        status: "active",
-      },
-      {
-        id: "arkiv_entity_gpt4o_vikram_04",
-        ownerAddress: "0x32E...77Aa",
-        ensName: "vikram-gpt4o.shunyagrid.eth",
-        model: "gpt-4o",
-        provider: "openai",
-        availableTokens: 250_000,
-        lockedTokens: 0,
-        pricePer1kMicroUsdc: 9_000, // $0.009 per 1k tokens
-        humanVerified: true,
-        worldIdNullifier: "0xworld_id_nullifier_vikram_verified",
-        sealedApiKey: "ENCLAVE_SEALED:sk-proj-sample-key-vikram",
-        hedaraPayoutAccount: "0.0.510392",
-        createdAtBlock: this.currentBlock,
-        expiresAtBlock: this.currentBlock + 1200,
-        status: "active",
-      },
-      {
-        id: "arkiv_entity_gemini_ananya_05",
-        ownerAddress: "0x63F...11Ee",
-        ensName: "ananya-gemini.shunyagrid.eth",
-        model: "gemini-2.0-flash-thinking",
-        provider: "gemini",
-        availableTokens: 300_000,
-        lockedTokens: 0,
-        pricePer1kMicroUsdc: 7_000, // $0.007 per 1k tokens
-        humanVerified: true,
-        worldIdNullifier: "0xworld_id_nullifier_ananya_verified",
-        sealedApiKey: "ENCLAVE_SEALED:AIzaSySampleKeyAnanya",
-        hedaraPayoutAccount: "0.0.528401",
-        createdAtBlock: this.currentBlock,
-        expiresAtBlock: this.currentBlock + 1200,
-        status: "active",
-      },
-      {
-        id: "arkiv_entity_groq_rahul_06",
-        ownerAddress: "0x12D...88Ff",
-        ensName: "rahul-groq.shunyagrid.eth",
-        model: "deepseek-r1-distill-llama-70b",
-        provider: "groq",
-        availableTokens: 220_000,
-        lockedTokens: 0,
-        pricePer1kMicroUsdc: 6_000, // $0.006 per 1k tokens
-        humanVerified: true,
-        worldIdNullifier: "0xworld_id_nullifier_rahul_verified",
-        sealedApiKey: "ENCLAVE_SEALED:gsk_sample_key_rahul",
-        hedaraPayoutAccount: "0.0.539120",
-        createdAtBlock: this.currentBlock,
-        expiresAtBlock: this.currentBlock + 1200,
-        status: "active",
-      },
-    ];
+  private loadFromDisk() {
+    try {
+      if (fs.existsSync(this.persistencePath)) {
+        const raw = fs.readFileSync(this.persistencePath, "utf8");
+        const list: ArkivSellerListingEntity[] = JSON.parse(raw);
+        for (const item of list) {
+          this.listings.set(item.id, item);
+        }
+      }
+    } catch {}
+  }
 
-    for (const listing of defaultListings) {
-      this.listings.set(listing.id, listing);
-    }
+  private saveToDisk() {
+    try {
+      const dir = path.dirname(this.persistencePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const list = Array.from(this.listings.values());
+      fs.writeFileSync(this.persistencePath, JSON.stringify(list, null, 2), "utf8");
+    } catch {}
+  }
+
+  // Orderbook starts clean for authentic seller registrations
+  public seedDefaultListings() {
+    // Zero mock/pre-seeded sellers: real sellers register via Seller Hub with connected wallet & World ID
   }
 
   public getCurrentBlock(): number {
@@ -210,6 +128,7 @@ export class ArkivDatabaseEngine {
       status: "active",
     };
     this.listings.set(id, entity);
+    this.saveToDisk();
     return entity;
   }
 
@@ -245,6 +164,7 @@ export class ArkivDatabaseEngine {
 
     listing.availableTokens -= tMax;
     listing.lockedTokens += tMax;
+    this.saveToDisk();
     return true;
   }
 
@@ -295,6 +215,7 @@ export class ArkivDatabaseEngine {
       listing.status = "exhausted";
     }
 
+    this.saveToDisk();
     return listing;
   }
 
