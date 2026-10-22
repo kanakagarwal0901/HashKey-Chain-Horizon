@@ -39,23 +39,17 @@ import {
 } from "@/lib/clientCrypto";
 import { useAuth } from "@/context/AuthContext";
 import WorldIdModal from "@/components/WorldIdModal";
-import { ethers } from "ethers";
-
-const SEPOLIA_CHAIN_ID_HEX = "0xaa36a7";
-const SEPOLIA_CHAIN_ID_DEC = 11155111;
-const SEPOLIA_CIRCLE_USDC_ADDRESS =
-  process.env.NEXT_PUBLIC_SEPOLIA_USDC_ADDRESS || "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
-const SHUNYA_TREASURY_EVM_ADDRESS =
-  process.env.NEXT_PUBLIC_SHUNYA_TREASURY_EVM_ADDRESS || "0x9b3b7375b0591E8A304A8f66D11186Fb07672625";
-const CIRCLE_FAUCET_URL = "https://faucet.circle.com";
-const HEDERA_HCS_TOPIC_ID = process.env.NEXT_PUBLIC_HEDERA_HCS_TOPIC_ID || "0.0.11134146";
-
-const ERC20_MINIMAL_ABI = [
-  "function balanceOf(address account) external view returns (uint256)",
-  "function transfer(address recipient, uint256 amount) external returns (bool)",
-  "function decimals() external view returns (uint8)",
-  "function symbol() external view returns (string)",
-];
+import {
+  SEPOLIA_CHAIN_ID_HEX,
+  SEPOLIA_CIRCLE_USDC_ADDRESS,
+  SHUNYA_TREASURY_EVM_ADDRESS,
+  CIRCLE_FAUCET_URL,
+  HEDERA_HCS_TOPIC_ID,
+  switchOrAddSepoliaNetwork,
+  fetchSepoliaUsdcBalance,
+  sendSepoliaUsdcPayment,
+  waitForSepoliaConfirmation,
+} from "@/lib/clientSepolia";
 
 export default function BuyerStudioPage() {
   const {
@@ -86,11 +80,8 @@ export default function BuyerStudioPage() {
     }
     try {
       setIsLoadingBalance(true);
-      const provider = new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
-      const usdcContract = new ethers.Contract(SEPOLIA_CIRCLE_USDC_ADDRESS, ERC20_MINIMAL_ABI, provider);
-      const balRaw = await usdcContract.balanceOf(walletAddress);
-      const balNum = Number(balRaw) / 1_000_000;
-      setUsdcBalance(balNum);
+      const bal = await fetchSepoliaUsdcBalance(walletAddress);
+      setUsdcBalance(bal);
     } catch (err) {
       console.warn("Could not query Sepolia USDC balance:", err);
     } finally {
@@ -99,42 +90,13 @@ export default function BuyerStudioPage() {
   };
 
   const switchToSepolia = async () => {
-    if (typeof window === "undefined" || !(window as any).ethereum) {
-      alert("No Web3 wallet detected. Please install MetaMask.");
-      return false;
-    }
     setIsSwitchingNetwork(true);
     try {
-      await (window as any).ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: SEPOLIA_CHAIN_ID_HEX }],
-      });
-      await refreshUsdcBalance();
-      return true;
-    } catch (switchError: any) {
-      if (switchError.code === 4902) {
-        try {
-          await (window as any).ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [
-              {
-                chainId: SEPOLIA_CHAIN_ID_HEX,
-                chainName: "Sepolia Test Network",
-                nativeCurrency: { name: "Sepolia ETH", symbol: "SEP", decimals: 18 },
-                rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
-                blockExplorerUrls: ["https://sepolia.etherscan.io"],
-              },
-            ],
-          });
-          await refreshUsdcBalance();
-          return true;
-        } catch (addError) {
-          alert("Failed to add Sepolia network to wallet.");
-          return false;
-        }
+      const ok = await switchOrAddSepoliaNetwork();
+      if (ok) {
+        await refreshUsdcBalance();
       }
-      alert(switchError.message || "Failed to switch to Sepolia network.");
-      return false;
+      return ok;
     } finally {
       setIsSwitchingNetwork(false);
     }
@@ -380,59 +342,21 @@ contract VaultLending {
       // Phase 2: Authentic On-Chain Circle USDC Payment on Ethereum Sepolia
       setExecutionStep(`2/4: Preparing Ethereum Sepolia transaction for $${upfrontUsdc.toFixed(6)} USDC...`);
 
-      if (typeof window === "undefined" || !(window as any).ethereum) {
-        throw new Error("No Ethereum wallet found. Please install MetaMask to make on-chain testnet payments.");
-      }
-
-      // Check / switch to Sepolia testnet
-      const currentChain = await (window as any).ethereum.request({ method: "eth_chainId" });
-      if (currentChain !== SEPOLIA_CHAIN_ID_HEX) {
-        setExecutionStep("2/4: Prompting wallet network switch to Ethereum Sepolia...");
-        const switched = await switchToSepolia();
-        if (!switched) {
-          throw new Error("Please switch your wallet to Ethereum Sepolia (Chain ID 11155111) to proceed.");
-        }
+      if (!walletAddress) {
+        throw new Error("Wallet not connected. Please connect your Web3 wallet.");
       }
 
       // Prompt MetaMask for authentic Circle USDC transfer
       setExecutionStep(`2/4: Please sign the $${upfrontUsdc.toFixed(6)} Circle USDC payment in MetaMask...`);
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
-      const signer = await provider.getSigner();
-      const usdcContract = new ethers.Contract(SEPOLIA_CIRCLE_USDC_ADDRESS, ERC20_MINIMAL_ABI, signer);
+      const confirmedTxHash = await sendSepoliaUsdcPayment(
+        walletAddress,
+        SHUNYA_TREASURY_EVM_ADDRESS,
+        upfrontMicroUsdc
+      );
 
-      // Check balance before attempting tx
-      try {
-        const bal = await usdcContract.balanceOf(await signer.getAddress());
-        if (BigInt(bal) < BigInt(upfrontMicroUsdc)) {
-          throw new Error(
-            `Insufficient Circle Sepolia USDC balance. Available: $${(Number(bal) / 1_000_000).toFixed(6)} USDC, Required: $${upfrontUsdc.toFixed(6)} USDC. Claim free Sepolia USDC at faucet.circle.com`
-          );
-        }
-      } catch (balErr: any) {
-        if (balErr.message?.includes("Insufficient Circle Sepolia USDC balance")) {
-          throw balErr;
-        }
-        console.warn("Pre-tx balance check warning:", balErr);
-      }
+      setExecutionStep(`2/4: Payment broadcasted (${confirmedTxHash.slice(0, 10)}...). Waiting for Sepolia block confirmation...`);
+      await waitForSepoliaConfirmation(confirmedTxHash, 45000);
 
-      let tx: any;
-      try {
-        tx = await usdcContract.transfer(SHUNYA_TREASURY_EVM_ADDRESS, BigInt(upfrontMicroUsdc));
-      } catch (signErr: any) {
-        if (signErr.code === "ACTION_REJECTED" || signErr.message?.includes("user rejected") || signErr.code === 4001) {
-          throw new Error("Payment transaction was rejected in MetaMask.");
-        }
-        throw signErr;
-      }
-
-      setExecutionStep(`2/4: Payment broadcasted (${tx.hash.slice(0, 10)}...). Waiting for Sepolia block confirmation...`);
-      const receipt = await tx.wait(1);
-
-      if (!receipt || receipt.status !== 1) {
-        throw new Error("Sepolia transaction failed or reverted on-chain.");
-      }
-
-      const confirmedTxHash = tx.hash;
       setBuyerSepoliaTxHash(confirmedTxHash);
       setExecutionStep(`2/4: Payment confirmed on Sepolia! Enclave verifying transaction receipt...`);
 
