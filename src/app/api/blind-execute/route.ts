@@ -16,11 +16,12 @@ import {
   aiDispatcher,
 } from "@shunya/core";
 import crypto from "crypto";
+import { verifySepoliaUsdcPayment } from "@/lib/sepoliaPaymentVerifier";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { modelId, thinkingLevel, listingId, encryptedEnvelope, paymentTxId } = body;
+    const { modelId, thinkingLevel, listingId, encryptedEnvelope, paymentTxId, buyerAddress } = body;
 
     if (!modelId || !thinkingLevel || !listingId || !encryptedEnvelope) {
       return NextResponse.json(
@@ -86,10 +87,36 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Verify Payment (Hedera Mirror Node check)
-    const isPaymentValid = await hederaEngine.verifyBuyerPayment(paymentHeader, upfrontChargeMicroUsdc);
-    if (!isPaymentValid) {
-      return NextResponse.json({ error: "Hedera x402 payment verification failed" }, { status: 402 });
+    // Verify Payment: Either authentic Ethereum Sepolia USDC transfer or Hedera x402
+    let isSepoliaPayment = false;
+    let sepoliaPaymentDetails: any = null;
+
+    if (paymentHeader.startsWith("0x")) {
+      isSepoliaPayment = true;
+      const sepoliaResult = await verifySepoliaUsdcPayment(
+        paymentHeader,
+        buyerAddress || "",
+        upfrontChargeMicroUsdc
+      );
+
+      if (!sepoliaResult.verified) {
+        return NextResponse.json(
+          {
+            error: "Ethereum Sepolia USDC payment verification failed",
+            detail: sepoliaResult.error,
+            requiredMicroUsdc: upfrontChargeMicroUsdc,
+            txHash: paymentHeader,
+          },
+          { status: 402 }
+        );
+      }
+      sepoliaPaymentDetails = sepoliaResult;
+    } else {
+      // Verify Payment (Hedera Mirror Node check)
+      const isPaymentValid = await hederaEngine.verifyBuyerPayment(paymentHeader, upfrontChargeMicroUsdc);
+      if (!isPaymentValid) {
+        return NextResponse.json({ error: "Hedera x402 payment verification failed" }, { status: 402 });
+      }
     }
 
     // Step 1: Pre-flight Atomic Lock on Arkiv with Mutex Concurrency Protection
@@ -187,6 +214,7 @@ export async function POST(request: NextRequest) {
       );
       const settlement = await hederaEngine.settlePayoutAndConsensusLog({
         buyerX402TxId: paymentHeader,
+        buyerSepoliaTxHash: isSepoliaPayment ? paymentHeader : undefined,
         sellerHederaAccountId: listing.hedaraPayoutAccount,
         modelId,
         thinkingLevel,
@@ -219,8 +247,21 @@ export async function POST(request: NextRequest) {
           protocolCommissionUsdc: split.webAppCommissionUsdc,
           sellerRemainingTokens: updatedListing.availableTokens,
         },
+        sepoliaPayment: isSepoliaPayment
+          ? {
+              txHash: paymentHeader,
+              etherscanUrl: `https://sepolia.etherscan.io/tx/${paymentHeader}`,
+              amountMicroUsdc: upfrontChargeMicroUsdc,
+              amountUsdc: upfrontChargeMicroUsdc / 1_000_000,
+              blockNumber: sepoliaPaymentDetails?.blockNumber,
+              from: sepoliaPaymentDetails?.from,
+              to: sepoliaPaymentDetails?.to,
+            }
+          : null,
         hederaSettlement: {
           buyerX402TxId: paymentHeader,
+          buyerSepoliaTxHash: isSepoliaPayment ? paymentHeader : undefined,
+          sepoliaEtherscanUrl: isSepoliaPayment ? `https://sepolia.etherscan.io/tx/${paymentHeader}` : undefined,
           sellerPayoutTxId: settlement.sellerPayoutTxId,
           hcsTopicId: settlement.receipt.hcsTopicId,
           hcsSequenceNumber: settlement.receipt.sequenceNumber,

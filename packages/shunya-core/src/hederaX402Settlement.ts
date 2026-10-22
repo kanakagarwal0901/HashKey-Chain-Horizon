@@ -21,6 +21,8 @@ export interface HcsSettlementReceipt {
   sequenceNumber: number;
   consensusTimestamp: string;
   buyerUpfrontTxId: string;
+  buyerSepoliaTxHash?: string;
+  sepoliaEtherscanUrl?: string;
   sellerPayoutTxId: string;
   hashscanUrl: string;
   model: string;
@@ -39,6 +41,7 @@ export interface HcsSettlementReceipt {
 
 export interface SettleJobParams {
   buyerX402TxId: string;
+  buyerSepoliaTxHash?: string;
   sellerHederaAccountId: string;
   modelId: string;
   thinkingLevel: string;
@@ -123,12 +126,18 @@ export class HederaSettlementEngine {
           hashscanUrl = payoutResult.hashscanUrl;
         }
 
-        // 2. Submit real HCS consensus message containing the real CryptoTransfer TxId
+        // 2. Submit real HCS consensus message containing the real CryptoTransfer TxId & Sepolia Payment Tx
+        const sepoliaEtherscanUrl = params.buyerSepoliaTxHash
+          ? `https://sepolia.etherscan.io/tx/${params.buyerSepoliaTxHash}`
+          : undefined;
+
         const hcsResult = await hederaNetworkClient.submitHcsConsensusMessage({
           protocol: "ShunyaGrid-v1",
           event: "ZERO_CUTOFF_JOB_SETTLED",
           sellerPayoutTxId,
           hashscanUrl,
+          buyerSepoliaTxHash: params.buyerSepoliaTxHash,
+          sepoliaEtherscanUrl,
           sellerHederaAccountId: params.sellerHederaAccountId,
           model: params.modelId,
           thinkingLevel: params.thinkingLevel,
@@ -151,11 +160,17 @@ export class HederaSettlementEngine {
       }
     }
 
+    const sepoliaEtherscanUrl = params.buyerSepoliaTxHash
+      ? `https://sepolia.etherscan.io/tx/${params.buyerSepoliaTxHash}`
+      : undefined;
+
     const receipt: HcsSettlementReceipt = {
       hcsTopicId: this.hcsTopicId,
       sequenceNumber,
       consensusTimestamp,
       buyerUpfrontTxId: params.buyerX402TxId,
+      buyerSepoliaTxHash: params.buyerSepoliaTxHash,
+      sepoliaEtherscanUrl,
       sellerPayoutTxId,
       hashscanUrl,
       model: params.modelId,

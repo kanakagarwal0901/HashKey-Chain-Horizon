@@ -39,11 +39,29 @@ import {
 } from "@/lib/clientCrypto";
 import { useAuth } from "@/context/AuthContext";
 import WorldIdModal from "@/components/WorldIdModal";
+import { ethers } from "ethers";
+
+const SEPOLIA_CHAIN_ID_HEX = "0xaa36a7";
+const SEPOLIA_CHAIN_ID_DEC = 11155111;
+const SEPOLIA_CIRCLE_USDC_ADDRESS =
+  process.env.NEXT_PUBLIC_SEPOLIA_USDC_ADDRESS || "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
+const SHUNYA_TREASURY_EVM_ADDRESS =
+  process.env.NEXT_PUBLIC_SHUNYA_TREASURY_EVM_ADDRESS || "0x9b3b7375b0591E8A304A8f66D11186Fb07672625";
+const CIRCLE_FAUCET_URL = "https://faucet.circle.com";
+const HEDERA_HCS_TOPIC_ID = process.env.NEXT_PUBLIC_HEDERA_HCS_TOPIC_ID || "0.0.11134146";
+
+const ERC20_MINIMAL_ABI = [
+  "function balanceOf(address account) external view returns (uint256)",
+  "function transfer(address recipient, uint256 amount) external returns (bool)",
+  "function decimals() external view returns (uint8)",
+  "function symbol() external view returns (string)",
+];
 
 export default function BuyerStudioPage() {
   const {
     isAuthenticated,
     walletAddress,
+    walletChainId,
     worldIdVerified,
     nullifierHash,
   } = useAuth();
@@ -52,6 +70,81 @@ export default function BuyerStudioPage() {
   const [selectedModel, setSelectedModel] = useState<string>("claude-3-7-sonnet");
   const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("medium");
   const [showWorldIdModal, setShowWorldIdModal] = useState<boolean>(false);
+
+  // On-Chain Sepolia & USDC Balance State
+  const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
+  const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState<boolean>(false);
+  const [buyerSepoliaTxHash, setBuyerSepoliaTxHash] = useState<string | null>(null);
+
+  const isSepoliaNetwork = walletChainId === "0xaa36a7" || walletChainId === "11155111";
+
+  const refreshUsdcBalance = async () => {
+    if (!walletAddress) {
+      setUsdcBalance(null);
+      return;
+    }
+    try {
+      setIsLoadingBalance(true);
+      const provider = new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
+      const usdcContract = new ethers.Contract(SEPOLIA_CIRCLE_USDC_ADDRESS, ERC20_MINIMAL_ABI, provider);
+      const balRaw = await usdcContract.balanceOf(walletAddress);
+      const balNum = Number(balRaw) / 1_000_000;
+      setUsdcBalance(balNum);
+    } catch (err) {
+      console.warn("Could not query Sepolia USDC balance:", err);
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
+
+  const switchToSepolia = async () => {
+    if (typeof window === "undefined" || !(window as any).ethereum) {
+      alert("No Web3 wallet detected. Please install MetaMask.");
+      return false;
+    }
+    setIsSwitchingNetwork(true);
+    try {
+      await (window as any).ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: SEPOLIA_CHAIN_ID_HEX }],
+      });
+      await refreshUsdcBalance();
+      return true;
+    } catch (switchError: any) {
+      if (switchError.code === 4902) {
+        try {
+          await (window as any).ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: SEPOLIA_CHAIN_ID_HEX,
+                chainName: "Sepolia Test Network",
+                nativeCurrency: { name: "Sepolia ETH", symbol: "SEP", decimals: 18 },
+                rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
+                blockExplorerUrls: ["https://sepolia.etherscan.io"],
+              },
+            ],
+          });
+          await refreshUsdcBalance();
+          return true;
+        } catch (addError) {
+          alert("Failed to add Sepolia network to wallet.");
+          return false;
+        }
+      }
+      alert(switchError.message || "Failed to switch to Sepolia network.");
+      return false;
+    } finally {
+      setIsSwitchingNetwork(false);
+    }
+  };
+
+  useEffect(() => {
+    if (walletAddress) {
+      refreshUsdcBalance();
+    }
+  }, [walletAddress, walletChainId]);
 
   // Prompt & File Drop State
   const [promptText, setPromptText] = useState<string>(
@@ -284,11 +377,67 @@ contract VaultLending {
         enclavePubKeyPem
       );
 
-      // Phase 2: Hedera x402 HTTP 402 Negotiation
-      setExecutionStep(`2/4: Hedera x402 Paywall: Depositing $${upfrontUsdc.toFixed(6)} HTS USDC for T_max...`);
-      await new Promise((r) => setTimeout(r, 600));
+      // Phase 2: Authentic On-Chain Circle USDC Payment on Ethereum Sepolia
+      setExecutionStep(`2/4: Preparing Ethereum Sepolia transaction for $${upfrontUsdc.toFixed(6)} USDC...`);
 
-      const paymentTxId = `${walletAddress ? walletAddress.slice(0, 10) : "0.0.482910"}@${Math.floor(Date.now() / 1000)}.778102910`;
+      if (typeof window === "undefined" || !(window as any).ethereum) {
+        throw new Error("No Ethereum wallet found. Please install MetaMask to make on-chain testnet payments.");
+      }
+
+      // Check / switch to Sepolia testnet
+      const currentChain = await (window as any).ethereum.request({ method: "eth_chainId" });
+      if (currentChain !== SEPOLIA_CHAIN_ID_HEX) {
+        setExecutionStep("2/4: Prompting wallet network switch to Ethereum Sepolia...");
+        const switched = await switchToSepolia();
+        if (!switched) {
+          throw new Error("Please switch your wallet to Ethereum Sepolia (Chain ID 11155111) to proceed.");
+        }
+      }
+
+      // Prompt MetaMask for authentic Circle USDC transfer
+      setExecutionStep(`2/4: Please sign the $${upfrontUsdc.toFixed(6)} Circle USDC payment in MetaMask...`);
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const usdcContract = new ethers.Contract(SEPOLIA_CIRCLE_USDC_ADDRESS, ERC20_MINIMAL_ABI, signer);
+
+      // Check balance before attempting tx
+      try {
+        const bal = await usdcContract.balanceOf(await signer.getAddress());
+        if (BigInt(bal) < BigInt(upfrontMicroUsdc)) {
+          throw new Error(
+            `Insufficient Circle Sepolia USDC balance. Available: $${(Number(bal) / 1_000_000).toFixed(6)} USDC, Required: $${upfrontUsdc.toFixed(6)} USDC. Claim free Sepolia USDC at faucet.circle.com`
+          );
+        }
+      } catch (balErr: any) {
+        if (balErr.message?.includes("Insufficient Circle Sepolia USDC balance")) {
+          throw balErr;
+        }
+        console.warn("Pre-tx balance check warning:", balErr);
+      }
+
+      let tx: any;
+      try {
+        tx = await usdcContract.transfer(SHUNYA_TREASURY_EVM_ADDRESS, BigInt(upfrontMicroUsdc));
+      } catch (signErr: any) {
+        if (signErr.code === "ACTION_REJECTED" || signErr.message?.includes("user rejected") || signErr.code === 4001) {
+          throw new Error("Payment transaction was rejected in MetaMask.");
+        }
+        throw signErr;
+      }
+
+      setExecutionStep(`2/4: Payment broadcasted (${tx.hash.slice(0, 10)}...). Waiting for Sepolia block confirmation...`);
+      const receipt = await tx.wait(1);
+
+      if (!receipt || receipt.status !== 1) {
+        throw new Error("Sepolia transaction failed or reverted on-chain.");
+      }
+
+      const confirmedTxHash = tx.hash;
+      setBuyerSepoliaTxHash(confirmedTxHash);
+      setExecutionStep(`2/4: Payment confirmed on Sepolia! Enclave verifying transaction receipt...`);
+
+      // Refresh balance in background
+      refreshUsdcBalance();
 
       // Phase 3: Sealed Enclave Execution
       setExecutionStep("3/4: 0G Sealed Enclave executing inference with zero seller visibility...");
@@ -296,14 +445,15 @@ contract VaultLending {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-402-Payment-TxId": paymentTxId,
+          "X-402-Payment-TxId": confirmedTxHash,
         },
         body: JSON.stringify({
           modelId: selectedModel,
           thinkingLevel,
           listingId: selectedSeller.id,
           encryptedEnvelope,
-          paymentTxId,
+          paymentTxId: confirmedTxHash,
+          buyerAddress: walletAddress,
         }),
       });
 
@@ -360,6 +510,49 @@ contract VaultLending {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Ethereum Sepolia Network Status */}
+          {walletAddress && (
+            isSepoliaNetwork ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-950/70 border border-indigo-700/50 text-xs font-mono text-indigo-300">
+                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                <span>Sepolia (11155111)</span>
+              </div>
+            ) : (
+              <button
+                onClick={switchToSepolia}
+                disabled={isSwitchingNetwork}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-950/80 hover:bg-amber-900/80 border border-amber-600/60 text-xs font-mono text-amber-300 transition"
+              >
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span>{isSwitchingNetwork ? "Switching..." : "Switch to Sepolia"}</span>
+              </button>
+            )
+          )}
+
+          {/* Sepolia Circle USDC Balance */}
+          {walletAddress && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono">
+              <Coins className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-slate-200 font-bold">
+                {isLoadingBalance
+                  ? "Loading..."
+                  : usdcBalance !== null
+                  ? `$${usdcBalance.toFixed(2)} USDC`
+                  : "0.00 USDC"}
+              </span>
+              <a
+                href={CIRCLE_FAUCET_URL}
+                target="_blank"
+                rel="noreferrer"
+                title="Claim free Circle testnet USDC"
+                className="text-[10px] text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-0.5 ml-1 font-semibold"
+              >
+                Faucet
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
+          )}
+
           {isAuthenticated ? (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -888,6 +1081,42 @@ contract VaultLending {
               )}
             </div>
 
+            {/* Sepolia Network & Circle USDC Balance Warning Banners */}
+            {walletAddress && !isSepoliaNetwork && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Your wallet is not connected to Ethereum Sepolia. Switch to pay with Circle testnet USDC.</span>
+                </div>
+                <button
+                  onClick={switchToSepolia}
+                  disabled={isSwitchingNetwork}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold text-xs shrink-0 transition"
+                >
+                  {isSwitchingNetwork ? "Switching..." : "Switch to Sepolia"}
+                </button>
+              </div>
+            )}
+
+            {walletAddress && isSepoliaNetwork && usdcBalance !== null && usdcBalance < upfrontUsdc && (
+              <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>
+                    Your Sepolia USDC balance (${usdcBalance.toFixed(2)}) is less than the required upfront deposit (${upfrontUsdc.toFixed(4)} USDC).
+                  </span>
+                </div>
+                <a
+                  href={CIRCLE_FAUCET_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 font-bold text-xs flex items-center gap-1.5 shrink-0 transition"
+                >
+                  Claim Free USDC from Circle <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
+
             {/* Token Safety & Budget Check */}
             <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1">
@@ -926,7 +1155,7 @@ contract VaultLending {
                   ? "Executing Sealed Inference..."
                   : !isAuthenticated
                   ? `Connect & Verify to Lock ($${upfrontUsdc.toFixed(4)} USDC)`
-                  : `Lock & Execute with x402 ($${upfrontUsdc.toFixed(4)} USDC)`}
+                  : `Deposit Circle USDC on Sepolia & Execute ($${upfrontUsdc.toFixed(4)} USDC)`}
               </button>
             </div>
 
@@ -1003,20 +1232,97 @@ contract VaultLending {
                   </div>
                 </div>
 
-                {/* Proofs & HashScan Links */}
-                <div className="pt-2 flex flex-wrap items-center justify-between gap-4 text-xs font-mono border-t border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400">Hedera HCS Settlement:</span>
-                    <a
-                      href={executionResult.hederaSettlement.hashscanUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-cyan-400 hover:underline flex items-center gap-1 font-bold"
-                    >
-                      {executionResult.hederaSettlement.sellerPayoutTxId}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                {/* Proofs & Dual Verified On-Chain Receipts */}
+                <div className="pt-3 border-t border-slate-800 space-y-3 text-xs font-mono">
+                  <div className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-emerald-400" />
+                    Dual Verified On-Chain Receipts & Audit Consensus:
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* 1. Ethereum Sepolia Payment Receipt */}
+                    <div className="p-3.5 rounded-xl bg-slate-900/90 border border-indigo-500/30 flex flex-col justify-between gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-indigo-300 flex items-center gap-1.5">
+                          <Coins className="w-3.5 h-3.5 text-indigo-400" />
+                          Ethereum Sepolia (Circle USDC)
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/40">
+                          Buyer Payment
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 break-all">
+                        Tx: {executionResult.sepoliaPayment?.txHash || executionResult.hederaSettlement?.buyerSepoliaTxHash || buyerSepoliaTxHash || executionResult.hederaSettlement?.buyerX402TxId}
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                        <span className="text-[11px] text-slate-400">
+                          Amount: ${(executionResult.sepoliaPayment?.amountUsdc || upfrontUsdc).toFixed(6)} USDC
+                        </span>
+                        {(executionResult.sepoliaPayment?.etherscanUrl || executionResult.hederaSettlement?.sepoliaEtherscanUrl || buyerSepoliaTxHash) && (
+                          <a
+                            href={executionResult.sepoliaPayment?.etherscanUrl || executionResult.hederaSettlement?.sepoliaEtherscanUrl || `https://sepolia.etherscan.io/tx/${buyerSepoliaTxHash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-1 font-bold text-[11px]"
+                          >
+                            View on Etherscan
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2. Hedera HCS Consensus Proof */}
+                    <div className="p-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex flex-col justify-between gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-cyan-300 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                          Hedera HCS Audit Consensus
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-cyan-950 text-cyan-300 border border-cyan-800/40">
+                          Seq #{executionResult.hederaSettlement?.hcsSequenceNumber || "1"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Topic: <span className="text-slate-200">{executionResult.hederaSettlement?.hcsTopicId || HEDERA_HCS_TOPIC_ID}</span>
+                        {executionResult.hederaSettlement?.consensusTimestamp && (
+                          <span className="block text-[10px] text-slate-500">
+                            Time: {executionResult.hederaSettlement.consensusTimestamp}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                        <span className="text-[11px] text-slate-400">
+                          Payout: {executionResult.hederaSettlement?.sellerPayoutTxId?.slice(0, 14)}...
+                        </span>
+                        <a
+                          href={executionResult.hederaSettlement?.hashscanUrl || `https://hashscan.io/testnet/topic/${HEDERA_HCS_TOPIC_ID}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 font-bold text-[11px]"
+                        >
+                          View on HashScan
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. 0G Enclave Attestation Receipt */}
+                  {executionResult.zeroGVerification && (
+                    <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-slate-400">0G Hardware Enclave Attestation:</span>
+                        <span className="font-mono text-emerald-300">
+                          {executionResult.zeroGVerification.attestationHash?.slice(0, 18)}...
+                        </span>
+                      </div>
+                      <span className="text-slate-500 font-mono text-[10px]">
+                        Enclave: {executionResult.zeroGVerification.enclaveId || "0G-TEE-IntelSGX-V2"}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -15,6 +15,7 @@
     "test:feasibility": "tsx scripts/testFeasibility.ts",
     "test:concurrency": "tsx scripts/testBackendConcurrency.ts",
     "test:integrations": "tsx scripts/testLiveIntegrations.ts",
+    "test:sepolia": "tsx scripts/testSepoliaBuyerPayment.ts",
     "test:e2e": "tsx scripts/runE2EDemo.ts",
     "agent:openclaw": "tsx apps/buyer-cli-agent/openclaw-agent.ts",
     "contracts:compile": "tsx scripts/compileContracts.ts",
