@@ -30,7 +30,6 @@ if (lanIps.length === 0) {
     console.log(`     Frontend Landing:   http://${item.ip}:3000`);
     console.log(`     Buyer Studio:       http://${item.ip}:3000/buyer`);
     console.log(`     Seller Dashboard:   http://${item.ip}:3000/seller`);
-    console.log(`     Audit Explorer:     http://${item.ip}:3000/audit`);
     console.log(`     Marketplace:        http://${item.ip}:3000/marketplace`);
     console.log(`     Arc Discovery API:  http://${item.ip}:3000/api/arc-discovery\n`);
   }

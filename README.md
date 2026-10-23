@@ -9,7 +9,7 @@
 
 > **Live Prototype URL:** [http://localhost:3000](http://localhost:3000)  
 > **Arc Studio Project:** [https://studio.arc.com/project/shunyagrid-mumbai-2026](https://studio.arc.com/project/shunyagrid-mumbai-2026)  
-> **Hedera HCS Topic (Audit Explorer):** `0.0.591300` • [View on HashScan](https://hashscan.io/testnet/topic/0.0.591300)  
+> **Hedera HCS Topic (Settlement Consensus):** `0.0.591300` • [View on HashScan](https://hashscan.io/testnet/topic/0.0.591300)  
 > **Demo Video Duration:** `< 2 min 45 sec` (Strict compliance with EF, 0G, and Hedera limits)
 
 ---
@@ -148,9 +148,7 @@ Devcon/
 │   │   │   ├── blind-execute/route.ts   # HTTP 402 Gatekeeper + Enclave Execution + Payout Split
 │   │   │   ├── bridge/cctp/route.ts     # Circle CCTP bridge initiation endpoint
 │   │   │   ├── enclave-pubkey/route.ts  # 0G Sealed Enclave Public Key endpoint
-│   │   │   ├── hcs-logs/route.ts        # Hedera Consensus Service audit stream endpoint
 │   │   │   └── listings/route.ts        # Arkiv Entities listing & creation endpoint
-│   │   ├── audit/page.tsx               # Split-Screen Judge View (Buyer Cleartext vs Seller Blindness)
 │   │   ├── bridge/page.tsx              # Arc Circle CCTP Payout Sweeper UI
 │   │   ├── buyer/page.tsx               # Buyer Studio (Model, Thinking, Any-File Dropzone, x402)
 │   │   ├── seller/page.tsx              # Seller Quota Hub (Key sealing, World ID, ENS, Arkiv)
@@ -266,16 +264,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 6. Enter an ENS subname label (e.g., `my-node`) and Hedera payout account (`0.0.xxxxx`).
 7. Click **`Publish to Arkiv Orderbook (1-Hour Expiry)`**: your listing is published directly to Arkiv.
 
-### Scenario C: Judge Split-Screen Audit View
-1. Go to **[http://localhost:3000/audit](http://localhost:3000/audit)**.
-2. Experience the **Dual-Perspective Side-by-Side Proof**:
-   * **Left Panel (Buyer Perspective):** Full cleartext prompt, attached Solidity code preview, model reasoning trace, and decrypted audit report.
-   * **Right Panel (Seller Perspective):** Prompt shown as `[SEALED CIPHERTEXT]`, files shown as encrypted Arkiv binary blobs, output shown as ciphertext sealed to Buyer's return key.
-   * **Exact Commission Spread:** Displays Buyer paid for $T_{\max}$, Seller paid for $T_{\text{used}}$, and ShunyaGrid retained $(T_{\max} - T_{\text{used}})$ as commission!
-3. Check the **6 Invariants Status Bar** verifying FT-01 through FT-06.
-4. Scroll through the **Hedera Consensus Service (HCS) Settled Job Receipts** table and click any HashScan link.
-
-### Scenario D: Arc Circle CCTP Bridge Kit
+### Scenario C: Arc Circle CCTP Bridge Kit
 1. Go to **[http://localhost:3000/bridge](http://localhost:3000/bridge)**.
 2. Choose a destination EVM chain (`Arc Chain`, `Arbitrum`, `Base`, `Optimism`, `Ethereum`).
 3. Enter amount of earned USDC and destination recipient address.
@@ -294,9 +283,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
   * Show the deterministic token bounds: $T_{\max} = 24,192$ tokens calculated automatically.
   * Show the Arkiv Orderbook filtering out any seller with $< 24,192$ tokens (FT-01 Invariant).
   * Attach a confidential audit contract and click **Encrypt & Run Blind Inference**.
-* **1:15 – 2:00 (The Judge Split View "Aha!" Moment):**
-  * Switch to `/audit`: Show the Buyer cleartext vs. the Seller's complete blindness side-by-side.
-  * Point to the Seller view: `Prompt: [CIPHERTEXT] | Files: [ENCRYPTED BLOBS] | Output: [SEALED]`.
+* **1:15 – 2:00 (On-Chain Execution & Settlement):**
+  * Show the dual on-chain receipts on Buyer Studio: Ethereum Sepolia USDC payment and Hedera HCS consensus receipt.
   * Point to the economic math: Buyer charged for $T_{\max} = 24,192$, Seller paid for $T_{\text{used}} = 14,192$, ShunyaGrid retained the 10,000-token spread as app commission.
 * **2:00 – 2:30 (Sponsor Integrations):**
   * Click the Hedera Tx ID and show the consensus timestamp and transfer on **HashScan**.

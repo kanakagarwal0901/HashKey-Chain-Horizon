@@ -24,7 +24,7 @@ async function runConcurrencyStressTest() {
   console.log("   SHUNYAGRID BACKEND CONCURRENCY & RACE CONDITION STRESS SUITE");
   console.log("=".repeat(75) + "\n");
 
-  const arkivDb = new ArkivDatabaseEngine();
+  const arkivDb = new ArkivDatabaseEngine({ persist: false });
   const bounds = getModelTokenBounds("claude-3-7-sonnet", "medium"); // T_max = 24,192
   const tMax = bounds.totalMaxTokens;
 

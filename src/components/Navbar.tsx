@@ -17,7 +17,6 @@ import {
   Check,
   ExternalLink,
   Activity,
-  FileSearch,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -90,13 +89,6 @@ export default function Navbar() {
           >
             <Layers className="w-4 h-4 text-emerald-400" />
             Seller Hub
-          </Link>
-          <Link
-            href="/audit"
-            className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2"
-          >
-            <FileSearch className="w-4 h-4 text-indigo-400" />
-            Audit Console
           </Link>
           <Link
             href="/marketplace"
@@ -201,16 +193,6 @@ export default function Navbar() {
                       <span className="flex items-center gap-2">
                         <Layers className="w-3.5 h-3.5 text-emerald-400" />
                         Seller Hub
-                      </span>
-                    </Link>
-                    <Link
-                      href="/audit"
-                      onClick={() => setDropdownOpen(false)}
-                      className="block px-3 py-2 rounded-lg hover:bg-slate-800/80 text-slate-300 hover:text-white transition flex items-center justify-between"
-                    >
-                      <span className="flex items-center gap-2">
-                        <FileSearch className="w-3.5 h-3.5 text-indigo-400" />
-                        Audit Console
                       </span>
                     </Link>
                     <Link

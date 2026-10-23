@@ -65,13 +65,26 @@ export class ArkivDatabaseEngine {
   private entityMutexes: Map<string, AsyncMutex> = new Map();
   private currentBlock: number = 19_482_100;
   private persistencePath: string = path.join(process.cwd(), ".data", "arkiv_listings.json");
+  private shouldPersist: boolean = true;
 
-  constructor() {
+  constructor(options?: { persist?: boolean }) {
+    if (options?.persist !== undefined) {
+      this.shouldPersist = options.persist;
+    }
     this.seedDefaultListings();
+    if (this.shouldPersist) {
+      this.loadFromDisk();
+    }
+  }
+
+  public reloadFromDisk(): void {
+    this.listings.clear();
+    this.entityMutexes.clear();
     this.loadFromDisk();
   }
 
   private loadFromDisk() {
+    if (!this.shouldPersist) return;
     try {
       if (fs.existsSync(this.persistencePath)) {
         const raw = fs.readFileSync(this.persistencePath, "utf8");
@@ -84,12 +97,20 @@ export class ArkivDatabaseEngine {
   }
 
   private saveToDisk() {
+    if (!this.shouldPersist) return;
     try {
       const dir = path.dirname(this.persistencePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       const list = Array.from(this.listings.values());
       fs.writeFileSync(this.persistencePath, JSON.stringify(list, null, 2), "utf8");
     } catch {}
+  }
+
+  public deleteListing(id: string): boolean {
+    const deleted = this.listings.delete(id);
+    this.entityMutexes.delete(id);
+    this.saveToDisk();
+    return deleted;
   }
 
   // Orderbook starts clean for authentic seller registrations

@@ -201,7 +201,7 @@ async function runFeasibilityTests() {
   {
     // Create new database instance
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const arkiv = new (ArkivDatabaseEngine as any)();
+    const arkiv = new (ArkivDatabaseEngine as any)({ persist: false });
     
     // Create 10-minute file entity (200 blocks)
     const fileEntity = arkiv.storeFileEntity({
@@ -235,7 +235,7 @@ async function runFeasibilityTests() {
   console.log("\n\x1b[36m[FT-06] Testing Concurrent Request Race Protection & Atomic Locks...\x1b[0m");
   {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const arkiv = new (ArkivDatabaseEngine as any)();
+    const arkiv = new (ArkivDatabaseEngine as any)({ persist: false });
     const listing = arkiv.createListing({
       ownerAddress: "0xTestSeller",
       ensName: "test-seller.shunyagrid.eth",

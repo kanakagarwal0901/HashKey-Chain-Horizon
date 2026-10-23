@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, Home, Cpu, Layers, Lock, ArrowRightLeft } from "lucide-react";
+import { AlertTriangle, Home, Cpu, Layers, Database, ArrowRightLeft } from "lucide-react";
 
 export default function NotFound() {
   return (
@@ -50,14 +50,14 @@ export default function NotFound() {
         </Link>
 
         <Link
-          href="/audit"
+          href="/marketplace"
           className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 hover:bg-slate-800 transition text-left flex flex-col gap-2 group"
         >
           <div className="flex items-center gap-2 text-purple-400 font-semibold text-sm">
-            <Lock className="w-4 h-4" />
-            Judge Audit
+            <Database className="w-4 h-4" />
+            Orderbook
           </div>
-          <span className="text-xs text-slate-400">HCS live settlement logs</span>
+          <span className="text-xs text-slate-400">Arkiv time-scoped listings</span>
         </Link>
       </div>
 

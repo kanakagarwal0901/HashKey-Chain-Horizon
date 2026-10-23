@@ -39,7 +39,7 @@ async function runE2EDemo() {
   console.log("   Target Prize Pool: $64,500+ across 7 Sponsor Tracks");
   console.log("=".repeat(75) + "\n");
 
-  const arkivDb = new ArkivDatabaseEngine();
+  const arkivDb = new ArkivDatabaseEngine({ persist: false });
   const hederaEngine = new HederaSettlementEngine();
   const zeroGService = new ZeroGService();
   const worldIdService = new WorldIdService();

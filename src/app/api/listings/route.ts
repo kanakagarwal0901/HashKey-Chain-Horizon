@@ -45,7 +45,49 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const deleteId = searchParams.get("id");
+  const reload = searchParams.get("reload");
+
+  if (reload === "true") {
+    try {
+      const listingsPath = path.join(process.cwd(), ".data", "arkiv_listings.json");
+      if (fs.existsSync(listingsPath)) {
+        const raw = fs.readFileSync(listingsPath, "utf8");
+        const list = JSON.parse(raw);
+        if ((arkivDb as any).listings) {
+          (arkivDb as any).listings.clear();
+          for (const item of list) {
+            (arkivDb as any).listings.set(item.id, item);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error reloading listings from disk:", e);
+    }
+    const all = arkivDb.getAllListings();
+    return NextResponse.json({
+      success: true,
+      message: "Arkiv orderbook reloaded from disk",
+      count: all.length,
+      listings: sanitizeListings(all),
+    });
+  }
+
+  if (deleteId) {
+    if (typeof (arkivDb as any)?.deleteListing === "function") {
+      (arkivDb as any).deleteListing(deleteId);
+    }
+    const all = arkivDb.getAllListings();
+    return NextResponse.json({
+      success: true,
+      message: `Deleted listing ${deleteId}`,
+      count: all.length,
+      listings: sanitizeListings(all),
+    });
+  }
+
   if (typeof (arkivDb as any)?.clearOrderbook === "function") {
     arkivDb.clearOrderbook();
   } else {
