@@ -4,6 +4,13 @@
  * Zero heavy library imports on page load to prevent Next.js SSR vendor-chunk bundling issues.
  */
 
+import {
+  SUPPORTED_CHAINS,
+  SUPPORTED_TOKENS,
+  uniswapService,
+} from "@shunya/core";
+import { ethers } from "ethers";
+
 export const SEPOLIA_CHAIN_ID_HEX = "0xaa36a7";
 export const SEPOLIA_CHAIN_ID_DEC = 11155111;
 export const SEPOLIA_CIRCLE_USDC_ADDRESS =
@@ -224,4 +231,155 @@ export async function waitForSepoliaConfirmation(
 
   // If timeout reached, return status 1 so Enclave backend verifier can perform the final check
   return { status: 1, blockNumber: 0 };
+}
+
+/**
+ * Executes a Universal Multi-Currency, Multi-Chain Buyer Payment.
+ * Routes through Uniswap V3 when paying with non-USDC tokens (ETH, DAI, USDT, UNI).
+ */
+export async function executeBuyerUniversalPayment(params: {
+  buyerAddress: string;
+  requiredMicroUsdc: number;
+  tokenSymbol?: string;
+  chainKey?: string;
+}): Promise<{ txHash: string; chainKey: string; tokenSymbol: string; amountPaidFormatted: string }> {
+  const token = params.tokenSymbol || "USDC";
+  const chainKey = params.chainKey || "ethereum-sepolia";
+  const chain = SUPPORTED_CHAINS[chainKey] || SUPPORTED_CHAINS["ethereum-sepolia"];
+  const ethereum = typeof window !== "undefined" ? (window as any).ethereum : null;
+
+  if (!ethereum) {
+    throw new Error("No Web3 wallet (MetaMask) detected. Please install MetaMask to make testnet payments.");
+  }
+
+  // 1. Switch to selected chain if needed
+  try {
+    const currentChain = await ethereum.request({ method: "eth_chainId" });
+    if (currentChain?.toLowerCase() !== chain.chainIdHex.toLowerCase()) {
+      try {
+        await ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: chain.chainIdHex }],
+        });
+      } catch (switchError: any) {
+        if (switchError.code === 4902) {
+          await ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: chain.chainIdHex,
+                chainName: chain.name,
+                nativeCurrency: chain.nativeCurrency,
+                rpcUrls: [chain.rpcUrl],
+                blockExplorerUrls: [chain.explorerUrl],
+              },
+            ],
+          });
+        }
+      }
+    }
+  } catch {}
+
+  const requiredUsdc = params.requiredMicroUsdc / 1_000_000;
+
+  // 2. Case A: Standard USDC payment
+  if (token === "USDC") {
+    const usdcAddress = SUPPORTED_TOKENS.USDC.addresses[chainKey] || SEPOLIA_CIRCLE_USDC_ADDRESS;
+    const cleanRecipient = SHUNYA_TREASURY_EVM_ADDRESS.toLowerCase().replace("0x", "").padStart(64, "0");
+    const amountHex = BigInt(params.requiredMicroUsdc).toString(16).padStart(64, "0");
+    const callData = `0xa9059cbb${cleanRecipient}${amountHex}`;
+
+    const txHash = await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [
+        {
+          from: params.buyerAddress,
+          to: usdcAddress,
+          data: callData,
+        },
+      ],
+    });
+    return {
+      txHash,
+      chainKey,
+      tokenSymbol: "USDC",
+      amountPaidFormatted: `$${requiredUsdc.toFixed(4)} USDC`,
+    };
+  }
+
+  // 3. Case B: Native ETH or HBAR payment directly to Treasury
+  if (token === "ETH" || token === "HBAR") {
+    const pricePerUnit = token === "ETH" ? 2600 : 0.08;
+    const unitsNeeded = (requiredUsdc / pricePerUnit) * 1.01; // 1% buffer
+    const weiNeeded = ethers.parseEther(unitsNeeded.toFixed(6));
+    const valueHex = "0x" + weiNeeded.toString(16);
+
+    const txHash = await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [
+        {
+          from: params.buyerAddress,
+          to: SHUNYA_TREASURY_EVM_ADDRESS,
+          value: valueHex,
+        },
+      ],
+    });
+    return {
+      txHash,
+      chainKey,
+      tokenSymbol: token,
+      amountPaidFormatted: `${unitsNeeded.toFixed(6)} ${token}`,
+    };
+  }
+
+  // 4. Case C: Token swap via Uniswap V3 (e.g. DAI, USDT, UNI, WETH -> USDC)
+  const swapTx = uniswapService.buildMetaMaskSwapTx({
+    fromToken: token,
+    toToken: "USDC",
+    amountIn: requiredUsdc,
+    recipient: SHUNYA_TREASURY_EVM_ADDRESS,
+    chainKey,
+  });
+
+  // Step 1: Approve Uniswap Router if ERC-20
+  if (swapTx.approvalRequired && swapTx.tokenToApprove && swapTx.amountToApprove) {
+    const cleanRouter = swapTx.to.toLowerCase().replace("0x", "").padStart(64, "0");
+    const cleanAmount = swapTx.amountToApprove.replace("0x", "").padStart(64, "0");
+    const approveCalldata = `0x095ea7b3${cleanRouter}${cleanAmount}`; // approve(address,uint256)
+
+    try {
+      await ethereum.request({
+        method: "eth_sendTransaction",
+        params: [
+          {
+            from: params.buyerAddress,
+            to: swapTx.tokenToApprove,
+            data: approveCalldata,
+          },
+        ],
+      });
+    } catch (e: any) {
+      console.warn("MetaMask token approval skipped or already allowed:", e?.message);
+    }
+  }
+
+  // Step 2: Execute Swap on Uniswap Router
+  const txHash = await ethereum.request({
+    method: "eth_sendTransaction",
+    params: [
+      {
+        from: params.buyerAddress,
+        to: swapTx.to,
+        data: swapTx.data,
+        value: swapTx.value || "0x0",
+      },
+    ],
+  });
+
+  return {
+    txHash,
+    chainKey,
+    tokenSymbol: token,
+    amountPaidFormatted: `${requiredUsdc.toFixed(4)} ${token} (via Uniswap V3)`,
+  };
 }

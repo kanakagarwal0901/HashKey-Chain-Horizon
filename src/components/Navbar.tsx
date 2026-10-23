@@ -27,6 +27,7 @@ export default function Navbar() {
     worldIdVerified,
     nullifierHash,
     isAuthenticated,
+    sellerHederaAccount,
     connectWallet,
     logout,
   } = useAuth();
@@ -169,6 +170,16 @@ export default function Navbar() {
                       </div>
                     )}
                   </div>
+
+                  {/* Hedera Account (if connected by Seller) */}
+                  {sellerHederaAccount && (
+                    <div className="p-2.5 rounded-xl bg-slate-950/80 border border-amber-500/30 text-[11px] font-mono space-y-1">
+                      <div className="flex items-center justify-between text-slate-400">
+                        <span>Hedera Payout:</span>
+                        <span className="text-amber-400 font-bold">{sellerHederaAccount}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Protocol Links */}
                   <div className="space-y-1 pt-1 text-xs">

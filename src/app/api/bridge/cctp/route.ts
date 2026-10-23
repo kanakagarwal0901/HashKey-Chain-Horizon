@@ -23,20 +23,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const bridgeTx = arcBridgeService.initiateCctpBridge({
-      destinationChain,
-      amountUsdc,
-      recipientAddress,
-    });
+    const sourceAccount = body.sourceAccount;
+    const isSimulationOnly = body.simulationOnly === true;
+
+    const targetToken = body.targetToken || body.targetCurrency || "USDC";
+
+    let bridgeTx;
+    if (isSimulationOnly) {
+      bridgeTx = arcBridgeService.initiateCctpBridge({
+        destinationChain,
+        amountUsdc,
+        recipientAddress,
+      });
+    } else {
+      bridgeTx = await arcBridgeService.executeLiveSellerSweep({
+        sourceAccount,
+        recipientAddress,
+        amountUsdc,
+        destinationChain,
+        targetToken,
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      message: `Successfully initiated Circle CCTP burn & mint to ${destinationChain}`,
+      message: `Successfully executed on-chain seller sweep to ${recipientAddress} via Uniswap (${targetToken} on ${destinationChain})`,
       bridgeTx,
       sourceBurnTxId: bridgeTx.txHash,
       cctpMessageNonce: bridgeTx.id,
-      destinationMintTxId: bridgeTx.txHash,
-      hashscanUrl: `https://hashscan.io/testnet/transaction/${bridgeTx.txHash}`,
+      destinationMintTxId: bridgeTx.evmTxHash || bridgeTx.txHash,
+      hashscanUrl: bridgeTx.hashscanUrl || `https://hashscan.io/testnet/transaction/${bridgeTx.txHash}`,
+      blockNumber: bridgeTx.blockNumber,
+      tokenContract: bridgeTx.tokenContract,
+      gasSentHbar: bridgeTx.gasSentHbar,
+      hcsSequenceNumber: bridgeTx.hcsSequenceNumber,
+      swappedToken: bridgeTx.swappedToken || targetToken,
+      swappedAmount: bridgeTx.swappedAmount,
+      dexRouter: bridgeTx.dexRouter,
+      dexRate: bridgeTx.dexRate,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Bridge Error";

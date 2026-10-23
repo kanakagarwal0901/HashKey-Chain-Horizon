@@ -17,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col antialiased selection:bg-indigo-500/30 selection:text-indigo-200" suppressHydrationWarning>
         <AuthProvider>
           {/* EF Anon-RPC Sandboxed Harness (Hidden Iframe for anonymous JSON-RPC) */}
           <iframe

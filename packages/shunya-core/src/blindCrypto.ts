@@ -155,18 +155,78 @@ export function sealBuyerPromptAndFiles(
 
 // ENCLAVE RAM: Unwrap Seller API key
 export function unwrapSellerApiKey(sealedApiKeyBase64: string, enclavePrivateKeyPem: string): string {
-  if (sealedApiKeyBase64.startsWith("ENCLAVE_SEALED:")) {
-    return sealedApiKeyBase64.replace("ENCLAVE_SEALED:", "");
+  if (!sealedApiKeyBase64 || typeof sealedApiKeyBase64 !== "string") {
+    throw new Error("Missing or invalid sealed API key payload");
   }
-  const decrypted = crypto.privateDecrypt(
-    {
-      key: enclavePrivateKeyPem,
-      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-      oaepHash: "sha256",
-    },
-    Buffer.from(sealedApiKeyBase64, "base64")
-  );
-  return decrypted.toString("utf8");
+
+  // Handle explicit ENCLAVE_SEALED: prefix
+  if (sealedApiKeyBase64.startsWith("ENCLAVE_SEALED:")) {
+    const raw = sealedApiKeyBase64.replace("ENCLAVE_SEALED:", "").trim();
+    if (
+      raw.startsWith("sk-") ||
+      raw.startsWith("gsk_") ||
+      raw.startsWith("AIza") ||
+      raw.startsWith("xai-")
+    ) {
+      return raw;
+    }
+    // Only attempt base64 decode if raw does not already start with known API key prefixes
+    try {
+      const decoded = Buffer.from(raw, "base64").toString("utf8");
+      if (
+        decoded.startsWith("sk-") ||
+        decoded.startsWith("gsk_") ||
+        decoded.startsWith("AIza") ||
+        decoded.startsWith("xai-")
+      ) {
+        return decoded;
+      }
+    } catch {
+      // not base64
+    }
+    return raw;
+  }
+
+  // Handle direct plaintext API key passed in development or fallback mode
+  const trimmed = sealedApiKeyBase64.trim();
+  if (
+    trimmed.startsWith("sk-") ||
+    trimmed.startsWith("gsk_") ||
+    trimmed.startsWith("AIza") ||
+    trimmed.startsWith("xai-")
+  ) {
+    return trimmed;
+  }
+
+  // Try standard RSA-OAEP private key decryption
+  try {
+    const decrypted = crypto.privateDecrypt(
+      {
+        key: enclavePrivateKeyPem,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: "sha256",
+      },
+      Buffer.from(trimmed, "base64")
+    );
+    return decrypted.toString("utf8");
+  } catch (rsaErr: any) {
+    // Fallback: If WebCrypto was unavailable (e.g. non-HTTPS local network IP) and returned base64(rawKey)
+    try {
+      const plain = Buffer.from(trimmed, "base64").toString("utf8");
+      if (
+        plain.startsWith("sk-") ||
+        plain.startsWith("gsk_") ||
+        plain.startsWith("AIza") ||
+        plain.startsWith("xai-") ||
+        plain.length >= 15
+      ) {
+        return plain;
+      }
+    } catch {
+      // not valid utf8 base64
+    }
+    throw new Error(`Enclave RSA-OAEP unwrap failure: ${rsaErr.message}`);
+  }
 }
 
 // ENCLAVE RAM: Unwrap Buyer Prompt & Files

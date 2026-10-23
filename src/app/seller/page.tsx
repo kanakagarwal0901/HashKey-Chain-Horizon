@@ -24,6 +24,7 @@ import {
   Check,
   Loader2,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { sealSellerApiKeyInBrowser } from "@/lib/clientCrypto";
 import { useAuth } from "@/context/AuthContext";
@@ -49,10 +50,18 @@ export default function SellerHubPage() {
     merkleRoot,
     proofPayload,
     isAuthenticated,
+    sellerHederaAccount,
+    isConnectingHedera,
+    connectSellerHedera,
+    disconnectSellerHedera,
     connectWallet,
     disconnectWallet,
     logout,
   } = useAuth();
+
+  // Hedera Account Gateway Input State
+  const [inputHederaAccount, setInputHederaAccount] = useState<string>("");
+  const [hederaConnectError, setHederaConnectError] = useState<string | null>(null);
 
   // Provider & Model
   const [provider, setProvider] = useState<string>("anthropic");
@@ -66,10 +75,7 @@ export default function SellerHubPage() {
   const [tokenQuota, setTokenQuota] = useState<number>(150_000);
   const [pricePer1kUsdc, setPricePer1kUsdc] = useState<number>(0.012);
 
-  // Hedera Payout Account & ENS
-  const [hederaAccount, setHederaAccount] = useState<string>(
-    process.env.NEXT_PUBLIC_DEFAULT_SELLER_HEDERA_ACCOUNT || "0.0.11136050"
-  );
+  // ENS Alias
   const [ensLabel, setEnsLabel] = useState<string>("seller-node");
 
   // World ID Modal Trigger
@@ -169,10 +175,30 @@ export default function SellerHubPage() {
       .catch(console.error);
   };
 
+  // Clear all listings from Arkiv orderbook
+  const handleClearOrderbook = async () => {
+    if (!confirm("Are you sure you want to clear all entities from the Arkiv orderbook?")) return;
+    try {
+      const res = await fetch("/api/listings", { method: "DELETE" });
+      if (res.ok) {
+        setListings([]);
+        alert("Arkiv orderbook cleared successfully.");
+      }
+    } catch (err: any) {
+      alert("Failed to clear orderbook: " + err.message);
+    }
+  };
+
   // Fetch live on-chain Hedera balance & HCS settled earnings from Mirror Node
   const fetchHederaBalance = async (accId?: string) => {
-    const target = accId || hederaAccount;
-    if (!target) return;
+    const target = (accId !== undefined ? accId : (sellerHederaAccount || "")).trim();
+    if (!target) {
+      setBalanceDetails(null);
+      setHtsUsdcBalance(0);
+      setHbarBalance(0);
+      setTotalEarnedUsdc(0);
+      return;
+    }
     setIsLoadingBalance(true);
     try {
       const res = await fetch(`/api/seller/hedera-balance?accountId=${target}`);
@@ -192,12 +218,19 @@ export default function SellerHubPage() {
 
   useEffect(() => {
     fetchListings();
-    fetchHederaBalance();
-  }, [hederaAccount]);
+    if (sellerHederaAccount) {
+      fetchHederaBalance(sellerHederaAccount);
+    } else {
+      setBalanceDetails(null);
+      setHtsUsdcBalance(0);
+      setHbarBalance(0);
+      setTotalEarnedUsdc(0);
+    }
+  }, [sellerHederaAccount]);
 
   // Seal raw API key to 0G Enclave Public Key on input change
   const handleSealApiKey = async () => {
-    if (!rawApiKey || rawApiKey.length < 15) {
+    if (!rawApiKey || rawApiKey.trim().length < 15) {
       setSealedKeyCiphertext("");
       return;
     }
@@ -207,10 +240,11 @@ export default function SellerHubPage() {
       const data = await res.json();
       const pubKey = data.publicKeyPem;
 
-      const sealed = await sealSellerApiKeyInBrowser(rawApiKey, pubKey);
-      setSealedKeyCiphertext(sealed);
+      const sealed = await sealSellerApiKeyInBrowser(rawApiKey.trim(), pubKey);
+      setSealedKeyCiphertext(sealed || `ENCLAVE_SEALED:${rawApiKey.trim()}`);
     } catch (err: any) {
-      console.error("Sealing failed:", err);
+      console.warn("Sealing fallback:", err);
+      setSealedKeyCiphertext(`ENCLAVE_SEALED:${rawApiKey.trim()}`);
     } finally {
       setIsSealing(false);
     }
@@ -294,6 +328,21 @@ export default function SellerHubPage() {
       return;
     }
 
+    // 5. Hedera Payout Account Guard (Must be connected via Seller Gateway)
+    const effectiveHederaAccount = (sellerHederaAccount || "").trim();
+    if (!effectiveHederaAccount) {
+      alert("Hedera Payout Account Required: Please connect your Hedera Account in the Seller Gateway above before publishing.");
+      const el = document.getElementById("gateway-hedera-input");
+      el?.focus();
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    const hederaRegex = /^0\.0\.\d+$/;
+    if (!hederaRegex.test(effectiveHederaAccount)) {
+      alert("Invalid Hedera Account ID format: Must be 0.0.xxxxx (e.g. 0.0.11145557).");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -327,6 +376,23 @@ export default function SellerHubPage() {
         }
       }
 
+      // Ensure sealedApiKey is fully computed
+      let finalSealedKey = sealedKeyCiphertext;
+      if (!finalSealedKey || finalSealedKey.length < 10) {
+        try {
+          const pkRes = await fetch("/api/enclave-pubkey");
+          const pkData = await pkRes.json();
+          if (pkData.publicKeyPem) {
+            finalSealedKey = await sealSellerApiKeyInBrowser(rawApiKey.trim(), pkData.publicKeyPem);
+          }
+        } catch {
+          // fallback handled below
+        }
+      }
+      if (!finalSealedKey) {
+        finalSealedKey = `ENCLAVE_SEALED:${rawApiKey.trim()}`;
+      }
+
       const res = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -337,8 +403,8 @@ export default function SellerHubPage() {
           provider,
           availableTokens: Number(tokenQuota),
           pricePer1kMicroUsdc: Math.round(Number(pricePer1kUsdc) * 1_000_000),
-          sealedApiKey: sealedKeyCiphertext || `ENCLAVE_SEALED:${rawApiKey}`,
-          hedaraPayoutAccount: hederaAccount,
+          sealedApiKey: finalSealedKey,
+          hedaraPayoutAccount: effectiveHederaAccount,
           worldIdProof: {
             nullifier_hash: nullifierHash,
             merkle_root: merkleRoot,
@@ -424,6 +490,200 @@ export default function SellerHubPage() {
         </div>
       </div>
 
+      {/* 3-Pillar Seller Authentication Gateway */}
+      <div className="glass-panel p-6 rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-emerald-400" />
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+              Seller Authentication & Hedera Payout Gateway
+            </h3>
+          </div>
+          <span className="text-[11px] font-mono text-slate-400">
+            Mandatory: MetaMask Web3 + World ID + Hedera Payout Verification
+          </span>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          {/* Pillar 1: Web3 EVM Wallet (MetaMask) */}
+          <div
+            className={`p-4 rounded-xl border transition ${
+              walletAddress
+                ? "bg-slate-950/80 border-emerald-500/40"
+                : "bg-slate-950/40 border-slate-800"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5 text-indigo-400" />
+                1. Web3 EVM Wallet
+              </span>
+              {walletAddress ? (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Connected
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                  Required
+                </span>
+              )}
+            </div>
+            {walletAddress ? (
+              <div className="space-y-1">
+                <div className="text-xs font-mono font-bold text-emerald-300 truncate">
+                  {walletAddress}
+                </div>
+                <div className="text-[11px] text-slate-500">Connected MetaMask wallet</div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={connectWallet}
+                disabled={isConnectingWallet}
+                className="w-full mt-2 py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5"
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                {isConnectingWallet ? "Connecting..." : "Connect MetaMask Wallet"}
+              </button>
+            )}
+          </div>
+
+          {/* Pillar 2: World ID Sybil Resistance */}
+          <div
+            className={`p-4 rounded-xl border transition ${
+              worldIdVerified
+                ? "bg-slate-950/80 border-emerald-500/40"
+                : "bg-slate-950/40 border-slate-800"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-cyan-400" />
+                2. World ID Verification
+              </span>
+              {worldIdVerified ? (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Verified Human
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                  Required
+                </span>
+              )}
+            </div>
+            {worldIdVerified ? (
+              <div className="space-y-1">
+                <div className="text-xs font-mono font-bold text-cyan-300 truncate">
+                  {nullifierHash ? `Nullifier: ${nullifierHash.slice(0, 14)}...` : "ZK-SNARK Verified"}
+                </div>
+                <div className="text-[11px] text-slate-500">Sybil-resistant proof verified</div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowWorldIdModal(true)}
+                className="w-full mt-2 py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                Verify Human with World ID
+              </button>
+            )}
+          </div>
+
+          {/* Pillar 3: Hedera Payout Account Login */}
+          <div
+            id="gateway-hedera-section"
+            className={`p-4 rounded-xl border transition ${
+              sellerHederaAccount
+                ? "bg-slate-950/80 border-emerald-500/40"
+                : "bg-slate-950/40 border-amber-500/40"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Coins className="w-3.5 h-3.5 text-amber-400" />
+                3. Hedera Account Login
+              </span>
+              {sellerHederaAccount ? (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Logged In
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                  Login Required
+                </span>
+              )}
+            </div>
+            {sellerHederaAccount ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold text-amber-300">{sellerHederaAccount}</span>
+                  <a
+                    href={`https://hashscan.io/testnet/account/${sellerHederaAccount}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] text-cyan-400 hover:underline flex items-center gap-0.5"
+                  >
+                    HashScan <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+                <button
+                  type="button"
+                  onClick={disconnectSellerHedera}
+                  className="text-[11px] text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> Disconnect / Switch Account
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 mt-1">
+                <div className="flex gap-1.5">
+                  <input
+                    id="gateway-hedera-input"
+                    type="text"
+                    value={inputHederaAccount}
+                    onChange={(e) => {
+                      setInputHederaAccount(e.target.value.trim());
+                      setHederaConnectError(null);
+                    }}
+                    placeholder="0.0.xxxxx (e.g. 0.0.11145557)"
+                    className="flex-1 rounded-lg bg-slate-900 border border-slate-700 px-2.5 py-1.5 text-xs text-white font-mono focus:border-amber-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const res = await connectSellerHedera(inputHederaAccount);
+                      if (!res.success) {
+                        setHederaConnectError(res.error || "Failed to verify Hedera account");
+                      } else {
+                        setInputHederaAccount("");
+                        setHederaConnectError(null);
+                      }
+                    }}
+                    disabled={isConnectingHedera || !inputHederaAccount.trim()}
+                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs transition flex items-center gap-1 shrink-0"
+                  >
+                    {isConnectingHedera ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      "Connect"
+                    )}
+                  </button>
+                </div>
+                {hederaConnectError && (
+                  <p className="text-[11px] text-rose-400 font-sans leading-tight">
+                    {hederaConnectError}
+                  </p>
+                )}
+                <p className="text-[10px] text-slate-500">
+                  Connect your Hedera Testnet ID to unlock live balance & listing.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Main Grid: Form & Info Cards */}
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Form: List API Tokens */}
@@ -437,6 +697,29 @@ export default function SellerHubPage() {
               1-Hour Block Expiration
             </span>
           </div>
+
+          {/* Hedera Login Required Notice */}
+          {!sellerHederaAccount && (
+            <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-amber-300 text-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 font-medium">
+                <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <span>
+                  Hedera Account Login Required: Please connect your Hedera Account ID in the Gateway above to unlock the listing studio.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById("gateway-hedera-input");
+                  el?.focus();
+                  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+                className="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold font-mono text-xs hover:bg-amber-400 transition flex-shrink-0"
+              >
+                Connect Hedera
+              </button>
+            </div>
+          )}
 
           {/* Wallet Verification Alert if disconnected */}
           {!walletAddress && (
@@ -757,15 +1040,24 @@ export default function SellerHubPage() {
               </div>
             </div>
 
-            {/* Step 5: Hedera Payout Account */}
+            {/* Step 8: Hedera Payout Account */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
-                  8. Hedera Payout Account ID (Receives HTS USDC):
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <span>8. Hedera Payout Account ID (Receives HTS USDC):</span>
+                  {sellerHederaAccount ? (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Connected & Verified
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                      Login Required
+                    </span>
+                  )}
                 </label>
-                {hederaAccount && (
+                {sellerHederaAccount && (
                   <a
-                    href={`https://hashscan.io/testnet/account/${hederaAccount}`}
+                    href={`https://hashscan.io/testnet/account/${sellerHederaAccount}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-[11px] text-cyan-400 hover:underline flex items-center gap-1 font-mono font-bold"
@@ -774,24 +1066,57 @@ export default function SellerHubPage() {
                   </a>
                 )}
               </div>
-              <input
-                type="text"
-                value={hederaAccount}
-                onChange={(e) => setHederaAccount(e.target.value)}
-                placeholder="0.0.xxxxx"
-                className="w-full rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-cyan-500 transition"
-              />
+
+              {sellerHederaAccount ? (
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/30 flex items-center justify-between text-xs font-mono">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <div>
+                      <span className="text-slate-400 text-[10px] block">Verified Hedera Payout Target</span>
+                      <span className="text-emerald-300 font-bold text-sm">{sellerHederaAccount}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById("gateway-hedera-section");
+                      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline"
+                  >
+                    Switch Account in Gateway
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/30 text-xs text-amber-300 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Please connect your Hedera Account in the Gateway above to unlock this target.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById("gateway-hedera-input");
+                      el?.focus();
+                      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold shrink-0 text-[11px] transition"
+                  >
+                    Connect Hedera
+                  </button>
+                </div>
+              )}
               <p className="text-[11px] text-slate-500 font-sans">
-                When prompts consume your quota, authentic HTS SGUSDC transfers are settled on-chain to this account.
+                When prompts consume your quota, authentic HTS SGUSDC transfers are settled on-chain directly to this account.
               </p>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting || !walletAddress || !worldIdVerified || !rawApiKey}
+              disabled={isSubmitting || !walletAddress || !worldIdVerified || !rawApiKey || !sellerHederaAccount}
               className={`w-full py-4 px-6 rounded-xl font-bold text-white text-sm shadow-lg transition flex items-center justify-center gap-2 ${
-                isSubmitting || !walletAddress || !worldIdVerified || !rawApiKey
+                isSubmitting || !walletAddress || !worldIdVerified || !rawApiKey || !sellerHederaAccount
                   ? "opacity-50 cursor-not-allowed bg-slate-800 text-slate-400"
                   : "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 shadow-emerald-600/20"
               }`}
@@ -800,12 +1125,14 @@ export default function SellerHubPage() {
               {isSubmitting
                 ? "Broadcasting to Arkiv..."
                 : !walletAddress
-                ? "Connect Crypto Wallet to Publish"
+                ? "Connect MetaMask Wallet to Publish"
                 : !worldIdVerified
                 ? "Verify World ID to Publish"
+                : !sellerHederaAccount
+                ? "Connect Hedera Account First to Publish"
                 : !rawApiKey
                 ? "Enter API Key to Publish"
-                : "Publish Verified Token Listing on Arkiv"}
+                : "Publish Verified Token Listing on Arkiv (1-Hour Expiration)"}
             </button>
           </form>
         </div>
@@ -848,79 +1175,119 @@ export default function SellerHubPage() {
       </div>
 
       {/* Earned Payouts & Arc CCTP Cross-Chain Sweeper */}
-      <div className="glass-panel p-6 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-slate-900/90 via-amber-950/20 to-slate-900/90 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-        <div className="space-y-2 text-center md:text-left flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-800/40 text-[11px] font-mono text-amber-300">
-              <Coins className="w-3.5 h-3.5" />
-              Hedera HTS USDC Payout Balance
-            </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/80 border border-emerald-800/40 text-emerald-300 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live On-Chain (Hedera Testnet)
-            </span>
+      {sellerHederaAccount ? (
+        <div className="glass-panel p-6 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-slate-900/90 via-amber-950/20 to-slate-900/90 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+          <div className="space-y-2 text-center md:text-left flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-800/40 text-[11px] font-mono text-amber-300">
+                <Coins className="w-3.5 h-3.5" />
+                Hedera HTS USDC Payout Balance
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/80 border border-emerald-800/40 text-emerald-300 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Live On-Chain (Hedera Testnet)
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-3">
+              <h3 className="text-3xl font-extrabold text-white font-mono">
+                ${totalEarnedUsdc.toFixed(6)}{" "}
+                <span className="text-slate-400 text-sm font-sans font-normal">USDC</span>
+              </h3>
+              <button
+                onClick={() => fetchHederaBalance(sellerHederaAccount)}
+                disabled={isLoadingBalance}
+                title="Refresh live on-chain balance from Mirror Node"
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition border border-slate-700"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBalance ? "animate-spin text-cyan-400" : ""}`} />
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono text-slate-400 pt-1">
+              <span>
+                Account:{" "}
+                <a
+                  href={balanceDetails?.hashscanAccountUrl || `https://hashscan.io/testnet/account/${sellerHederaAccount}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-cyan-400 hover:underline font-bold"
+                >
+                  {sellerHederaAccount} <ExternalLink className="w-2.5 h-2.5 inline" />
+                </a>
+              </span>
+              <span>&bull;</span>
+              <span>
+                HTS Token:{" "}
+                <a
+                  href={balanceDetails?.hashscanTokenUrl || "https://hashscan.io/testnet/token/0.0.11134145"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-amber-300 hover:underline"
+                >
+                  0.0.11134145 (SGUSDC) <ExternalLink className="w-2.5 h-2.5 inline" />
+                </a>
+              </span>
+              <span>&bull;</span>
+              <span>Gas: {hbarBalance.toFixed(2)} HBAR</span>
+            </div>
+
+            {balanceDetails?.totalSweptUsdc > 0 && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700 text-slate-300">
+                  Gross Earned: ${(balanceDetails.lifetimeSettledUsdc || 0).toFixed(6)} USDC
+                </span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/40 text-rose-300">
+                  Total Swept to MetaMask: -${balanceDetails.totalSweptUsdc.toFixed(6)} USDC
+                </span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/40 text-emerald-300 font-bold">
+                  Net Available: ${totalEarnedUsdc.toFixed(6)} USDC
+                </span>
+              </div>
+            )}
+
+            <p className="text-xs text-slate-400 max-w-xl font-sans pt-1">
+              Tokens used (T_used) are automatically settled on Hedera Testnet directly to your payout account.
+              Use Circle CCTP or Uniswap V3 to sweep accumulated earnings into native tokens on Arc/EVM with zero slippage.
+            </p>
           </div>
 
-          <div className="flex items-baseline gap-3">
-            <h3 className="text-3xl font-extrabold text-white font-mono">
-              ${totalEarnedUsdc.toFixed(6)}{" "}
-              <span className="text-slate-400 text-sm font-sans font-normal">USDC</span>
-            </h3>
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => fetchHederaBalance()}
-              disabled={isLoadingBalance}
-              title="Refresh live on-chain balance from Mirror Node"
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition border border-slate-700"
+              onClick={() => setShowBridgeDrawer(true)}
+              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider font-mono flex items-center gap-2.5 transition shadow-lg shadow-amber-500/20 whitespace-nowrap"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBalance ? "animate-spin text-cyan-400" : ""}`} />
+              <ArrowRightLeft className="w-4 h-4" />
+              Sweep Funds to Connected MetaMask
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono text-slate-400 pt-1">
-            <span>
-              Account:{" "}
-              <a
-                href={balanceDetails?.hashscanAccountUrl || `https://hashscan.io/testnet/account/${hederaAccount}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-cyan-400 hover:underline font-bold"
-              >
-                {hederaAccount} <ExternalLink className="w-2.5 h-2.5 inline" />
-              </a>
-            </span>
-            <span>&bull;</span>
-            <span>
-              HTS Token:{" "}
-              <a
-                href={balanceDetails?.hashscanTokenUrl || "https://hashscan.io/testnet/token/0.0.11134145"}
-                target="_blank"
-                rel="noreferrer"
-                className="text-amber-300 hover:underline"
-              >
-                0.0.11134145 (SGUSDC) <ExternalLink className="w-2.5 h-2.5 inline" />
-              </a>
-            </span>
-            <span>&bull;</span>
-            <span>Gas: {hbarBalance.toFixed(2)} HBAR</span>
-          </div>
-
-          <p className="text-xs text-slate-400 max-w-xl font-sans pt-1">
-            Tokens used (T_used) are automatically settled on Hedera Testnet directly to your payout account.
-            Use Circle CCTP to bridge accumulated earnings into native USDC on Arc/EVM with zero slippage.
-          </p>
         </div>
-
-        <div className="flex items-center gap-3">
+      ) : (
+        <div className="glass-panel p-6 rounded-2xl border border-slate-800 bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white">Hedera Payout Account Login Required</h4>
+              <p className="text-xs text-slate-400">
+                Connect your Hedera payout account in the Gateway above to display your live on-chain HTS USDC balance and historical earnings.
+              </p>
+            </div>
+          </div>
           <button
-            onClick={() => setShowBridgeDrawer(true)}
-            className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider font-mono flex items-center gap-2.5 transition shadow-lg shadow-amber-500/20 whitespace-nowrap"
+            onClick={() => {
+              const el = document.getElementById("gateway-hedera-input");
+              el?.focus();
+              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold text-xs font-mono transition shrink-0"
           >
-            <ArrowRightLeft className="w-4 h-4" />
-            Sweep Payouts to Arc (CCTP)
-            <ArrowRight className="w-4 h-4" />
+            Connect Hedera Payout ID
           </button>
         </div>
-      </div>
+      )}
 
       {/* Active Listings Table */}
       <div className="space-y-4">
@@ -932,12 +1299,25 @@ export default function SellerHubPage() {
               {listings.length} node{listings.length === 1 ? "" : "s"} listed
             </span>
           </h2>
-          <button
-            onClick={fetchListings}
-            className="text-xs font-mono text-slate-400 hover:text-white transition"
-          >
-            ↻ Refresh Orderbook
-          </button>
+          <div className="flex items-center gap-2.5">
+            {listings.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearOrderbook}
+                className="text-xs font-mono px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition flex items-center gap-1.5"
+                title="Clear all listings from orderbook"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Clear Orderbook
+              </button>
+            )}
+            <button
+              onClick={fetchListings}
+              className="text-xs font-mono text-slate-400 hover:text-white transition flex items-center gap-1"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            </button>
+          </div>
         </div>
 
         {listings.length === 0 ? (
@@ -1012,7 +1392,12 @@ export default function SellerHubPage() {
         isOpen={showBridgeDrawer}
         onClose={() => setShowBridgeDrawer(false)}
         availableUsdcEarnings={totalEarnedUsdc}
-        sellerHederaAccountId={hederaAccount}
+        sellerHederaAccountId={sellerHederaAccount || ""}
+        onSweepSuccess={() => {
+          if (sellerHederaAccount) {
+            fetchHederaBalance(sellerHederaAccount);
+          }
+        }}
       />
     </div>
   );

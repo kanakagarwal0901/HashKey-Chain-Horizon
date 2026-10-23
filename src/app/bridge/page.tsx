@@ -8,12 +8,12 @@ export default function ArcBridgePage() {
   const { walletAddress } = useAuth();
   const [destinationChain, setDestinationChain] = useState<string>("arc");
   const [amountUsdc, setAmountUsdc] = useState<number>(50);
-  const [recipientAddress, setRecipientAddress] = useState<string>("0x71C2a8b940e4e8B");
+  const [recipientAddress, setRecipientAddress] = useState<string>("0x8fDE3F07fFF6432fF22FB805f34011785e0C8444");
   const [isBridging, setIsBridging] = useState<boolean>(false);
   const [bridgeHistory, setBridgeHistory] = useState<any[]>([]);
 
   useEffect(() => {
-    if (walletAddress && recipientAddress === "0x71C2a8b940e4e8B") {
+    if (walletAddress) {
       setRecipientAddress(walletAddress);
     }
   }, [walletAddress]);

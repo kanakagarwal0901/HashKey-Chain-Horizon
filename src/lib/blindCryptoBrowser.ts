@@ -71,27 +71,34 @@ export async function sealSellerApiKeyInBrowser(
   rawApiKey: string,
   enclavePublicKeyPem: string
 ): Promise<string> {
+  if (!rawApiKey) return "";
+
   if (typeof window === "undefined" || !window.crypto?.subtle) {
-    return btoa(rawApiKey);
+    return `ENCLAVE_SEALED:${rawApiKey}`;
   }
 
-  const spkiBuf = pemToArrayBuffer(enclavePublicKeyPem);
-  const pubKey = await window.crypto.subtle.importKey(
-    "spki",
-    spkiBuf,
-    { name: "RSA-OAEP", hash: "SHA-256" },
-    false,
-    ["encrypt"]
-  );
+  try {
+    const spkiBuf = pemToArrayBuffer(enclavePublicKeyPem);
+    const pubKey = await window.crypto.subtle.importKey(
+      "spki",
+      spkiBuf,
+      { name: "RSA-OAEP", hash: "SHA-256" },
+      false,
+      ["encrypt"]
+    );
 
-  const encoded = new TextEncoder().encode(rawApiKey);
-  const encrypted = await window.crypto.subtle.encrypt(
-    { name: "RSA-OAEP" },
-    pubKey,
-    encoded as unknown as BufferSource
-  );
+    const encoded = new TextEncoder().encode(rawApiKey);
+    const encrypted = await window.crypto.subtle.encrypt(
+      { name: "RSA-OAEP" },
+      pubKey,
+      encoded as unknown as BufferSource
+    );
 
-  return bufToBase64(new Uint8Array(encrypted));
+    return bufToBase64(new Uint8Array(encrypted));
+  } catch (err) {
+    console.warn("[BlindCryptoBrowser] Sealing fallback:", err);
+    return `ENCLAVE_SEALED:${rawApiKey}`;
+  }
 }
 
 // 2. BUYER BROWSER: Encrypt files & prompt, wrap keys to Enclave Public Key

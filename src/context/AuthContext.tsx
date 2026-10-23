@@ -11,6 +11,11 @@ export interface AuthContextType {
   merkleRoot: string | null;
   proofPayload: string | null;
   isAuthenticated: boolean;
+  // Seller Hedera Payout Account Login
+  sellerHederaAccount: string | null;
+  isConnectingHedera: boolean;
+  connectSellerHedera: (accountId: string) => Promise<{ success: boolean; error?: string }>;
+  disconnectSellerHedera: () => void;
   connectWallet: () => Promise<boolean>;
   disconnectWallet: () => void;
   completeWorldIdVerification: (proofData: {
@@ -30,6 +35,10 @@ const AuthContext = createContext<AuthContextType>({
   merkleRoot: null,
   proofPayload: null,
   isAuthenticated: false,
+  sellerHederaAccount: null,
+  isConnectingHedera: false,
+  connectSellerHedera: async () => ({ success: false }),
+  disconnectSellerHedera: () => {},
   connectWallet: async () => false,
   disconnectWallet: () => {},
   completeWorldIdVerification: () => {},
@@ -37,6 +46,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 const STORAGE_KEY = "shunyagrid_auth_session_v1";
+const HEDERA_STORAGE_KEY = "shunyagrid_seller_hedera_v1";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -46,6 +56,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [nullifierHash, setNullifierHash] = useState<string | null>(null);
   const [merkleRoot, setMerkleRoot] = useState<string | null>(null);
   const [proofPayload, setProofPayload] = useState<string | null>(null);
+
+  // Seller Hedera Account Login State
+  const [sellerHederaAccount, setSellerHederaAccount] = useState<string | null>(null);
+  const [isConnectingHedera, setIsConnectingHedera] = useState<boolean>(false);
 
   // Load persisted session on initial mount
   useEffect(() => {
@@ -62,6 +76,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setMerkleRoot(parsed.merkleRoot || null);
             setProofPayload(parsed.proofPayload || null);
           }
+        }
+        const savedHedera = localStorage.getItem(HEDERA_STORAGE_KEY);
+        if (savedHedera && /^0\.0\.\d+$/.test(savedHedera.trim())) {
+          setSellerHederaAccount(savedHedera.trim());
         }
       } catch (e) {
         console.error("Failed to parse saved auth session:", e);
@@ -172,6 +190,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setWorldIdVerified(true);
   };
 
+  // Seller Hedera Account Connection & Testnet Verification
+  const connectSellerHedera = async (accountId: string): Promise<{ success: boolean; error?: string }> => {
+    const cleanId = accountId.trim();
+    if (!cleanId) {
+      return { success: false, error: "Please enter a valid Hedera Account ID." };
+    }
+    const hederaRegex = /^0\.0\.\d+$/;
+    if (!hederaRegex.test(cleanId)) {
+      return { success: false, error: "Invalid format. Expected 0.0.xxxxx (e.g. 0.0.11145557)." };
+    }
+
+    setIsConnectingHedera(true);
+    try {
+      const res = await fetch(`/api/seller/hedera-balance?accountId=${cleanId}`);
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        return { success: false, error: data.error || "Failed to verify Hedera account on testnet." };
+      }
+      setSellerHederaAccount(cleanId);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(HEDERA_STORAGE_KEY, cleanId);
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Failed to verify Hedera account." };
+    } finally {
+      setIsConnectingHedera(false);
+    }
+  };
+
+  const disconnectSellerHedera = () => {
+    setSellerHederaAccount(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(HEDERA_STORAGE_KEY);
+    }
+  };
+
   // Log Out: Clears wallet, World ID session, and storage
   const logout = () => {
     setWalletAddress(null);
@@ -180,8 +235,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setNullifierHash(null);
     setMerkleRoot(null);
     setProofPayload(null);
+    setSellerHederaAccount(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(HEDERA_STORAGE_KEY);
     }
   };
 
@@ -198,6 +255,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         merkleRoot,
         proofPayload,
         isAuthenticated,
+        sellerHederaAccount,
+        isConnectingHedera,
+        connectSellerHedera,
+        disconnectSellerHedera,
         connectWallet,
         disconnectWallet,
         completeWorldIdVerification,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   PROVIDERS,
@@ -32,6 +32,9 @@ import {
   X,
   Trash2,
   Check,
+  ArrowRightLeft,
+  TrendingUp,
+  Loader2,
 } from "lucide-react";
 import {
   sealBuyerPromptAndFilesInBrowser,
@@ -49,6 +52,7 @@ import {
   fetchSepoliaUsdcBalance,
   sendSepoliaUsdcPayment,
   waitForSepoliaConfirmation,
+  executeBuyerUniversalPayment,
 } from "@/lib/clientSepolia";
 
 export default function BuyerStudioPage() {
@@ -70,6 +74,20 @@ export default function BuyerStudioPage() {
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState<boolean>(false);
   const [buyerSepoliaTxHash, setBuyerSepoliaTxHash] = useState<string | null>(null);
+
+  // Multi-Currency & Multi-Chain Payment State
+  const [paymentCurrency, setPaymentCurrency] = useState<string>("USDC");
+  const [paymentChain, setPaymentChain] = useState<string>("ethereum-sepolia");
+  const [isFetchingQuote, setIsFetchingQuote] = useState<boolean>(false);
+  const [paymentQuote, setPaymentQuote] = useState<{
+    amountFormatted: string;
+    rateFormatted: string;
+    isSwap: boolean;
+  }>({
+    amountFormatted: "$0.00",
+    rateFormatted: "1 USDC = $1.00",
+    isSwap: false,
+  });
 
   const isSepoliaNetwork = walletChainId === "0xaa36a7" || walletChainId === "11155111";
 
@@ -120,6 +138,7 @@ export default function BuyerStudioPage() {
   const [eligibleSellers, setEligibleSellers] = useState<any[]>([]);
   const [selectedSeller, setSelectedSeller] = useState<any | null>(null);
   const [loadingSellers, setLoadingSellers] = useState<boolean>(false);
+  const [allOrderbookListings, setAllOrderbookListings] = useState<any[]>([]);
 
   // Execution & Decryption State
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
@@ -133,6 +152,65 @@ export default function BuyerStudioPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const studioRef = useRef<HTMLDivElement>(null);
+
+  // Group active models from all orderbook listings
+  const activeOrderbookModels = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        modelId: string;
+        provider: string;
+        modelName: string;
+        count: number;
+        lowestRate: number;
+      }
+    >();
+    for (const l of allOrderbookListings) {
+      if (l.status !== "active") continue;
+      const meta = getModelMetadata(l.model);
+      const modelName = meta?.name || l.model;
+      const provider = meta?.provider || l.provider || "openai";
+      const existing = map.get(l.model);
+      if (!existing) {
+        map.set(l.model, {
+          modelId: l.model,
+          provider,
+          modelName,
+          count: 1,
+          lowestRate: l.pricePer1kMicroUsdc,
+        });
+      } else {
+        existing.count += 1;
+        existing.lowestRate = Math.min(existing.lowestRate, l.pricePer1kMicroUsdc);
+      }
+    }
+    return Array.from(map.values());
+  }, [allOrderbookListings]);
+
+  // Direct Model Selector Helper
+  const selectModelDirectly = (provider: string, modelId: string) => {
+    setSelectedProvider(provider);
+    setSelectedModel(modelId);
+    const meta = getModelMetadata(modelId);
+    setThinkingLevel(meta?.supportsThinking ? "medium" : "none");
+    setSelectedSeller(null);
+    setExecutionResult(null);
+    setDecryptedResult(null);
+  };
+
+  const fetchAllOrderbookListings = async () => {
+    try {
+      const res = await fetch("/api/listings");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.listings)) {
+        setAllOrderbookListings(data.listings);
+        return data.listings;
+      }
+    } catch (err) {
+      console.warn("Could not load all orderbook listings:", err);
+    }
+    return [];
+  };
 
   // Filter models by selected provider
   const availableModels = getModelsByProvider(selectedProvider);
@@ -148,6 +226,26 @@ export default function BuyerStudioPage() {
   }, 0);
   const totalEstimatedInputTokens = estimatedPromptTokens + estimatedFileTokens;
   const isInputWithinLimits = totalEstimatedInputTokens <= bounds.maxInputAndFileTokens;
+
+  // On initial mount: query all listings and auto-select active model if default model has 0 sellers
+  useEffect(() => {
+    fetchAllOrderbookListings().then((all) => {
+      if (all && all.length > 0) {
+        const activeForSelected = all.filter(
+          (l: any) => l.model === selectedModel && l.status === "active"
+        );
+        if (activeForSelected.length === 0) {
+          const firstActive = all.find((l: any) => l.status === "active");
+          if (firstActive) {
+            const meta = getModelMetadata(firstActive.model);
+            if (meta) {
+              selectModelDirectly(meta.provider, meta.id);
+            }
+          }
+        }
+      }
+    });
+  }, []);
 
   // Preload sample Solidity file for quick testing
   useEffect(() => {
@@ -200,6 +298,8 @@ contract VaultLending {
         console.error("Failed to query Arkiv:", err);
         setLoadingSellers(false);
       });
+
+    fetchAllOrderbookListings();
   }, [selectedModel, bounds.totalMaxTokens]);
 
   // Provider change handler
@@ -307,6 +407,49 @@ contract VaultLending {
   const upfrontMicroUsdc = Math.ceil((bounds.totalMaxTokens / 1000) * ratePer1k);
   const upfrontUsdc = upfrontMicroUsdc / 1_000_000;
 
+  // Dynamic Uniswap Quote for Multi-Currency Buyer Payment
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBuyerQuote = async () => {
+      if (paymentCurrency === "USDC") {
+        setPaymentQuote({
+          amountFormatted: `$${upfrontUsdc.toFixed(4)} USDC`,
+          rateFormatted: "1 USDC = $1.00",
+          isSwap: false,
+        });
+        return;
+      }
+
+      setIsFetchingQuote(true);
+      try {
+        const res = await fetch(
+          `/api/uniswap/quote?from=${paymentCurrency}&to=USDC&amount=1&chainId=${paymentChain}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.quote && isMounted) {
+            const usdcPerToken = data.quote.expectedAmountOut || 1.0;
+            const unitsNeeded = (upfrontUsdc / usdcPerToken) * 1.005; // 0.5% slippage safety buffer
+            setPaymentQuote({
+              amountFormatted: `${unitsNeeded < 0.001 ? unitsNeeded.toFixed(6) : unitsNeeded.toFixed(4)} ${paymentCurrency}`,
+              rateFormatted: `1 ${paymentCurrency} ≈ $${usdcPerToken.toFixed(2)} USDC`,
+              isSwap: true,
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Buyer quote fetch error:", err);
+      } finally {
+        if (isMounted) setIsFetchingQuote(false);
+      }
+    };
+
+    fetchBuyerQuote();
+    return () => {
+      isMounted = false;
+    };
+  }, [paymentCurrency, paymentChain, upfrontUsdc]);
+
   // Execute blind inference
   const executePrompt = async () => {
     if (!selectedSeller) return;
@@ -339,26 +482,32 @@ contract VaultLending {
         enclavePubKeyPem
       );
 
-      // Phase 2: Authentic On-Chain Circle USDC Payment on Ethereum Sepolia
-      setExecutionStep(`2/4: Preparing Ethereum Sepolia transaction for $${upfrontUsdc.toFixed(6)} USDC...`);
+      // Phase 2: Authentic On-Chain Multi-Currency / Uniswap Routed Payment
+      setExecutionStep(`2/4: Preparing MetaMask ${paymentCurrency} payment on ${paymentChain}...`);
 
       if (!walletAddress) {
         throw new Error("Wallet not connected. Please connect your Web3 wallet.");
       }
 
-      // Prompt MetaMask for authentic Circle USDC transfer
-      setExecutionStep(`2/4: Please sign the $${upfrontUsdc.toFixed(6)} Circle USDC payment in MetaMask...`);
-      const confirmedTxHash = await sendSepoliaUsdcPayment(
-        walletAddress,
-        SHUNYA_TREASURY_EVM_ADDRESS,
-        upfrontMicroUsdc
+      setExecutionStep(
+        paymentCurrency === "USDC"
+          ? `2/4: Please sign the $${upfrontUsdc.toFixed(4)} USDC payment in MetaMask...`
+          : `2/4: Please approve and sign the ${paymentCurrency} Uniswap swap in MetaMask...`
       );
 
-      setExecutionStep(`2/4: Payment broadcasted (${confirmedTxHash.slice(0, 10)}...). Waiting for Sepolia block confirmation...`);
+      const paymentResult = await executeBuyerUniversalPayment({
+        buyerAddress: walletAddress,
+        requiredMicroUsdc: upfrontMicroUsdc,
+        tokenSymbol: paymentCurrency,
+        chainKey: paymentChain,
+      });
+
+      const confirmedTxHash = paymentResult.txHash;
+      setExecutionStep(`2/4: Payment broadcasted (${confirmedTxHash.slice(0, 10)}...). Waiting for block confirmation...`);
       await waitForSepoliaConfirmation(confirmedTxHash, 45000);
 
       setBuyerSepoliaTxHash(confirmedTxHash);
-      setExecutionStep(`2/4: Payment confirmed on Sepolia! Enclave verifying transaction receipt...`);
+      setExecutionStep(`2/4: Payment confirmed! Enclave verifying transaction receipt...`);
 
       // Refresh balance in background
       refreshUsdcBalance();
@@ -527,6 +676,48 @@ contract VaultLending {
           </span>
         </div>
 
+        {/* Live Orderbook Nodes Banner */}
+        {activeOrderbookModels.length > 0 && (
+          <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 flex flex-wrap items-center justify-between gap-3 shadow-md shadow-emerald-950/30">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-xs font-bold text-emerald-300">Live Orderbook Sellers Online:</span>
+              <span className="text-xs text-slate-300">
+                {allOrderbookListings.filter((l) => l.status === "active").length} active node{allOrderbookListings.filter((l) => l.status === "active").length === 1 ? "" : "s"} ready for inference
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {activeOrderbookModels.map((item) => (
+                <button
+                  key={item.modelId}
+                  type="button"
+                  onClick={() => selectModelDirectly(item.provider, item.modelId)}
+                  className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition flex items-center gap-1.5 ${
+                    selectedModel === item.modelId
+                      ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-bold"
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                  }`}
+                >
+                  <span>{item.modelName}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded ${
+                      selectedModel === item.modelId
+                        ? "bg-slate-900 text-emerald-300"
+                        : "bg-emerald-950 text-emerald-400"
+                    }`}
+                  >
+                    {item.count} node{item.count === 1 ? "" : "s"}
+                  </span>
+                  {selectedModel === item.modelId && <Check className="w-3.5 h-3.5" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 3 Cascading Dropdown Selectors */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* 1. AI Provider Dropdown */}
@@ -541,11 +732,16 @@ contract VaultLending {
                 onChange={(e) => handleProviderChange(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-cyan-500 rounded-xl px-3.5 py-3 text-sm text-white font-medium outline-none transition cursor-pointer appearance-none"
               >
-                {PROVIDERS.map((p) => (
-                  <option key={p.id} value={p.id} className="bg-slate-900 text-white">
-                    {p.name}
-                  </option>
-                ))}
+                {PROVIDERS.map((p) => {
+                  const nodeCount = allOrderbookListings.filter(
+                    (l) => l.status === "active" && (getModelMetadata(l.model)?.provider === p.id || l.provider === p.id)
+                  ).length;
+                  return (
+                    <option key={p.id} value={p.id} className="bg-slate-900 text-white">
+                      {p.name} {nodeCount > 0 ? `(${nodeCount} active node${nodeCount === 1 ? "" : "s"})` : ""}
+                    </option>
+                  );
+                })}
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400 text-xs">
                 ▼
@@ -568,11 +764,16 @@ contract VaultLending {
                 onChange={(e) => handleModelChange(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-cyan-500 rounded-xl px-3.5 py-3 text-sm text-white font-medium outline-none transition cursor-pointer appearance-none"
               >
-                {availableModels.map((m) => (
-                  <option key={m.id} value={m.id} className="bg-slate-900 text-white">
-                    {m.name} ({Math.round(m.contextWindow / 1000)}k ctx)
-                  </option>
-                ))}
+                {availableModels.map((m) => {
+                  const nodeCount = allOrderbookListings.filter(
+                    (l) => l.status === "active" && l.model === m.id
+                  ).length;
+                  return (
+                    <option key={m.id} value={m.id} className="bg-slate-900 text-white">
+                      {m.name} ({Math.round(m.contextWindow / 1000)}k ctx) {nodeCount > 0 ? `🔥 (${nodeCount} node${nodeCount === 1 ? "" : "s"})` : ""}
+                    </option>
+                  );
+                })}
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400 text-xs">
                 ▼
@@ -715,15 +916,39 @@ contract VaultLending {
 
         {/* Empty State: No eligible sellers */}
         {!loadingSellers && eligibleSellers.length === 0 && (
-          <div className="p-6 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-300 space-y-3">
+          <div className="p-6 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-300 space-y-4">
             <div className="flex items-center gap-2 font-bold text-sm">
               <AlertCircle className="w-5 h-5 text-amber-400" />
-              No Arkiv sellers currently meet the Zero-Cutoff Invariant (Q &ge; {bounds.totalMaxTokens.toLocaleString()} tokens)
+              No Arkiv sellers currently meet the Zero-Cutoff Invariant for {activeModelMeta.name} (Q &ge; {bounds.totalMaxTokens.toLocaleString()} tokens)
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              To guarantee your prompt will never be terminated midway, ShunyaGrid requires sellers to hold at least T_max available tokens.
-              You can:
+              To guarantee your prompt will never be terminated midway, ShunyaGrid requires sellers to hold at least T_max available tokens for the chosen model.
             </p>
+
+            {activeOrderbookModels.length > 0 && (
+              <div className="p-3.5 rounded-lg bg-slate-900/90 border border-emerald-500/40 space-y-2">
+                <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  Active Verified Sellers are currently online on the Arkiv Orderbook for:
+                </span>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {activeOrderbookModels.map((item) => (
+                    <button
+                      key={item.modelId}
+                      type="button"
+                      onClick={() => selectModelDirectly(item.provider, item.modelId)}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center gap-2 shadow-sm"
+                    >
+                      <span>Switch to {item.modelName}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-900 text-[10px] text-emerald-200">
+                        {item.count} node{item.count === 1 ? "" : "s"} (${(item.lowestRate / 1000000).toFixed(4)}/1k)
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <ul className="text-xs text-slate-400 list-disc list-inside space-y-1">
               <li>Select a lower Thinking Budget Level (e.g. Low or None) to reduce T_max.</li>
               <li>Choose a different model from the dropdown above.</li>
@@ -1005,8 +1230,86 @@ contract VaultLending {
               )}
             </div>
 
+            {/* Multi-Currency & Multi-Chain Payment Selector (Powered by Uniswap V3) */}
+            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-indigo-400" />
+                  <span className="text-xs font-semibold text-white">Payment Asset & Network</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+                    Uniswap V3 Routed
+                  </span>
+                </div>
+                <div className="text-xs font-mono text-slate-300">
+                  {isFetchingQuote ? (
+                    <span className="flex items-center gap-1 text-slate-400 text-[11px]">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Quoting Uniswap V3...
+                    </span>
+                  ) : (
+                    <span>
+                      Total Required: <strong className="text-cyan-300 font-bold">{paymentQuote.amountFormatted}</strong>{" "}
+                      <span className="text-slate-500 text-[11px]">(${upfrontUsdc.toFixed(4)} USD)</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Currency Selector Pills */}
+              <div className="grid grid-cols-5 gap-2">
+                {[
+                  { symbol: "USDC", name: "USD Coin", badge: "Direct" },
+                  { symbol: "ETH", name: "Ethereum", badge: "Native" },
+                  { symbol: "DAI", name: "Dai", badge: "Uniswap" },
+                  { symbol: "USDT", name: "Tether", badge: "Uniswap" },
+                  { symbol: "UNI", name: "Uniswap", badge: "Uniswap" },
+                ].map((token) => (
+                  <button
+                    key={token.symbol}
+                    type="button"
+                    onClick={() => setPaymentCurrency(token.symbol)}
+                    className={`p-2 rounded-xl border text-xs font-medium text-center transition ${
+                      paymentCurrency === token.symbol
+                        ? "border-cyan-500 bg-cyan-500/15 text-white shadow-sm"
+                        : "border-slate-800 bg-slate-950/70 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <div className="font-bold">{token.symbol}</div>
+                    <div className="text-[9px] text-slate-500 uppercase">{token.badge}</div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Chain Selector */}
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                <span className="text-[11px] text-slate-400">Payment Chain:</span>
+                {[
+                  { id: "ethereum-sepolia", name: "Ethereum Sepolia" },
+                  { id: "arbitrum-sepolia", name: "Arbitrum Sepolia" },
+                  { id: "base-sepolia", name: "Base Sepolia" },
+                ].map((chain) => (
+                  <button
+                    key={chain.id}
+                    type="button"
+                    onClick={() => setPaymentChain(chain.id)}
+                    className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition ${
+                      paymentChain === chain.id
+                        ? "border-indigo-500 bg-indigo-500/20 text-indigo-300 font-semibold"
+                        : "border-slate-800 bg-slate-950/40 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {chain.name}
+                  </button>
+                ))}
+                {paymentQuote.isSwap && (
+                  <span className="ml-auto text-[11px] font-mono text-amber-300/90 flex items-center gap-1">
+                    <ArrowRightLeft className="w-3 h-3" /> Auto-swapped via Uniswap V3 into Treasury
+                  </span>
+                )}
+              </div>
+            </div>
+
             {/* Sepolia Network & Circle USDC Balance Warning Banners */}
-            {walletAddress && !isSepoliaNetwork && (
+            {paymentCurrency === "USDC" && paymentChain === "ethereum-sepolia" && walletAddress && !isSepoliaNetwork && (
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
@@ -1022,7 +1325,7 @@ contract VaultLending {
               </div>
             )}
 
-            {walletAddress && isSepoliaNetwork && usdcBalance !== null && usdcBalance < upfrontUsdc && (
+            {paymentCurrency === "USDC" && paymentChain === "ethereum-sepolia" && walletAddress && isSepoliaNetwork && usdcBalance !== null && usdcBalance < upfrontUsdc && (
               <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Info className="w-4 h-4 text-cyan-400 shrink-0" />
@@ -1078,8 +1381,8 @@ contract VaultLending {
                 {isExecuting
                   ? "Executing Sealed Inference..."
                   : !isAuthenticated
-                  ? `Connect & Verify to Lock ($${upfrontUsdc.toFixed(4)} USDC)`
-                  : `Deposit Circle USDC on Sepolia & Execute ($${upfrontUsdc.toFixed(4)} USDC)`}
+                  ? `Connect & Verify to Lock (${paymentQuote.amountFormatted})`
+                  : `Sign in MetaMask & Execute (${paymentQuote.amountFormatted})`}
               </button>
             </div>
 

@@ -114,18 +114,19 @@ export async function verifySepoliaUsdcPayment(
       return { verified: false, error: "Transaction failed on Ethereum Sepolia (reverted on-chain)." };
     }
 
-    // 3. Confirm target contract is Circle USDC
-    if (receipt.to?.toLowerCase() !== SEPOLIA_CIRCLE_USDC_ADDRESS.toLowerCase()) {
-      return {
-        verified: false,
-        error: `Transaction was sent to ${receipt.to}, not official Circle Sepolia USDC (${SEPOLIA_CIRCLE_USDC_ADDRESS}).`,
-      };
-    }
+    // 3. Confirm target contract is Circle USDC, Uniswap Router, or ShunyaGrid Treasury
+    const isDirectUsdc = receipt.to?.toLowerCase() === SEPOLIA_CIRCLE_USDC_ADDRESS.toLowerCase();
+    const isDirectTreasury = receipt.to?.toLowerCase() === SHUNYA_TREASURY_EVM_ADDRESS.toLowerCase();
+    const isUniswapRouter =
+      receipt.to?.toLowerCase() === "0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e" ||
+      receipt.to?.toLowerCase() === "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad" ||
+      receipt.to?.toLowerCase() === "0x101f443b4d1b059569d643917553c771e1b9663e" ||
+      receipt.to?.toLowerCase() === "0x94cc0aac535ccdb3c01d6787d6413c739ae12bc4";
 
     // 4. Parse Transfer(from, to, value) Event Logs
     let transferLogFound = false;
     let transferAmount = 0n;
-    let senderAddress = "";
+    let senderAddress = receipt.from || "";
     let recipientAddress = "";
 
     for (const log of receipt.logs) {
@@ -149,21 +150,43 @@ export async function verifySepoliaUsdcPayment(
       }
     }
 
-    if (!transferLogFound) {
+    // Direct Native ETH Payment to Treasury check (if no ERC-20 log)
+    if (isDirectTreasury && !transferLogFound) {
+      const tx = await provider.getTransaction(cleanTxHash);
+      if (tx && tx.value > 0n) {
+        const ethVal = parseFloat(ethers.formatEther(tx.value));
+        const estimatedMicroUsdc = Math.round(ethVal * 2600 * 1_000_000); // 1 ETH ≈ $2600
+        transferLogFound = true;
+        transferAmount = BigInt(estimatedMicroUsdc);
+        senderAddress = tx.from;
+        recipientAddress = SHUNYA_TREASURY_EVM_ADDRESS;
+      }
+    }
+
+    if (!transferLogFound && !isDirectUsdc && !isDirectTreasury && !isUniswapRouter) {
       return {
         verified: false,
-        error: `No valid Circle USDC transfer to ShunyaGrid Treasury (${SHUNYA_TREASURY_EVM_ADDRESS}) found in transaction logs.`,
+        error: `Transaction was sent to ${receipt.to}, not an accepted payment target, Uniswap Router, or Circle USDC.`,
       };
     }
 
-    // 5. Verify Buyer Address matches sender
+    if (!transferLogFound) {
+      return {
+        verified: false,
+        error: `No valid Circle USDC or equivalent settlement transfer to ShunyaGrid Treasury (${SHUNYA_TREASURY_EVM_ADDRESS}) found in transaction logs.`,
+      };
+    }
+
+    // 5. Verify Buyer Address matches sender or transaction origin
+    const txOrigin = receipt.from?.toLowerCase();
     if (
       expectedBuyerAddress &&
-      senderAddress.toLowerCase() !== expectedBuyerAddress.toLowerCase()
+      senderAddress.toLowerCase() !== expectedBuyerAddress.toLowerCase() &&
+      txOrigin !== expectedBuyerAddress.toLowerCase()
     ) {
       return {
         verified: false,
-        error: `Sender address mismatch. Expected ${expectedBuyerAddress}, got ${senderAddress}.`,
+        error: `Sender address mismatch. Expected ${expectedBuyerAddress}, got ${senderAddress} (tx.from: ${txOrigin}).`,
       };
     }
 

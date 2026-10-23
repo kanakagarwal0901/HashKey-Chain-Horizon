@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import {
   arkivDb,
@@ -40,6 +42,41 @@ export async function GET(request: NextRequest) {
     currentBlock: arkivDb.getCurrentBlock(),
     count: all.length,
     listings: sanitizeListings(all),
+  });
+}
+
+export async function DELETE() {
+  if (typeof (arkivDb as any)?.clearOrderbook === "function") {
+    arkivDb.clearOrderbook();
+  } else {
+    // Fallback if singleton is from a previous hot module
+    if ((arkivDb as any)?.listings) {
+      (arkivDb as any).listings.clear();
+    }
+    if ((arkivDb as any)?.entityMutexes) {
+      (arkivDb as any).entityMutexes.clear();
+    }
+  }
+
+  // Explicitly ensure on-disk persistence files are cleared
+  try {
+    const listingsPath = path.join(process.cwd(), ".data", "arkiv_listings.json");
+    if (fs.existsSync(listingsPath)) {
+      fs.writeFileSync(listingsPath, JSON.stringify([], null, 2), "utf8");
+    }
+    const mirrorPath = path.join(process.cwd(), ".data", "arkiv-entities-mirror.json");
+    if (fs.existsSync(mirrorPath)) {
+      fs.writeFileSync(mirrorPath, JSON.stringify({}, null, 2), "utf8");
+    }
+  } catch (err) {
+    console.error("Error clearing on-disk orderbook files:", err);
+  }
+
+  return NextResponse.json({
+    success: true,
+    message: "Arkiv orderbook cleared successfully",
+    count: 0,
+    listings: [],
   });
 }
 
@@ -101,13 +138,16 @@ export async function POST(request: NextRequest) {
     let rawKey = "";
     try {
       const { privateKey } = getOrCreateEnclaveKeyPair();
-      if (sealedApiKey.startsWith("ENCLAVE_SEALED:")) {
-        rawKey = sealedApiKey.replace("ENCLAVE_SEALED:", "");
-      } else {
-        rawKey = unwrapSellerApiKey(sealedApiKey, privateKey);
+      rawKey = unwrapSellerApiKey(sealedApiKey, privateKey);
+      if (!rawKey) {
+        throw new Error("Unwrapped key is empty");
       }
-    } catch {
-      return NextResponse.json({ error: "Malformed sealed API key envelope" }, { status: 400 });
+    } catch (unwrapErr: any) {
+      console.error("[Listings API] Failed to unwrap sealed API key:", unwrapErr?.message);
+      return NextResponse.json(
+        { error: `Malformed sealed API key envelope: ${unwrapErr?.message || "RSA-OAEP unwrap failure"}` },
+        { status: 400 }
+      );
     }
 
     // Perform live test call to the provider API to verify model access & remaining tokens

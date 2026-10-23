@@ -97,6 +97,13 @@ export class ArkivDatabaseEngine {
     // Zero mock/pre-seeded sellers: real sellers register via Seller Hub with connected wallet & World ID
   }
 
+  // Clear all listings from the orderbook
+  public clearOrderbook(): void {
+    this.listings.clear();
+    this.entityMutexes.clear();
+    this.saveToDisk();
+  }
+
   public getCurrentBlock(): number {
     return this.currentBlock;
   }
@@ -240,4 +247,9 @@ export class ArkivDatabaseEngine {
 // Global Singleton
 const globalForArkiv = globalThis as unknown as { arkivDatabaseEngine?: ArkivDatabaseEngine };
 export const arkivDb = globalForArkiv.arkivDatabaseEngine ?? new ArkivDatabaseEngine();
-if (process.env.NODE_ENV !== "production") globalForArkiv.arkivDatabaseEngine = arkivDb;
+if (process.env.NODE_ENV !== "production") {
+  globalForArkiv.arkivDatabaseEngine = arkivDb;
+  if (arkivDb) {
+    Object.setPrototypeOf(arkivDb, ArkivDatabaseEngine.prototype);
+  }
+}

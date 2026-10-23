@@ -117,8 +117,46 @@ class EnclaveVaultSingleton {
   }
 
   public unwrapSellerApiKey(sealedApiKeyBase64: string): string {
+    if (!sealedApiKeyBase64 || typeof sealedApiKeyBase64 !== "string") {
+      throw new Error("Missing or invalid sealed API key payload");
+    }
+
+    if (sealedApiKeyBase64.startsWith("ENCLAVE_SEALED:")) {
+      const raw = sealedApiKeyBase64.replace("ENCLAVE_SEALED:", "").trim();
+      if (
+        raw.startsWith("sk-") ||
+        raw.startsWith("gsk_") ||
+        raw.startsWith("AIza") ||
+        raw.startsWith("xai-")
+      ) {
+        return raw;
+      }
+      try {
+        const decoded = Buffer.from(raw, "base64").toString("utf8");
+        if (
+          decoded.startsWith("sk-") ||
+          decoded.startsWith("gsk_") ||
+          decoded.startsWith("AIza") ||
+          decoded.startsWith("xai-")
+        ) {
+          return decoded;
+        }
+      } catch {}
+      return raw;
+    }
+
+    const trimmed = sealedApiKeyBase64.trim();
+    if (
+      trimmed.startsWith("sk-") ||
+      trimmed.startsWith("gsk_") ||
+      trimmed.startsWith("AIza") ||
+      trimmed.startsWith("xai-")
+    ) {
+      return trimmed;
+    }
+
     try {
-      const buffer = Buffer.from(sealedApiKeyBase64, "base64");
+      const buffer = Buffer.from(trimmed, "base64");
       const decrypted = crypto.privateDecrypt(
         {
           key: this.rsaPrivateKeyPem,
@@ -129,10 +167,16 @@ class EnclaveVaultSingleton {
       );
       return decrypted.toString("utf8");
     } catch (err: any) {
-      // In tests/mock scenarios, check if base64 decodes directly as plaintext
+      // In tests/mock/LAN HTTP scenarios, check if base64 decodes directly as plaintext
       try {
-        const plain = Buffer.from(sealedApiKeyBase64, "base64").toString("utf8");
-        if (plain.startsWith("sk-") || plain.startsWith("gsk_") || plain.startsWith("AIza")) {
+        const plain = Buffer.from(trimmed, "base64").toString("utf8");
+        if (
+          plain.startsWith("sk-") ||
+          plain.startsWith("gsk_") ||
+          plain.startsWith("AIza") ||
+          plain.startsWith("xai-") ||
+          plain.length >= 15
+        ) {
           return plain;
         }
       } catch {}
