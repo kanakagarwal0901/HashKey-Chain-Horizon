@@ -52,8 +52,10 @@ export interface LiveHcsSubmissionResult {
 export interface LivePayoutTransferResult {
   txId: string;
   hashscanUrl: string;
-  amountTinybars: number;
+  amountMicroUsdc?: number;
+  amountTinybars?: number;
   recipientAccount: string;
+  transferType?: "HTS_TOKEN" | "HBAR_NATIVE";
 }
 
 export class HederaNetworkClient {
@@ -69,11 +71,13 @@ export class HederaNetworkClient {
     "";
   private network: "testnet" | "previewnet" | "mainnet" =
     (process.env.HEDERA_NETWORK as "testnet" | "previewnet" | "mainnet") || "testnet";
-  private topicIdStr: string = process.env.HEDERA_HCS_TOPIC_ID || "0.0.591300";
+  private topicIdStr: string = process.env.HEDERA_HCS_TOPIC_ID || "0.0.11134146";
   private usdcTokenIdStr: string =
     process.env.NEXT_PUBLIC_HEDERA_USDC_TOKEN_ID ||
     process.env.HEDERA_USDC_TOKEN_ID ||
-    "0.0.5123499";
+    "0.0.11134145";
+  private defaultSellerAccountId: string =
+    process.env.NEXT_PUBLIC_DEFAULT_SELLER_HEDERA_ACCOUNT || "0.0.11136050";
   private isConfigured: boolean = false;
   private cachedBalanceHbar: number | null = null;
 
@@ -221,40 +225,71 @@ export class HederaNetworkClient {
 
     try {
       let targetAccountStr = params.sellerHederaAccountId?.trim() || "";
-      // If seller account is missing, invalid test string, or same as treasury, use a verified live testnet recipient
+      // If seller account is missing, invalid test string, or same as treasury, use verified live testnet recipient
       if (
         !targetAccountStr ||
         targetAccountStr === "0.0.999" ||
+        targetAccountStr === "0.0.482910" ||
         !targetAccountStr.startsWith("0.0.") ||
         targetAccountStr.length < 5 ||
         targetAccountStr === this.operatorIdStr.trim()
       ) {
-        targetAccountStr = "0.0.482910";
+        targetAccountStr = this.defaultSellerAccountId;
       }
 
       const recipientId = AccountId.fromString(targetAccountStr);
       const treasuryId = AccountId.fromString(this.operatorIdStr.trim());
+      const microUsdcAmount = Math.max(1, Math.round(params.payoutUsdc * 1_000_000));
 
-      // Convert USDC amount to tinybars (Hedera native gas & currency for instant demo settlement)
-      // 1 HBAR ≈ $0.06 - $0.10. For micro-transfers: 1 USDC ≈ 10 HBAR = 1,000,000,000 tinybars
-      const tinybarsAmount = Math.max(10_000, Math.floor(params.payoutUsdc * 10 * 100_000_000));
+      // Attempt 1: Execute authentic on-chain HTS Token Transfer for Token 0.0.11134145
+      try {
+        const tokenId = this.usdcTokenIdStr;
+        const htsTransferTx = await new TransferTransaction()
+          .addTokenTransfer(tokenId, treasuryId, -microUsdcAmount)
+          .addTokenTransfer(tokenId, recipientId, microUsdcAmount)
+          .setTransactionMemo(`ShunyaGrid HTS Settlement: $${params.payoutUsdc.toFixed(6)} USDC`)
+          .execute(this.client);
 
-      const transferTx = await new TransferTransaction()
-        .addHbarTransfer(treasuryId, Hbar.fromTinybars(-tinybarsAmount))
-        .addHbarTransfer(recipientId, Hbar.fromTinybars(tinybarsAmount))
-        .setTransactionMemo(`ShunyaGrid T_used Settlement: $${params.payoutUsdc.toFixed(6)} USDC`)
-        .execute(this.client);
+        await htsTransferTx.getReceipt(this.client);
+        const txIdFormatted = htsTransferTx.transactionId.toString();
+        const hashscanUrl = `https://hashscan.io/${this.network}/transaction/${txIdFormatted}`;
 
-      const receipt = await transferTx.getReceipt(this.client);
-      const txIdFormatted = transferTx.transactionId.toString();
-      const hashscanUrl = `https://hashscan.io/${this.network}/transaction/${txIdFormatted}`;
+        console.log(`[HederaClient] Live HTS USDC transfer successful: ${txIdFormatted} -> ${targetAccountStr} ($${params.payoutUsdc} USDC)`);
 
-      return {
-        txId: txIdFormatted,
-        hashscanUrl,
-        amountTinybars: tinybarsAmount,
-        recipientAccount: targetAccountStr,
-      };
+        return {
+          txId: txIdFormatted,
+          hashscanUrl,
+          amountMicroUsdc: microUsdcAmount,
+          recipientAccount: targetAccountStr,
+          transferType: "HTS_TOKEN",
+        };
+      } catch (htsErr: any) {
+        console.warn(
+          `[HederaClient] HTS Token transfer failed (${htsErr.message}), executing native HBAR micropayment fallback:`,
+          htsErr.status?.toString()
+        );
+
+        // Fallback: Native HBAR micropayment if recipient lacks token association
+        const tinybarsAmount = Math.max(10_000, Math.floor(params.payoutUsdc * 10 * 100_000_000));
+        const transferTx = await new TransferTransaction()
+          .addHbarTransfer(treasuryId, Hbar.fromTinybars(-tinybarsAmount))
+          .addHbarTransfer(recipientId, Hbar.fromTinybars(tinybarsAmount))
+          .setTransactionMemo(`ShunyaGrid T_used Settlement: $${params.payoutUsdc.toFixed(6)} USDC`)
+          .execute(this.client);
+
+        await transferTx.getReceipt(this.client);
+        const txIdFormatted = transferTx.transactionId.toString();
+        const hashscanUrl = `https://hashscan.io/${this.network}/transaction/${txIdFormatted}`;
+
+        return {
+          txId: txIdFormatted,
+          hashscanUrl,
+          amountTinybars: tinybarsAmount,
+          amountMicroUsdc: microUsdcAmount,
+          recipientAccount: targetAccountStr,
+          transferType: "HBAR_NATIVE",
+        };
+      }
     } catch (err) {
       console.error("[HederaClient] Seller payout transfer failed:", err);
       return null;

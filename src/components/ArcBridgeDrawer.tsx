@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowRightLeft,
   X,
@@ -24,13 +24,19 @@ interface ArcBridgeDrawerProps {
 export default function ArcBridgeDrawer({
   isOpen,
   onClose,
-  availableUsdcEarnings = 0.14192,
-  sellerHederaAccountId = "0.0.482910",
+  availableUsdcEarnings = 0.1,
+  sellerHederaAccountId = "0.0.11136050",
 }: ArcBridgeDrawerProps) {
   const [targetCurrency, setTargetCurrency] = useState<"USDC" | "EURC">("USDC");
   const [sweepAmount, setSweepAmount] = useState<string>(availableUsdcEarnings.toFixed(5));
   const [destinationArcAddress, setDestinationArcAddress] = useState<string>("0x8fDE3F07fFF6432fF22FB805f34011785e0C8444");
   const [isBridging, setIsBridging] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (availableUsdcEarnings > 0) {
+      setSweepAmount(availableUsdcEarnings.toFixed(5));
+    }
+  }, [availableUsdcEarnings]);
   const [bridgeResult, setBridgeResult] = useState<{
     txId: string;
     cctpNonce: string;

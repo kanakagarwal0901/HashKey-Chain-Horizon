@@ -23,6 +23,7 @@ import {
   X,
   Check,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { sealSellerApiKeyInBrowser } from "@/lib/clientCrypto";
 import { useAuth } from "@/context/AuthContext";
@@ -66,7 +67,9 @@ export default function SellerHubPage() {
   const [pricePer1kUsdc, setPricePer1kUsdc] = useState<number>(0.012);
 
   // Hedera Payout Account & ENS
-  const [hederaAccount, setHederaAccount] = useState<string>("0.0.482910");
+  const [hederaAccount, setHederaAccount] = useState<string>(
+    process.env.NEXT_PUBLIC_DEFAULT_SELLER_HEDERA_ACCOUNT || "0.0.11136050"
+  );
   const [ensLabel, setEnsLabel] = useState<string>("seller-node");
 
   // World ID Modal Trigger
@@ -77,7 +80,11 @@ export default function SellerHubPage() {
   const [isSealing, setIsSealing] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [listings, setListings] = useState<any[]>([]);
-  const [totalEarnedUsdc, setTotalEarnedUsdc] = useState<number>(0.14192);
+  const [totalEarnedUsdc, setTotalEarnedUsdc] = useState<number>(0);
+  const [htsUsdcBalance, setHtsUsdcBalance] = useState<number>(0);
+  const [hbarBalance, setHbarBalance] = useState<number>(0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
+  const [balanceDetails, setBalanceDetails] = useState<any>(null);
 
   // Live API Key Test & Remaining Token Detection
   const [isTestingKey, setIsTestingKey] = useState<boolean>(false);
@@ -152,7 +159,7 @@ export default function SellerHubPage() {
     }
   };
 
-  // Fetch all active listings & earnings
+  // Fetch all active listings
   const fetchListings = () => {
     fetch("/api/listings")
       .then((res) => res.json())
@@ -160,24 +167,33 @@ export default function SellerHubPage() {
         if (data.listings) setListings(data.listings);
       })
       .catch(console.error);
+  };
 
-    fetch("/api/hcs-logs")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.receipts && data.receipts.length > 0) {
-          const sum = data.receipts.reduce(
-            (acc: number, r: any) => acc + (r.sellerReceivedUsdc || 0),
-            0
-          );
-          setTotalEarnedUsdc(sum);
-        }
-      })
-      .catch(console.error);
+  // Fetch live on-chain Hedera balance & HCS settled earnings from Mirror Node
+  const fetchHederaBalance = async (accId?: string) => {
+    const target = accId || hederaAccount;
+    if (!target) return;
+    setIsLoadingBalance(true);
+    try {
+      const res = await fetch(`/api/seller/hedera-balance?accountId=${target}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBalanceDetails(data);
+        setHtsUsdcBalance(data.htsUsdcBalance ?? 0);
+        setHbarBalance(data.hbarBalance ?? 0);
+        setTotalEarnedUsdc(data.displayBalance ?? data.lifetimeSettledUsdc ?? 0);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch live Hedera seller balance:", err);
+    } finally {
+      setIsLoadingBalance(false);
+    }
   };
 
   useEffect(() => {
     fetchListings();
-  }, []);
+    fetchHederaBalance();
+  }, [hederaAccount]);
 
   // Seal raw API key to 0G Enclave Public Key on input change
   const handleSealApiKey = async () => {
@@ -743,9 +759,21 @@ export default function SellerHubPage() {
 
             {/* Step 5: Hedera Payout Account */}
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
-                8. Hedera Payout Account ID (Receives HTS USDC):
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  8. Hedera Payout Account ID (Receives HTS USDC):
+                </label>
+                {hederaAccount && (
+                  <a
+                    href={`https://hashscan.io/testnet/account/${hederaAccount}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-cyan-400 hover:underline flex items-center gap-1 font-mono font-bold"
+                  >
+                    View on HashScan <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
               <input
                 type="text"
                 value={hederaAccount}
@@ -754,7 +782,7 @@ export default function SellerHubPage() {
                 className="w-full rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 p-3 text-sm text-slate-100 font-mono focus:outline-none focus:border-cyan-500 transition"
               />
               <p className="text-[11px] text-slate-500 font-sans">
-                When prompts consume your quota, payouts are settled automatically to this Hedera account.
+                When prompts consume your quota, authentic HTS SGUSDC transfers are settled on-chain to this account.
               </p>
             </div>
 
@@ -820,19 +848,65 @@ export default function SellerHubPage() {
       </div>
 
       {/* Earned Payouts & Arc CCTP Cross-Chain Sweeper */}
-      <div className="glass-panel p-6 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-slate-900/90 via-amber-950/20 to-slate-900/90 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-1.5 text-center md:text-left">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-800/40 text-[11px] font-mono text-amber-300">
-            <Coins className="w-3.5 h-3.5" />
-            Hedera HTS USDC Payout Balance
+      <div className="glass-panel p-6 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-slate-900/90 via-amber-950/20 to-slate-900/90 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+        <div className="space-y-2 text-center md:text-left flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-800/40 text-[11px] font-mono text-amber-300">
+              <Coins className="w-3.5 h-3.5" />
+              Hedera HTS USDC Payout Balance
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/80 border border-emerald-800/40 text-emerald-300 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live On-Chain (Hedera Testnet)
+            </span>
           </div>
-          <h3 className="text-2xl font-extrabold text-white font-mono">
-            ${totalEarnedUsdc.toFixed(6)}{" "}
-            <span className="text-slate-400 text-sm font-sans font-normal">USDC Earned</span>
-          </h3>
-          <p className="text-xs text-slate-400 max-w-xl">
-            Tokens used (T_used) are automatically settled into your Hedera payout account (`{hederaAccount}`).
-            Use Circle CCTP to bridge your earnings into native USDC on Arc with zero slippage.
+
+          <div className="flex items-baseline gap-3">
+            <h3 className="text-3xl font-extrabold text-white font-mono">
+              ${totalEarnedUsdc.toFixed(6)}{" "}
+              <span className="text-slate-400 text-sm font-sans font-normal">USDC</span>
+            </h3>
+            <button
+              onClick={() => fetchHederaBalance()}
+              disabled={isLoadingBalance}
+              title="Refresh live on-chain balance from Mirror Node"
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition border border-slate-700"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBalance ? "animate-spin text-cyan-400" : ""}`} />
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono text-slate-400 pt-1">
+            <span>
+              Account:{" "}
+              <a
+                href={balanceDetails?.hashscanAccountUrl || `https://hashscan.io/testnet/account/${hederaAccount}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-cyan-400 hover:underline font-bold"
+              >
+                {hederaAccount} <ExternalLink className="w-2.5 h-2.5 inline" />
+              </a>
+            </span>
+            <span>&bull;</span>
+            <span>
+              HTS Token:{" "}
+              <a
+                href={balanceDetails?.hashscanTokenUrl || "https://hashscan.io/testnet/token/0.0.11134145"}
+                target="_blank"
+                rel="noreferrer"
+                className="text-amber-300 hover:underline"
+              >
+                0.0.11134145 (SGUSDC) <ExternalLink className="w-2.5 h-2.5 inline" />
+              </a>
+            </span>
+            <span>&bull;</span>
+            <span>Gas: {hbarBalance.toFixed(2)} HBAR</span>
+          </div>
+
+          <p className="text-xs text-slate-400 max-w-xl font-sans pt-1">
+            Tokens used (T_used) are automatically settled on Hedera Testnet directly to your payout account.
+            Use Circle CCTP to bridge accumulated earnings into native USDC on Arc/EVM with zero slippage.
           </p>
         </div>
 
