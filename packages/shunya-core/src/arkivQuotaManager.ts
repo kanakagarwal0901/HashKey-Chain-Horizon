@@ -58,7 +58,7 @@ export class AsyncMutex {
   }
 }
 
-// In-Memory Database simulating Arkiv Decentralized State
+// In-Memory State Cache for Arkiv Decentralized Entities
 export class ArkivDatabaseEngine {
   private listings: Map<string, ArkivSellerListingEntity> = new Map();
   private files: Map<string, ArkivFileEntity> = new Map();

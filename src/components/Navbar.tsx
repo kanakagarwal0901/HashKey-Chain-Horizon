@@ -17,6 +17,7 @@ import {
   Check,
   ExternalLink,
   Activity,
+  Globe,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -27,6 +28,8 @@ export default function Navbar() {
     nullifierHash,
     isAuthenticated,
     sellerHederaAccount,
+    ensName,
+    ensAvatar,
     connectWallet,
     logout,
   } = useAuth();
@@ -109,14 +112,31 @@ export default function Navbar() {
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-2.5 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 hover:border-slate-600 transition text-xs font-mono"
               >
-                {/* Gradient Avatar */}
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-slate-950 font-bold text-xs shadow-sm">
-                  {walletAddress ? walletAddress.slice(2, 4).toUpperCase() : "SG"}
-                </div>
+                {/* ENS Avatar or Gradient Avatar */}
+                {ensAvatar ? (
+                  <img
+                    src={ensAvatar}
+                    alt="ENS Avatar"
+                    className="w-7 h-7 rounded-lg object-cover border border-cyan-500/50 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-slate-950 font-bold text-xs shadow-sm">
+                    {ensName ? ensName.slice(0, 2).toUpperCase() : walletAddress ? walletAddress.slice(2, 4).toUpperCase() : "SG"}
+                  </div>
+                )}
 
                 <div className="hidden sm:flex flex-col text-left">
-                  <span className="font-bold text-white text-[11px]">
-                    {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : ""}
+                  <span className="font-bold text-white text-[11px] flex items-center gap-1">
+                    {ensName ? (
+                      <>
+                        <span className="text-cyan-300">{ensName}</span>
+                        <span className="text-[9px] bg-cyan-950/80 text-cyan-400 border border-cyan-800/40 px-1 py-0.2 rounded">ENS</span>
+                      </>
+                    ) : walletAddress ? (
+                      `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                    ) : (
+                      ""
+                    )}
                   </span>
                   <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
                     <UserCheck className="w-2.5 h-2.5" />
@@ -131,11 +151,30 @@ export default function Navbar() {
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-72 glass-panel p-4 rounded-2xl border border-slate-700 shadow-2xl space-y-3 z-50 bg-[#0d111a]/95">
                   <div className="border-b border-slate-800 pb-3 space-y-1">
-                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
-                      Connected Profile
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
+                        Connected Profile
+                      </span>
+                      {ensName && (
+                        <a
+                          href={`https://app.ens.domains/${ensName}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                        >
+                          <Globe className="w-3 h-3" />
+                          View on ENS
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
+                    </div>
+                    {ensName && (
+                      <div className="text-xs font-mono font-bold text-cyan-400 truncate pt-0.5">
+                        {ensName}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-2 pt-0.5">
-                      <span className="text-xs font-mono font-bold text-slate-200 truncate" title={walletAddress || ""}>
+                      <span className="text-xs font-mono text-slate-300 truncate" title={walletAddress || ""}>
                         {walletAddress}
                       </span>
                       <button

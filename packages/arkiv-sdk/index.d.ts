@@ -34,7 +34,7 @@ export declare class ArkivClient {
     private rpcUrl;
     private privateKey?;
     private static localEntities;
-    private static currentSimulatedBlock;
+    private static lastKnownBlock;
     constructor(config: ArkivClientConfig);
     getBlockTiming(): Promise<ArkivBlockTiming>;
     createEntity(params: {

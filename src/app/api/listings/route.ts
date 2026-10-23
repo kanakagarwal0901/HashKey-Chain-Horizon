@@ -5,6 +5,7 @@ import {
   arkivDb,
   worldIdService,
   ensService,
+  realEnsService,
   getOrCreateEnclaveKeyPair,
   unwrapSellerApiKey,
   getMinimumListingQuotaForModel,
@@ -228,6 +229,17 @@ export async function POST(request: NextRequest) {
 
     const humanVerified = true;
     const nullifier = verifyRes.nullifier_hash;
+
+    // If seller specifies a real root .eth domain, verify on-chain ownership
+    if (ensLabel && realEnsService.isStandardEnsDomain(ensLabel)) {
+      const verify = await realEnsService.verifyNameOwnership(ensLabel, ownerAddress);
+      if (!verify.verified) {
+        return NextResponse.json(
+          { error: `ENS Ownership Verification Failed: ${verify.error || "Connected wallet does not own this ENS domain."}` },
+          { status: 400 }
+        );
+      }
+    }
 
     // Register or resolve ENS subname
     const ensName = ensLabel

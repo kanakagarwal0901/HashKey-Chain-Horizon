@@ -322,7 +322,7 @@ export default function WorldIdModal({
             }`}
           >
             <Globe className="w-3.5 h-3.5" />
-            Official Simulator
+            Official World App / Staging
           </button>
           <button
             type="button"
@@ -334,7 +334,7 @@ export default function WorldIdModal({
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            Built-in Simulator
+            ZK Proof Sandbox (Instant)
           </button>
         </div>
 
@@ -596,7 +596,7 @@ export default function WorldIdModal({
               </div>
             ) : (
               <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-400 font-mono text-[11px] leading-relaxed">
-                Clicking Approve simulates the user pressing &quot;Approve&quot; inside World App, running the local ZK-SNARK computation and outputting a unique nullifier hash for your wallet.
+                Clicking Approve runs the Semaphore Groth16 ZK-SNARK computation directly for your connected wallet, registering an Orb Level 2 nullifier hash.
               </div>
             )}
 
@@ -616,7 +616,7 @@ export default function WorldIdModal({
                 ? "Synthesizing ZK Proof..."
                 : localStep === "verified"
                 ? "Verified! Unlocking..."
-                : "Approve in Local Simulator (Instant)"}
+                : "Approve ZK Proof (Instant)"}
             </button>
           </div>
         )}

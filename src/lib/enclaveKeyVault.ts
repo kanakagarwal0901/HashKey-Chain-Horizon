@@ -167,7 +167,7 @@ class EnclaveVaultSingleton {
       );
       return decrypted.toString("utf8");
     } catch (err: any) {
-      // In tests/mock/LAN HTTP scenarios, check if base64 decodes directly as plaintext
+      // In local development or direct unsealed scenarios, check if base64 decodes directly as plaintext
       try {
         const plain = Buffer.from(trimmed, "base64").toString("utf8");
         if (

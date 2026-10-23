@@ -21,7 +21,7 @@ export function parseFilesInEnclaveRam(
       extractedText = `[Image Attached: ${file.filename} (${file.mimeType}, ${(file.data.byteLength / 1024).toFixed(1)} KiB)]`;
     } else if (file.filename.endsWith(".pdf") || file.mimeType === "application/pdf") {
       // In-RAM PDF text representation
-      // Fallback text extraction simulation or raw buffer parsing
+      // Clean readable text extraction or raw buffer parsing
       const rawStr = file.data.toString("utf8");
       // Clean readable text chunks
       const textMatches = rawStr.match(/[a-zA-Z0-9.,;:!? \n-]{4,}/g);

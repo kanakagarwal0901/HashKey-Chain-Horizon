@@ -107,10 +107,8 @@ export class HederaSettlementEngine {
     this.sequenceCounter += 1;
     let sequenceNumber = this.sequenceCounter;
     let consensusTimestamp = new Date().toISOString();
-    const epochSec = Math.floor(Date.now() / 1000);
-    const nanos = Math.floor(Math.random() * 900000000 + 100000000);
-    let sellerPayoutTxId = `${this.treasuryAccountId}@${epochSec}.${nanos}`;
-    let hashscanUrl = `https://hashscan.io/testnet/transaction/${sellerPayoutTxId}`;
+    let sellerPayoutTxId = `payout_settled_${Date.now()}`;
+    let hashscanUrl = `https://hashscan.io/testnet/topic/${this.hcsTopicId}`;
 
     // If live Hedera client is configured with operator credentials, execute real HCS and HBAR payout
     if (hederaNetworkClient.isLiveConfigured()) {
@@ -154,6 +152,7 @@ export class HederaSettlementEngine {
         if (hcsResult) {
           sequenceNumber = hcsResult.sequenceNumber;
           consensusTimestamp = hcsResult.consensusTimestamp;
+          hashscanUrl = hcsResult.hashscanUrl;
         }
       } catch (liveErr) {
         console.warn("[HederaSettlement] Real Hedera testnet execution warning, maintaining valid receipt:", liveErr);

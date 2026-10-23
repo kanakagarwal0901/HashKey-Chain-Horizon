@@ -335,7 +335,7 @@ export default function ArcBridgeDrawer({
 
             <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5 text-xs font-mono">
               <div className="flex items-center justify-between text-slate-400">
-                <span>On-Chain EVM Tx:</span>
+                <span>{bridgeResult.hashscanUrl?.includes("sepolia.etherscan.io") ? "Sepolia Etherscan Tx:" : "On-Chain EVM Tx:"}</span>
                 <a
                   href={bridgeResult.hashscanUrl}
                   target="_blank"
@@ -371,6 +371,12 @@ export default function ArcBridgeDrawer({
                 <span>MetaMask Balance:</span>
                 <span className="text-emerald-400 font-semibold">Updated On-Chain</span>
               </div>
+
+              {bridgeResult.hashscanUrl?.includes("sepolia.etherscan.io") && (
+                <div className="p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-[11px] text-indigo-300 font-sans">
+                  Delivered on <strong>Ethereum Sepolia</strong>. In MetaMask, ensure your active network is <strong>Ethereum Sepolia</strong> to see your new balance.
+                </div>
+              )}
             </div>
 
             {/* Quick Actions for MetaMask Integration */}

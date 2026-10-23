@@ -1,11 +1,14 @@
 import crypto from "crypto";
+import { realEnsService } from "@shunya/core";
 import { anonFetchJsonRpc } from "./anonRpcClient";
 
 export interface EnsSellerProfile {
-  subname: string; // e.g. "arjun-claude.shunyagrid.eth"
+  subname: string; // e.g. "arjun-claude.shunyagrid.eth" or "vitalik.eth"
   label: string;
-  parentDomain: string; // "shunyagrid.eth"
+  parentDomain: string; // "shunyagrid.eth" or "eth"
   ownerAddress: string;
+  isRealEns?: boolean;
+  avatarUrl?: string | null;
   textRecords: {
     "com.shunyagrid.hederaAccount": string;
     "com.shunyagrid.models": string;
@@ -35,7 +38,7 @@ class EnsNamespaceManager {
   }
 
   private seedDefaultRecords(): void {
-    // ENS Subname registry initialized clean; records are dynamically registered by authentic sellers
+    // Dynamic registry: starts clean for authentic registrations
   }
 
   public async registerSubname(params: {
@@ -44,9 +47,20 @@ class EnsNamespaceManager {
     hederaAccountId: string;
     supportedModels: string[];
     enclavePublicKeyPem?: string;
+    avatarUrl?: string | null;
+    isRealEns?: boolean;
   }): Promise<EnsSellerProfile> {
-    const cleanLabel = params.label.toLowerCase().replace(/[^a-z0-9-]/g, "");
-    const subname = `${cleanLabel}.${this.parentDomain}`;
+    const rawLabel = params.label.trim().toLowerCase();
+    let subname = rawLabel;
+    let parent = this.parentDomain;
+    const isRealEns = Boolean(params.isRealEns || (rawLabel.endsWith(".eth") && !rawLabel.endsWith(".shunyagrid.eth")));
+
+    if (!isRealEns) {
+      const cleanLabel = rawLabel.replace(/[^a-z0-9-]/g, "");
+      subname = `${cleanLabel}.${this.parentDomain}`;
+    } else {
+      parent = "eth";
+    }
 
     const fingerprint = params.enclavePublicKeyPem
       ? crypto.createHash("sha256").update(params.enclavePublicKeyPem).digest("hex")
@@ -54,9 +68,11 @@ class EnsNamespaceManager {
 
     const profile: EnsSellerProfile = {
       subname,
-      label: cleanLabel,
-      parentDomain: this.parentDomain,
+      label: rawLabel,
+      parentDomain: parent,
       ownerAddress: params.ownerAddress,
+      isRealEns,
+      avatarUrl: params.avatarUrl || null,
       textRecords: {
         "com.shunyagrid.hederaAccount": params.hederaAccountId,
         "com.shunyagrid.models": params.supportedModels.join(","),
@@ -72,15 +88,44 @@ class EnsNamespaceManager {
   public async resolveSubname(subname: string): Promise<EnsSellerProfile | null> {
     const normalized = subname.toLowerCase().trim();
 
-    // Route query through AnonRpcRouter to anonymize caller IP
-    await anonFetchJsonRpc(
-      this.rpcUrl,
-      "ens_resolve",
-      [normalized],
-      true // isUserSpecificRead = true (Anon-RPC Worker)
-    );
+    // 1. Check local registry
+    const local = this.subnames.get(normalized);
+    if (local) return local;
 
-    return this.subnames.get(normalized) || null;
+    // 2. If it's a real ENS name (.eth), resolve on-chain via realEnsService
+    if (normalized.endsWith(".eth") && !normalized.endsWith(".shunyagrid.eth")) {
+      const onChain = await realEnsService.resolveName(normalized);
+      if (onChain.address) {
+        const profile: EnsSellerProfile = {
+          subname: normalized,
+          label: normalized.replace(/\.eth$/, ""),
+          parentDomain: "eth",
+          ownerAddress: onChain.address,
+          isRealEns: true,
+          avatarUrl: onChain.avatarUrl,
+          textRecords: {
+            "com.shunyagrid.hederaAccount": "",
+            "com.shunyagrid.models": "",
+            "com.shunyagrid.enclaveKeyFingerprint": "",
+          },
+          createdAtIso: new Date().toISOString(),
+        };
+        this.subnames.set(normalized, profile);
+        return profile;
+      }
+    }
+
+    // 3. Fallback Anon-RPC metadata query
+    try {
+      await anonFetchJsonRpc(
+        this.rpcUrl,
+        "ens_resolve",
+        [normalized],
+        true
+      );
+    } catch {}
+
+    return null;
   }
 
   public async getTextRecord(subname: string, key: string): Promise<string | null> {
@@ -101,6 +146,8 @@ export async function registerEnsSubname(params: {
   hederaAccountId: string;
   supportedModels: string[];
   enclavePublicKeyPem?: string;
+  avatarUrl?: string | null;
+  isRealEns?: boolean;
 }) {
   return ensNamespace.registerSubname(params);
 }

@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { ethers } from "ethers";
 
 export interface ZeroGExecutionAttestation {
   enclaveId: string;
@@ -11,17 +12,23 @@ export interface ZeroGExecutionAttestation {
   actualTokensConsumed: number;
   zeroGContractAddress: string;
   zeroGStorageRef?: string;
+  enclaveSignerAddress?: string;
 }
 
-const ZERO_G_COMPUTE_CONTRACT = "0x8849b291d2938192a019e091b29a8f237190abcd";
-const ZERO_G_STORAGE_NODE = "https://rpc-storage-testnet.0g.ai";
+// Authoritative 0G Galileo Testnet Flow Contract
+const ZERO_G_FLOW_CONTRACT = "0x22E03a6A89B950F1c82ec5e74F8eCa321a105296";
+const ZERO_G_STORAGE_NODE = "https://indexer-storage-testnet-turbo.0g.ai";
 
 export class ZeroGService {
   private enclaveId: string = "0g-sealed-tee-node-mumbai-01";
-  private privateKey: string = crypto.randomBytes(32).toString("hex");
+  private enclaveWallet: ethers.HDNodeWallet;
   private storageBlobs: Map<string, { data: Buffer; metadata: { filename: string; size: number } }> = new Map();
 
-  // Create cryptographic execution proof from inside the sealed enclave
+  constructor() {
+    this.enclaveWallet = ethers.Wallet.createRandom();
+  }
+
+  // Create cryptographic execution proof from inside the sealed enclave using ECDSA secp256k1
   public signExecutionReceipt(params: {
     model: string;
     thinkingLevel: string;
@@ -39,8 +46,8 @@ export class ZeroGService {
       timestamp: new Date().toISOString(),
     });
 
-    const attestationHash = "0x" + crypto.createHash("sha256").update(payload).digest("hex");
-    const signature = "0x" + crypto.createHmac("sha256", this.privateKey).update(attestationHash).digest("hex");
+    const attestationHash = ethers.keccak256(ethers.toUtf8Bytes(payload));
+    const signature = this.enclaveWallet.signingKey.sign(attestationHash).serialized;
 
     return {
       enclaveId: this.enclaveId,
@@ -51,7 +58,8 @@ export class ZeroGService {
       thinkingLevel: params.thinkingLevel,
       maxTokensEnforced: params.maxTokens,
       actualTokensConsumed: params.tokensUsed,
-      zeroGContractAddress: ZERO_G_COMPUTE_CONTRACT,
+      zeroGContractAddress: ZERO_G_FLOW_CONTRACT,
+      enclaveSignerAddress: this.enclaveWallet.address,
     };
   }
 

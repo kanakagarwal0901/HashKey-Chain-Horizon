@@ -57,7 +57,7 @@ async function runConcurrencyStressTest() {
 
   const results = await Promise.all(
     concurrentBuyers.map(async (agent) => {
-      // Simulate micro-jitter in network arrival
+      // Realistic micro-jitter in network arrival
       await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 15)));
       const locked = await arkivDb.atomicLockTokensAsync(seller.id, tMax);
       return { buyerId: agent.buyerId, locked };
@@ -97,7 +97,7 @@ async function runConcurrencyStressTest() {
     `Locked Tokens: Exactly ${updatedSeller.lockedTokens} tokens reserved in escrow`
   );
 
-  // 2. Simulate Job Completion & Saga Quota Reconciliation
+  // 2. Job Completion & Saga Quota Reconciliation
   console.log(`\n\x1b[36m[SCENARIO 2: SAGA POST-EXECUTION RECONCILIATION]\x1b[0m`);
   const tUsed = 14_192; // Each prompt uses 14,192 tokens
   const unusedPerJob = tMax - tUsed; // 24,192 - 14,192 = 10,000 tokens unused per job

@@ -25,6 +25,7 @@ import {
   Loader2,
   RefreshCw,
   Trash2,
+  Globe,
 } from "lucide-react";
 import { sealSellerApiKeyInBrowser } from "@/lib/clientCrypto";
 import { useAuth } from "@/context/AuthContext";
@@ -52,6 +53,8 @@ export default function SellerHubPage() {
     isAuthenticated,
     sellerHederaAccount,
     isConnectingHedera,
+    ensName,
+    ensAvatar,
     connectSellerHedera,
     disconnectSellerHedera,
     connectWallet,
@@ -75,8 +78,80 @@ export default function SellerHubPage() {
   const [tokenQuota, setTokenQuota] = useState<number>(150_000);
   const [pricePer1kUsdc, setPricePer1kUsdc] = useState<number>(0.012);
 
-  // ENS Alias
+  // ENS Alias & Real ENS Mode
+  const [ensMode, setEnsMode] = useState<"subname" | "real">("subname");
   const [ensLabel, setEnsLabel] = useState<string>("seller-node");
+  const [customRealEns, setCustomRealEns] = useState<string>("");
+  const [isVerifyingEns, setIsVerifyingEns] = useState<boolean>(false);
+  const [ensVerificationResult, setEnsVerificationResult] = useState<{
+    verified: boolean;
+    resolvedAddress: string | null;
+    avatarUrl: string | null;
+    error?: string;
+  } | null>(null);
+
+  // Auto-fill connected ENS name if detected
+  useEffect(() => {
+    if (ensName && !customRealEns) {
+      setCustomRealEns(ensName);
+    }
+  }, [ensName, customRealEns]);
+
+  // Debounced verification of custom real ENS domain
+  useEffect(() => {
+    if (ensMode !== "real" || !customRealEns.trim()) {
+      setEnsVerificationResult(null);
+      setIsVerifyingEns(false);
+      return;
+    }
+
+    const cleanDomain = customRealEns.trim().toLowerCase();
+    if (!cleanDomain.endsWith(".eth")) {
+      setEnsVerificationResult({
+        verified: false,
+        resolvedAddress: null,
+        avatarUrl: null,
+        error: "Domain must end with .eth (e.g. yourname.eth)",
+      });
+      return;
+    }
+
+    let isCurrent = true;
+    setIsVerifyingEns(true);
+
+    const timer = setTimeout(() => {
+      fetch(`/api/ens/resolve?name=${encodeURIComponent(cleanDomain)}&owner=${encodeURIComponent(walletAddress || "")}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (isCurrent) {
+            setEnsVerificationResult({
+              verified: Boolean(data.verified),
+              resolvedAddress: data.address || null,
+              avatarUrl: data.avatarUrl || null,
+              error: data.error,
+            });
+          }
+        })
+        .catch((err) => {
+          if (isCurrent) {
+            setEnsVerificationResult({
+              verified: false,
+              resolvedAddress: null,
+              avatarUrl: null,
+              error: err?.message || "Failed to verify on-chain ENS records",
+            });
+          }
+        })
+        .finally(() => {
+          if (isCurrent) setIsVerifyingEns(false);
+        });
+    }, 450);
+
+    return () => {
+      isCurrent = false;
+      clearTimeout(timer);
+    };
+  }, [customRealEns, ensMode, walletAddress]);
 
   // World ID Modal Trigger
   const [showWorldIdModal, setShowWorldIdModal] = useState<boolean>(false);
@@ -393,12 +468,22 @@ export default function SellerHubPage() {
         finalSealedKey = `ENCLAVE_SEALED:${rawApiKey.trim()}`;
       }
 
+      const effectiveEns = ensMode === "real" ? customRealEns.trim().toLowerCase() : ensLabel;
+
+      if (ensMode === "real") {
+        if (!ensVerificationResult?.verified) {
+          alert(`Real ENS Domain Verification Required: ${ensVerificationResult?.error || "Please wait for on-chain ownership verification or choose a domain owned by your connected wallet."}`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const res = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ownerAddress: walletAddress,
-          ensLabel,
+          ensLabel: effectiveEns,
           model,
           provider,
           availableTokens: Number(tokenQuota),
@@ -1021,22 +1106,149 @@ export default function SellerHubPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
-                  7. ENS Subname Alias:
-                </label>
-                <div className="flex items-center">
-                  <input
-                    type="text"
-                    value={ensLabel}
-                    onChange={(e) => setEnsLabel(e.target.value)}
-                    placeholder="alias-node"
-                    className="flex-1 rounded-l-xl bg-slate-900 border border-r-0 border-slate-700 hover:border-slate-600 p-3 text-sm text-slate-100 font-mono focus:outline-none"
-                  />
-                  <span className="px-3 py-3 rounded-r-xl bg-slate-800 border border-slate-700 text-xs font-mono text-slate-400">
-                    .shunyagrid.eth
-                  </span>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                    7. ENS Node Identity:
+                  </label>
+                  {/* Mode Toggle */}
+                  <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 text-[11px] font-mono">
+                    <button
+                      type="button"
+                      onClick={() => setEnsMode("subname")}
+                      className={`px-2.5 py-1 rounded-lg transition ${
+                        ensMode === "subname"
+                          ? "bg-indigo-600 text-white font-bold"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      Protocol Subname
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEnsMode("real")}
+                      className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
+                        ensMode === "real"
+                          ? "bg-cyan-600 text-white font-bold"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      <Globe className="w-3 h-3" />
+                      Real ENS (.eth)
+                    </button>
+                  </div>
                 </div>
+
+                {/* Detected Wallet ENS Banner */}
+                {ensName && ensMode === "subname" && (
+                  <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-800/40 flex items-center justify-between text-xs font-mono">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                      <span className="text-slate-300">
+                        Primary ENS detected: <strong className="text-cyan-300">{ensName}</strong>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEnsMode("real");
+                        setCustomRealEns(ensName);
+                      }}
+                      className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold text-[10px] transition"
+                    >
+                      Use {ensName} &rarr;
+                    </button>
+                  </div>
+                )}
+
+                {/* Subname Input */}
+                {ensMode === "subname" ? (
+                  <div>
+                    <div className="flex items-center">
+                      <input
+                        type="text"
+                        value={ensLabel}
+                        onChange={(e) => setEnsLabel(e.target.value)}
+                        placeholder="alias-node"
+                        className="flex-1 rounded-l-xl bg-slate-900 border border-r-0 border-slate-700 hover:border-slate-600 p-3 text-sm text-slate-100 font-mono focus:outline-none"
+                      />
+                      <span className="px-3 py-3 rounded-r-xl bg-slate-800 border border-slate-700 text-xs font-mono text-slate-400">
+                        .shunyagrid.eth
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-mono mt-1 block">
+                      Subname issued under ShunyaGrid ENS registry with ERC-3668 CCIP resolution.
+                    </span>
+                  </div>
+                ) : (
+                  /* Real ENS Domain Input with Live On-Chain Verification */
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={customRealEns}
+                        onChange={(e) => setCustomRealEns(e.target.value)}
+                        placeholder="yourname.eth"
+                        className="w-full rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 p-3 text-sm text-slate-100 font-mono focus:outline-none pr-10"
+                      />
+                      <div className="absolute right-3 top-3.5 flex items-center">
+                        {isVerifyingEns ? (
+                          <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
+                        ) : ensVerificationResult?.verified ? (
+                          <Check className="w-4 h-4 text-emerald-400" />
+                        ) : ensVerificationResult ? (
+                          <X className="w-4 h-4 text-rose-400" />
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* Verification Status Feedback */}
+                    {isVerifyingEns && (
+                      <div className="text-[11px] font-mono text-cyan-400 flex items-center gap-1.5">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Querying Ethereum Mainnet Universal ENS Resolver...
+                      </div>
+                    )}
+
+                    {!isVerifyingEns && ensVerificationResult && (
+                      <div
+                        className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-between ${
+                          ensVerificationResult.verified
+                            ? "bg-emerald-950/40 border-emerald-800/40 text-emerald-300"
+                            : "bg-rose-950/40 border-rose-800/40 text-rose-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          {ensVerificationResult.verified ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                              <span className="truncate">
+                                Verified Owner: <strong className="text-emerald-200">{customRealEns}</strong>
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                              <span className="truncate">
+                                {ensVerificationResult.error || "Ownership mismatch on Ethereum"}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {ensVerificationResult.verified && (
+                          <a
+                            href={`https://app.ens.domains/${customRealEns}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[10px] underline flex items-center gap-0.5 text-emerald-300 hover:text-white flex-shrink-0 ml-2"
+                          >
+                            ENS App <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

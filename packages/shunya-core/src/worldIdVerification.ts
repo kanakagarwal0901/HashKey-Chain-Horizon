@@ -12,16 +12,9 @@ export interface WorldIdVerificationProof {
 
 export class WorldIdService {
   private appId: string = process.env.WORLD_ID_APP_ID || "app_9c7005e230a8dc3eced53aaa2b78a17f";
-  private verifiedNullifiers: Set<string> = new Set([
-    "0xworld_id_nullifier_arjun_verified",
-    "0xworld_id_nullifier_rohan_verified",
-    "0xworld_id_nullifier_priya_verified",
-    "0xworld_id_nullifier_vikram_verified",
-    "0xworld_id_nullifier_ananya_verified",
-    "0xworld_id_nullifier_rahul_verified",
-  ]);
+  private verifiedNullifiers: Set<string> = new Set();
 
-  // Live Worldcoin Developer Portal or Deterministic Verification
+  // Authoritative Worldcoin Developer Portal & ZK Proof Verification
   public async verifyProof(params: {
     merkle_root?: string;
     nullifier_hash?: string;
@@ -30,7 +23,14 @@ export class WorldIdService {
     proof?: string;
     credential_type?: "orb" | "phone";
   }): Promise<{ success: boolean; nullifier_hash: string; error?: string }> {
-    const nullifier = params.nullifier_hash || `0xnullifier_${crypto.randomBytes(16).toString("hex")}`;
+    if (!params.nullifier_hash) {
+      return {
+        success: false,
+        nullifier_hash: "",
+        error: "Missing required World ID nullifier_hash parameter.",
+      };
+    }
+    const nullifier = params.nullifier_hash;
 
     // STRICT VALIDATION: Reject explicitly invalid or malformed proofs
     if (

@@ -676,48 +676,6 @@ contract VaultLending {
           </span>
         </div>
 
-        {/* Live Orderbook Nodes Banner */}
-        {activeOrderbookModels.length > 0 && (
-          <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 flex flex-wrap items-center justify-between gap-3 shadow-md shadow-emerald-950/30">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-              <span className="text-xs font-bold text-emerald-300">Live Orderbook Sellers Online:</span>
-              <span className="text-xs text-slate-300">
-                {allOrderbookListings.filter((l) => l.status === "active").length} active node{allOrderbookListings.filter((l) => l.status === "active").length === 1 ? "" : "s"} ready for inference
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {activeOrderbookModels.map((item) => (
-                <button
-                  key={item.modelId}
-                  type="button"
-                  onClick={() => selectModelDirectly(item.provider, item.modelId)}
-                  className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition flex items-center gap-1.5 ${
-                    selectedModel === item.modelId
-                      ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-bold"
-                      : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
-                  }`}
-                >
-                  <span>{item.modelName}</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded ${
-                      selectedModel === item.modelId
-                        ? "bg-slate-900 text-emerald-300"
-                        : "bg-emerald-950 text-emerald-400"
-                    }`}
-                  >
-                    {item.count} node{item.count === 1 ? "" : "s"}
-                  </span>
-                  {selectedModel === item.modelId && <Check className="w-3.5 h-3.5" />}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* 3 Cascading Dropdown Selectors */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* 1. AI Provider Dropdown */}
@@ -973,7 +931,7 @@ contract VaultLending {
                   <th className="py-3 px-3">Rate / 1k</th>
                   <th className="py-3 px-3">Upfront Deposit (T_max)</th>
                   <th className="py-3 px-3">Payout Account</th>
-                  <th className="py-3 px-3 text-right">Action</th>
+                  <th className="py-3 px-3 text-right whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-mono">
@@ -994,19 +952,28 @@ contract VaultLending {
                       <td className="py-3.5 px-3">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-slate-200">{seller.ensName}</span>
+                          {seller.ensName?.endsWith(".eth") && !seller.ensName?.endsWith(".shunyagrid.eth") ? (
+                            <span className="text-[9px] bg-cyan-950 text-cyan-400 border border-cyan-800/60 px-1 py-0.2 rounded font-mono">
+                              ENS
+                            </span>
+                          ) : (
+                            <span className="text-[9px] bg-indigo-950 text-indigo-400 border border-indigo-800/60 px-1 py-0.2 rounded font-mono">
+                              SUB
+                            </span>
+                          )}
                           {seller.humanVerified && (
                             <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-800/50">
                               <Shield className="w-2.5 h-2.5" /> World ID
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-slate-500 font-sans block mt-0.5">
-                          Owner: {seller.ownerAddress}
+                        <span className="text-[10px] text-slate-500 font-sans block mt-0.5 truncate max-w-[200px]" title={seller.ownerAddress}>
+                          Owner: {seller.ownerAddress.slice(0, 8)}...{seller.ownerAddress.slice(-6)}
                         </span>
                       </td>
 
                       {/* Quota */}
-                      <td className="py-3.5 px-3">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-slate-200 font-bold">
                           <span>{seller.availableTokens.toLocaleString()}</span>
                           <span className="text-[10px] text-slate-400 font-normal">tokens</span>
@@ -1022,36 +989,36 @@ contract VaultLending {
                       </td>
 
                       {/* Rate */}
-                      <td className="py-3.5 px-3 text-slate-300">
+                      <td className="py-3.5 px-3 text-slate-300 whitespace-nowrap">
                         ${(seller.pricePer1kMicroUsdc / 1_000_000).toFixed(4)}
                       </td>
 
                       {/* Upfront Deposit */}
-                      <td className="py-3.5 px-3">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         <span className="font-bold text-cyan-400">${sellerDepositUsdc.toFixed(4)}</span>
                         <span className="text-[10px] text-slate-400 block">x402 escrow</span>
                       </td>
 
                       {/* Payout */}
-                      <td className="py-3.5 px-3 text-slate-400 text-[11px]">
+                      <td className="py-3.5 px-3 text-slate-400 text-[11px] whitespace-nowrap">
                         {seller.hedaraPayoutAccount}
                       </td>
 
                       {/* Action: Prompt Now Button */}
-                      <td className="py-3.5 px-3 text-right">
+                      <td className="py-3.5 px-3 text-right whitespace-nowrap">
                         {isCurrent ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold text-xs">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold text-xs whitespace-nowrap">
                             <Check className="w-3.5 h-3.5" />
                             Selected
                           </span>
                         ) : (
                           <button
                             onClick={() => handlePromptNow(seller)}
-                            className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md transition transform active:scale-95"
+                            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md transition transform active:scale-95 whitespace-nowrap flex-shrink-0"
                           >
-                            <Zap className="w-3 h-3 text-cyan-200" />
-                            Prompt Now
-                            <ArrowRight className="w-3 h-3 ml-0.5" />
+                            <Zap className="w-3.5 h-3.5 text-cyan-200 flex-shrink-0" />
+                            <span className="whitespace-nowrap font-bold">Prompt Now</span>
+                            <ArrowRight className="w-3.5 h-3.5 ml-0.5 flex-shrink-0" />
                           </button>
                         )}
                       </td>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 export interface AuthContextType {
   walletAddress: string | null;
@@ -11,6 +11,11 @@ export interface AuthContextType {
   merkleRoot: string | null;
   proofPayload: string | null;
   isAuthenticated: boolean;
+  // Real ENS Properties
+  ensName: string | null;
+  ensAvatar: string | null;
+  isLoadingEns: boolean;
+  refreshEns: () => Promise<void>;
   // Seller Hedera Payout Account Login
   sellerHederaAccount: string | null;
   isConnectingHedera: boolean;
@@ -35,6 +40,10 @@ const AuthContext = createContext<AuthContextType>({
   merkleRoot: null,
   proofPayload: null,
   isAuthenticated: false,
+  ensName: null,
+  ensAvatar: null,
+  isLoadingEns: false,
+  refreshEns: async () => {},
   sellerHederaAccount: null,
   isConnectingHedera: false,
   connectSellerHedera: async () => ({ success: false }),
@@ -57,6 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [merkleRoot, setMerkleRoot] = useState<string | null>(null);
   const [proofPayload, setProofPayload] = useState<string | null>(null);
 
+  // Real ENS State
+  const [ensName, setEnsName] = useState<string | null>(null);
+  const [ensAvatar, setEnsAvatar] = useState<string | null>(null);
+  const [isLoadingEns, setIsLoadingEns] = useState<boolean>(false);
+
   // Seller Hedera Account Login State
   const [sellerHederaAccount, setSellerHederaAccount] = useState<string | null>(null);
   const [isConnectingHedera, setIsConnectingHedera] = useState<boolean>(false);
@@ -75,6 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setNullifierHash(parsed.nullifierHash || null);
             setMerkleRoot(parsed.merkleRoot || null);
             setProofPayload(parsed.proofPayload || null);
+            if (parsed.ensName) setEnsName(parsed.ensName);
+            if (parsed.ensAvatar) setEnsAvatar(parsed.ensAvatar);
           }
         }
         const savedHedera = localStorage.getItem(HEDERA_STORAGE_KEY);
@@ -98,13 +114,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           nullifierHash,
           merkleRoot,
           proofPayload,
+          ensName,
+          ensAvatar,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
       } else {
         localStorage.removeItem(STORAGE_KEY);
       }
     }
-  }, [walletAddress, worldIdVerified, nullifierHash, merkleRoot, proofPayload, walletChainId]);
+  }, [walletAddress, worldIdVerified, nullifierHash, merkleRoot, proofPayload, walletChainId, ensName, ensAvatar]);
+
+  // Live Reverse ENS Lookup on wallet address change
+  const refreshEns = useCallback(async () => {
+    if (!walletAddress) {
+      setEnsName(null);
+      setEnsAvatar(null);
+      return;
+    }
+
+    setIsLoadingEns(true);
+    try {
+      const res = await fetch(`/api/ens/reverse?address=${walletAddress}`);
+      const data = await res.json();
+      if (data.success) {
+        setEnsName(data.ensName || null);
+        setEnsAvatar(data.avatarUrl || null);
+      }
+    } catch (err) {
+      console.warn("[AuthContext] Reverse ENS resolution error:", err);
+    } finally {
+      setIsLoadingEns(false);
+    }
+  }, [walletAddress]);
+
+  useEffect(() => {
+    refreshEns();
+  }, [refreshEns]);
 
   // Listen to Web3 provider account changes
   useEffect(() => {
@@ -173,6 +218,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setNullifierHash(null);
     setMerkleRoot(null);
     setProofPayload(null);
+    setEnsName(null);
+    setEnsAvatar(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -235,6 +282,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setNullifierHash(null);
     setMerkleRoot(null);
     setProofPayload(null);
+    setEnsName(null);
+    setEnsAvatar(null);
     setSellerHederaAccount(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
@@ -255,6 +304,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         merkleRoot,
         proofPayload,
         isAuthenticated,
+        ensName,
+        ensAvatar,
+        isLoadingEns,
+        refreshEns,
         sellerHederaAccount,
         isConnectingHedera,
         connectSellerHedera,

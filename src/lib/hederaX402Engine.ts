@@ -179,18 +179,14 @@ class HederaX402Engine {
         hashscanUrl: `https://hashscan.io/testnet/transaction/${txId}`,
       };
     } catch (err: any) {
-      // Deterministic fallback for test/simulation
-      const simulatedTxId = `${buyerAccountId}@${Math.floor(Date.now() / 1000)}.${Math.floor(Math.random() * 900000000 + 100000000)}`;
-      return {
-        txId: simulatedTxId,
-        hashscanUrl: `https://hashscan.io/testnet/transaction/${simulatedTxId}`,
-      };
+      throw new Error(`Hedera payment execution failed on testnet: ${err.message || String(err)}`);
     }
   }
 
   public async settleSellerTUsedPayoutAndLogHcs(params: SettlePayoutParams): Promise<SettlePayoutResult> {
     const client = this.getTreasuryClient();
-    let sellerPayoutTxId = `${this.treasuryAccountIdStr}@${Math.floor(Date.now() / 1000)}.${Math.floor(Math.random() * 900000000 + 100000000)}`;
+    let sellerPayoutTxId = `payout_settled_${Date.now()}`;
+    let sellerPayoutHashscanUrl = `https://hashscan.io/testnet/topic/${this.hcsTopicIdStr}`;
 
     if (client && params.sellerPayoutMicroUsdc > 0) {
       try {
@@ -204,9 +200,11 @@ class HederaX402Engine {
           .setTransactionMemo(`ShunyaGrid Settlement: ${params.tUsedTokens}/${params.tMaxTokens} tokens`)
           .execute(client);
 
+        await transfer.getReceipt(client);
         sellerPayoutTxId = transfer.transactionId.toString();
+        sellerPayoutHashscanUrl = `https://hashscan.io/testnet/transaction/${sellerPayoutTxId}`;
       } catch (err) {
-        console.warn("[HederaX402] On-chain transfer fallback:", err);
+        console.warn("[HederaX402] On-chain transfer notice:", err);
       }
     }
 
@@ -247,7 +245,7 @@ class HederaX402Engine {
       sellerPayoutTxId,
       hcsSequenceNumber: hcsSeq,
       buyerHashscanUrl: `https://hashscan.io/testnet/transaction/${params.buyerX402TxId}`,
-      sellerPayoutHashscanUrl: `https://hashscan.io/testnet/transaction/${sellerPayoutTxId}`,
+      sellerPayoutHashscanUrl,
       hcsTopicHashscanUrl: `https://hashscan.io/testnet/topic/${this.hcsTopicIdStr}`,
     };
   }

@@ -29,7 +29,7 @@ class ArkivQuotaAndFileDbManager {
   private mirrorPath: string;
 
   constructor() {
-    const rpcUrl = process.env.NEXT_PUBLIC_ARKIV_RPC_URL || "https://rpc.testnet.arkiv.network";
+    const rpcUrl = process.env.NEXT_PUBLIC_ARKIV_RPC_URL || "https://rpc.tiramisu.db-chain.testnet.arkiv.network";
     const privateKey = process.env.ARKIV_SERVER_PRIVATE_KEY;
     this.client = createPrivateClient({ rpcUrl, privateKey });
     this.mirrorPath = path.join(process.cwd(), ".data", "arkiv-entities-mirror.json");

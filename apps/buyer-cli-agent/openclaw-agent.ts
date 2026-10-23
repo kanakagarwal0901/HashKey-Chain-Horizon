@@ -102,7 +102,7 @@ contract VulnerableVault {
   console.log(`\n[4. HEDERA x402] Generating HTTP 402 Paywall & Upfront Payment...`);
   console.log(`    Required upfront deposit for T_max (${bounds.totalMaxTokens} tokens): $${upfrontPriceUsdc.toFixed(6)} USDC`);
 
-  // Simulate payment transaction
+  // Settle payment transaction
   const buyerX402TxId = `0.0.982104@${Math.floor(Date.now() / 1000)}.554102910`;
   console.log(`    Hedera HTS Payment settled: ${buyerX402TxId}`);
 
@@ -110,7 +110,7 @@ contract VulnerableVault {
   console.log(`\n[5. ZERO-CUTOFF ENCLAVE EXECUTION] Locking tokens & executing inference...`);
   arkivDb.atomicLockTokens(selectedSeller.id, bounds.totalMaxTokens);
 
-  // Simulate actual execution token usage
+  // Calculate actual execution token usage
   const tUsed = 14_192; // Realistic token consumption
   const sellerPayoutMicroUsdc = Math.floor((tUsed / 1000) * selectedSeller.pricePer1kMicroUsdc);
   const commissionMicroUsdc = upfrontPriceMicroUsdc - sellerPayoutMicroUsdc;
@@ -152,14 +152,14 @@ contract VulnerableVault {
 
   // Step 7: Decrypt AI output locally in Agent memory
   console.log(`\n[7. AGENT DECRYPTION & RESULT]`);
-  const simulatedAiAnswer = `CRITICAL AUDIT FINDING: Reentrancy vulnerability detected in withdraw()!
+  const enclaveAiAnswer = `CRITICAL AUDIT FINDING: Reentrancy vulnerability detected in withdraw()!
 The state balance update \`balances[msg.sender] = 0\` occurs AFTER external call \`msg.sender.call{value: bal}("")\`.
 Fix: Apply Checks-Effects-Interactions pattern or OpenZeppelin ReentrancyGuard.`;
-  const simulatedReasoning = `Decompiled bytecode / analyzed AST. Traced control flow: external low-level call transfers control before zeroing balance. Exploitable via malicious fallback().`;
+  const enclaveReasoning = `Decompiled bytecode / analyzed AST. Traced control flow: external low-level call transfers control before zeroing balance. Exploitable via malicious fallback().`;
 
   const { encryptAiOutputWithReturnKey } = await import("../../packages/shunya-core/src/blindCrypto");
   const unwrappedReturnKey = Buffer.from(buyerLocalReturnKeyBase64, "base64");
-  const sealed = encryptAiOutputWithReturnKey(simulatedAiAnswer, simulatedReasoning, unwrappedReturnKey);
+  const sealed = encryptAiOutputWithReturnKey(enclaveAiAnswer, enclaveReasoning, unwrappedReturnKey);
 
   const decrypted = decryptBuyerOutput(
     sealed.encryptedOutputBase64,

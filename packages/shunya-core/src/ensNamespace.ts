@@ -1,9 +1,13 @@
+import { realEnsService } from "./realEnsService";
+
 export interface EnsSubnameRecord {
-  subname: string; // e.g. "arjun-claude.shunyagrid.eth"
+  subname: string; // e.g. "arjun-claude.shunyagrid.eth" or "alice.eth"
   ownerAddress: string;
   hedaraPayoutAccount: string;
   supportedModel: string;
   reputationScore: number;
+  isRealEns?: boolean;
+  avatarUrl?: string | null;
   createdAt: string;
 }
 
@@ -15,55 +19,79 @@ export class EnsNamespaceService {
   }
 
   private seedDefaultNames() {
-    this.records.set("arjun-claude.shunyagrid.eth", {
-      subname: "arjun-claude.shunyagrid.eth",
-      ownerAddress: "0x71C2a8b940e4e8B",
-      hedaraPayoutAccount: "0.0.482910",
-      supportedModel: "claude-3-7-sonnet",
-      reputationScore: 99,
-      createdAt: new Date().toISOString(),
-    });
-    this.records.set("priya-o3.shunyagrid.eth", {
-      subname: "priya-o3.shunyagrid.eth",
-      ownerAddress: "0x98A1231f21Df",
-      hedaraPayoutAccount: "0.0.491204",
-      supportedModel: "o3-mini",
-      reputationScore: 98,
-      createdAt: new Date().toISOString(),
-    });
-    this.records.set("vikram-gpt4o.shunyagrid.eth", {
-      subname: "vikram-gpt4o.shunyagrid.eth",
-      ownerAddress: "0x32E9042a77Aa",
-      hedaraPayoutAccount: "0.0.510392",
-      supportedModel: "gpt-4o",
-      reputationScore: 100,
-      createdAt: new Date().toISOString(),
-    });
+    // Dynamic registry: starts clean for authentic registrations
   }
 
-  // Mint subname via Namespace SDK simulation
+  /**
+   * Register a subname (e.g. node-e17f.shunyagrid.eth) or link a verified real ENS domain (e.g. alice.eth)
+   */
   public mintSubname(params: {
-    label: string; // e.g. "dev-bot"
+    label: string; // e.g. "dev-bot" or "alice.eth"
     ownerAddress: string;
     hedaraPayoutAccount: string;
     supportedModel: string;
+    isRealEns?: boolean;
+    avatarUrl?: string | null;
   }): EnsSubnameRecord {
-    const cleanLabel = params.label.toLowerCase().replace(/[^a-z0-9-]/g, "");
-    const subname = `${cleanLabel}.shunyagrid.eth`;
+    let subname = params.label.trim().toLowerCase();
+
+    // If it's already an authentic .eth domain
+    if (subname.endsWith(".eth") && !subname.endsWith(".shunyagrid.eth")) {
+      const record: EnsSubnameRecord = {
+        subname,
+        ownerAddress: params.ownerAddress,
+        hedaraPayoutAccount: params.hedaraPayoutAccount,
+        supportedModel: params.supportedModel,
+        reputationScore: 100,
+        isRealEns: true,
+        avatarUrl: params.avatarUrl || null,
+        createdAt: new Date().toISOString(),
+      };
+      this.records.set(subname, record);
+      return record;
+    }
+
+    // Otherwise format as standard ShunyaGrid subname
+    const cleanLabel = subname.replace(/[^a-z0-9-]/g, "");
+    subname = `${cleanLabel}.shunyagrid.eth`;
+
     const record: EnsSubnameRecord = {
       subname,
       ownerAddress: params.ownerAddress,
       hedaraPayoutAccount: params.hedaraPayoutAccount,
       supportedModel: params.supportedModel,
       reputationScore: 100,
+      isRealEns: false,
+      avatarUrl: params.avatarUrl || null,
       createdAt: new Date().toISOString(),
     };
     this.records.set(subname, record);
     return record;
   }
 
-  public resolveSubname(subname: string): EnsSubnameRecord | undefined {
-    return this.records.get(subname.toLowerCase());
+  public async resolveSubname(subname: string): Promise<EnsSubnameRecord | undefined> {
+    const clean = subname.toLowerCase().trim();
+    const local = this.records.get(clean);
+    if (local) return local;
+
+    // If it's a real ENS domain, resolve on-chain via realEnsService
+    if (clean.endsWith(".eth") && !clean.endsWith(".shunyagrid.eth")) {
+      const live = await realEnsService.resolveName(clean);
+      if (live.address) {
+        return {
+          subname: clean,
+          ownerAddress: live.address,
+          hedaraPayoutAccount: "",
+          supportedModel: "",
+          reputationScore: 100,
+          isRealEns: true,
+          avatarUrl: live.avatarUrl,
+          createdAt: new Date().toISOString(),
+        };
+      }
+    }
+
+    return undefined;
   }
 
   public getAllSubnames(): EnsSubnameRecord[] {

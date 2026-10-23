@@ -24,26 +24,15 @@ export async function POST(request: NextRequest) {
     }
 
     const sourceAccount = body.sourceAccount;
-    const isSimulationOnly = body.simulationOnly === true;
-
     const targetToken = body.targetToken || body.targetCurrency || "USDC";
 
-    let bridgeTx;
-    if (isSimulationOnly) {
-      bridgeTx = arcBridgeService.initiateCctpBridge({
-        destinationChain,
-        amountUsdc,
-        recipientAddress,
-      });
-    } else {
-      bridgeTx = await arcBridgeService.executeLiveSellerSweep({
-        sourceAccount,
-        recipientAddress,
-        amountUsdc,
-        destinationChain,
-        targetToken,
-      });
-    }
+    const bridgeTx = await arcBridgeService.executeLiveSellerSweep({
+      sourceAccount,
+      recipientAddress,
+      amountUsdc,
+      destinationChain,
+      targetToken,
+    });
 
     return NextResponse.json({
       success: true,
