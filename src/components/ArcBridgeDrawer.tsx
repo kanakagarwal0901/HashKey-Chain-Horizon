@@ -74,6 +74,13 @@ export default function ArcBridgeDrawer({
   const [addedTokenSuccess, setAddedTokenSuccess] = useState<boolean>(false);
   const [addedNetworkSuccess, setAddedNetworkSuccess] = useState<boolean>(false);
 
+  // Derived balance constraint checks
+  const currentAvailable = Number((availableUsdcEarnings ?? 0).toFixed(6));
+  const parsedAmount = parseFloat(sweepAmount);
+  const isZeroBalance = currentAvailable <= 0;
+  const isExceedingBalance = !isNaN(parsedAmount) && parsedAmount > currentAvailable + 0.000001;
+  const isInvalidAmount = isNaN(parsedAmount) || parsedAmount <= 0;
+
   useEffect(() => {
     if (sellerHederaAccountId) {
       setSourceAccountId(sellerHederaAccountId);
@@ -180,6 +187,16 @@ export default function ArcBridgeDrawer({
       const parsedAmount = parseFloat(sweepAmount);
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
         throw new Error("Invalid sweep amount: Please specify an amount greater than 0.");
+      }
+
+      if (isZeroBalance) {
+        throw new Error("Cannot sweep: Your available Hedera USDC balance is $0.000000. You cannot sweep if your balance is 0.");
+      }
+
+      if (isExceedingBalance) {
+        throw new Error(
+          `Cannot sweep $${parsedAmount.toFixed(6)} USDC: Amount cannot be greater than the current balance of $${currentAvailable.toFixed(6)} USDC.`
+        );
       }
 
       const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
@@ -451,8 +468,9 @@ export default function ArcBridgeDrawer({
                   </button>
                 )}
                 <button
-                  onClick={() => setSweepAmount(availableUsdcEarnings.toFixed(5))}
-                  className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 transition"
+                  disabled={isZeroBalance}
+                  onClick={() => setSweepAmount(currentAvailable > 0 ? currentAvailable.toFixed(5) : "0.00000")}
+                  className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                   Sweep Max
                 </button>
@@ -488,11 +506,29 @@ export default function ArcBridgeDrawer({
                   step="0.0001"
                   value={sweepAmount}
                   onChange={(e) => setSweepAmount(e.target.value)}
-                  className="w-full rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2.5 text-sm text-white font-mono focus:border-indigo-500 focus:outline-none"
+                  className={`w-full rounded-xl bg-slate-950 border px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none transition ${
+                    isExceedingBalance
+                      ? "border-rose-500 text-rose-300 focus:border-rose-400"
+                      : isZeroBalance
+                      ? "border-amber-500/50 text-amber-300 focus:border-amber-400"
+                      : "border-slate-700 text-white focus:border-indigo-500"
+                  }`}
                   placeholder="0.00"
                 />
                 <span className="absolute right-3.5 top-2.5 text-xs font-semibold text-slate-400">USDC</span>
               </div>
+              {isZeroBalance && (
+                <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs flex items-center gap-2 mt-1">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>Current balance is $0.00 USDC. You cannot sweep if your balance is 0.</span>
+                </div>
+              )}
+              {isExceedingBalance && (
+                <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2 mt-1">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                  <span>Cannot sweep amount greater than the current balance (${currentAvailable.toFixed(5)} USDC).</span>
+                </div>
+              )}
             </div>
 
             {/* Destination Chain Selector */}
@@ -595,14 +631,29 @@ export default function ArcBridgeDrawer({
 
             <div className="pt-2">
               <button
-                disabled={isBridging}
+                disabled={isBridging || isZeroBalance || isExceedingBalance || isInvalidAmount}
                 onClick={handleSweepEarnings}
-                className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
               >
                 {isBridging ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Executing Live Uniswap Swap & Sweep...
+                  </>
+                ) : isZeroBalance ? (
+                  <>
+                    <AlertCircle className="w-4 h-4 text-amber-300" />
+                    Cannot Sweep: Balance is $0.00 USDC
+                  </>
+                ) : isExceedingBalance ? (
+                  <>
+                    <AlertCircle className="w-4 h-4 text-rose-300" />
+                    Cannot Sweep: Exceeds Available Balance
+                  </>
+                ) : isInvalidAmount ? (
+                  <>
+                    <ArrowRightLeft className="w-4 h-4" />
+                    Enter Valid Sweep Amount
                   </>
                 ) : (
                   <>

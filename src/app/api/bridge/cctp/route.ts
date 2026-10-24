@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { arcBridgeService } from "@shunya/core";
+import { arcBridgeService, calculateSellerBalance } from "@shunya/core";
 
 export async function GET() {
   const history = arcBridgeService.getBridgeHistory();
@@ -16,14 +16,43 @@ export async function POST(request: NextRequest) {
     const amountUsdc = Number(body.amountUsdc || body.amount);
     const recipientAddress = body.recipientAddress || body.destinationAddress;
 
-    if (!amountUsdc || !recipientAddress) {
+    if (!amountUsdc || amountUsdc <= 0 || !recipientAddress) {
       return NextResponse.json(
-        { error: "Missing required bridge parameters: amountUsdc and recipientAddress" },
+        { error: "Missing required bridge parameters: amountUsdc (must be > 0) and recipientAddress" },
         { status: 400 }
       );
     }
 
-    const sourceAccount = body.sourceAccount;
+    const sourceAccount = (
+      body.sourceAccount ||
+      process.env.NEXT_PUBLIC_DEFAULT_SELLER_HEDERA_ACCOUNT ||
+      "0.0.11145557"
+    ).trim();
+
+    // Strict Invariant: Cannot sweep if balance is 0 and cannot sweep amount > current balance
+    const balResult = await calculateSellerBalance(sourceAccount);
+    const availableBalance = Number(balResult.displayBalance.toFixed(6));
+
+    if (availableBalance <= 0) {
+      return NextResponse.json(
+        {
+          error: `Cannot sweep: Current Hedera USDC balance is $0.000000 USDC. You cannot sweep if your balance is 0.`,
+          availableBalance: 0,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (amountUsdc > availableBalance + 0.000001) {
+      return NextResponse.json(
+        {
+          error: `Cannot sweep $${amountUsdc.toFixed(6)} USDC: Amount cannot be greater than the current balance of $${availableBalance.toFixed(6)} USDC.`,
+          availableBalance,
+        },
+        { status: 400 }
+      );
+    }
+
     const targetToken = body.targetToken || body.targetCurrency || "USDC";
 
     const bridgeTx = await arcBridgeService.executeLiveSellerSweep({
@@ -32,6 +61,7 @@ export async function POST(request: NextRequest) {
       amountUsdc,
       destinationChain,
       targetToken,
+      availableBalance,
     });
 
     return NextResponse.json({

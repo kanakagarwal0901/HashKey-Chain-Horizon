@@ -129,6 +129,7 @@ export class ArcBridgeService {
     destinationChain?: "arc" | "arbitrum" | "base" | "optimism" | "ethereum" | "hedera-testnet" | "ethereum-sepolia" | "arbitrum-sepolia" | "base-sepolia" | string;
     targetCurrency?: "USDC" | "EURC" | string;
     targetToken?: string;
+    availableBalance?: number;
   }): Promise<ArcBridgeTransaction> {
     const { amountUsdc, recipientAddress } = params;
     const destChain = params.destinationChain || "arc";
@@ -144,19 +145,45 @@ export class ArcBridgeService {
       throw new Error("Invalid recipient address: Must be a connected 42-character Ethereum EVM address (0x...).");
     }
 
-    // 2. Derive Uniswap V3 Quote for target token
+    const sourceAccountIdStr = (
+      params.sourceAccount ||
+      process.env.NEXT_PUBLIC_DEFAULT_SELLER_HEDERA_ACCOUNT ||
+      "0.0.11145557"
+    ).trim();
+
+    // 2. Strict Balance Invariant: Cannot sweep if balance is 0 and cannot sweep > current balance
+    let verifiedBalance = params.availableBalance;
+    if (verifiedBalance === undefined) {
+      try {
+        const { calculateSellerBalance } = await import("./sellerBalance");
+        const balData = await calculateSellerBalance(sourceAccountIdStr);
+        verifiedBalance = balData.displayBalance;
+      } catch (balErr) {
+        console.warn("[ArcBridgeService] Real-time balance check warning:", balErr);
+      }
+    }
+
+    if (verifiedBalance !== undefined) {
+      const balNum = Number(verifiedBalance.toFixed(6));
+      if (balNum <= 0) {
+        throw new Error(
+          `Cannot sweep: Current Hedera USDC balance is $${balNum.toFixed(6)} USDC. You cannot sweep if your balance is 0.`
+        );
+      }
+      if (amountUsdc > balNum + 0.000001) {
+        throw new Error(
+          `Cannot sweep $${amountUsdc.toFixed(6)} USDC: Amount cannot be greater than the current balance of $${balNum.toFixed(6)} USDC.`
+        );
+      }
+    }
+
+    // 3. Derive Uniswap V3 Quote for target token
     const quote = uniswapService.getQuote({
       fromToken: "USDC",
       toToken: targetToken,
       amountIn: amountUsdc,
       chainId: "ethereum-sepolia",
     });
-
-    const sourceAccountIdStr = (
-      params.sourceAccount ||
-      process.env.NEXT_PUBLIC_DEFAULT_SELLER_HEDERA_ACCOUNT ||
-      "0.0.11145557"
-    ).trim();
 
     const operatorIdStr = (process.env.HEDERA_OPERATOR_ID || "0.0.11073932").trim();
     let treasuryPk = (

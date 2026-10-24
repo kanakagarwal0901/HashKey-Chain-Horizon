@@ -12,3 +12,4 @@ export * from "./aiProviderDispatcher";
 export * from "./hederaClient";
 export * from "./apiKeyVerifier";
 export * from "./uniswapService";
+export * from "./sellerBalance";
