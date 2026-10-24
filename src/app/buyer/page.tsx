@@ -68,6 +68,7 @@ export default function BuyerStudioPage() {
   const [selectedModel, setSelectedModel] = useState<string>("claude-3-7-sonnet");
   const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("medium");
   const [showWorldIdModal, setShowWorldIdModal] = useState<boolean>(false);
+  const [showBuyerGuide, setShowBuyerGuide] = useState<boolean>(false);
 
   // On-Chain Sepolia & USDC Balance State
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
@@ -579,10 +580,10 @@ contract VaultLending {
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex items-center gap-1.5">
               <Shield className="w-3.5 h-3.5" />
-              EF CROPS Compliant Blind Inference
+              Hardware Enclave Privacy (Zero Visibility)
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
-              x402 Hedera Escrow
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              Guaranteed Zero-Cutoff
             </span>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
@@ -590,11 +591,20 @@ contract VaultLending {
             Buyer Confidential Studio
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Zero-Cutoff Guarantee &bull; Pre-flight T_max Quota Lock &bull; End-to-End Client Encryption
+            End-to-End Encrypted AI Prompts &bull; Pre-flight T_max Quota Lock &bull; No Mid-Generation Cutoffs
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Quick How It Works Toggle */}
+          <button
+            onClick={() => setShowBuyerGuide(!showBuyerGuide)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-cyan-800/50 hover:border-cyan-600 text-xs font-medium text-cyan-300 transition"
+          >
+            <Info className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{showBuyerGuide ? "Hide Guide" : "How It Works"}</span>
+          </button>
+
           {/* Ethereum Sepolia Network Status */}
           {walletAddress && (
             isSepoliaNetwork ? (
@@ -664,6 +674,44 @@ contract VaultLending {
           </Link>
         </div>
       </div>
+
+      {/* Onboarding Guide Accordion for Buyers */}
+      {showBuyerGuide && (
+        <div className="p-6 rounded-2xl bg-slate-900/90 border border-cyan-500/30 space-y-4 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              Quick Guide: How to Run Private AI Without Mid-Way Cutoffs
+            </h3>
+            <button
+              onClick={() => setShowBuyerGuide(false)}
+              className="text-xs text-slate-400 hover:text-white"
+            >
+              ✕ Close Guide
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+              <div className="font-bold text-cyan-400">1. Architecture & Thinking Depth</div>
+              <p className="text-slate-300 leading-relaxed">
+                Choose your model. For reasoning models (like Claude 3.7 Sonnet or o3-mini), select low, medium, or high thinking depth. ShunyaGrid automatically calculates the maximum possible tokens (<strong>T_max</strong>) so your reasoning context is never cut off.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+              <div className="font-bold text-cyan-400">2. In-Browser Client Encryption</div>
+              <p className="text-slate-300 leading-relaxed">
+                Type your prompt and attach sensitive files (PDFs, code, images). Your browser encrypts everything locally before it leaves your machine. The seller whose API key runs the model never sees your data.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+              <div className="font-bold text-cyan-400">3. Pay-as-you-go Micro USDC</div>
+              <p className="text-slate-300 leading-relaxed">
+                Confirm the micro-payment in MetaMask. The hardware enclave executes the prompt, returns encrypted results only your browser can read, and settles the seller for exact tokens used.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* STEP 1: CASCADING SELECTION: AI PROVIDER -> MODEL -> THINKING LEVEL      */}

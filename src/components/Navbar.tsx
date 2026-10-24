@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import AnonRpcStatusBadge from "@/components/AnonRpcStatusBadge";
+import HowItWorksModal from "@/components/HowItWorksModal";
 import {
   Shield,
   Cpu,
@@ -18,6 +19,9 @@ import {
   ExternalLink,
   Activity,
   Globe,
+  HelpCircle,
+  Menu,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -36,6 +40,8 @@ export default function Navbar() {
 
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -79,31 +85,40 @@ export default function Navbar() {
 
         {/* Nav Links */}
         <nav className="hidden md:flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
+          <button
+            onClick={() => setIsHowItWorksOpen(true)}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium text-cyan-300 hover:text-white hover:bg-cyan-950/40 border border-cyan-800/40 transition flex items-center gap-1.5"
+          >
+            <HelpCircle className="w-4 h-4 text-cyan-400" />
+            How It Works
+          </button>
           <Link
             href="/buyer"
             className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2"
           >
             <Cpu className="w-4 h-4 text-cyan-400" />
-            Buyer Studio
+            <span>Buyer Studio</span>
+            <span className="text-[10px] text-slate-400 font-mono hidden lg:inline">Use AI</span>
           </Link>
           <Link
             href="/seller"
             className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2"
           >
             <Layers className="w-4 h-4 text-emerald-400" />
-            Seller Hub
+            <span>Seller Hub</span>
+            <span className="text-[10px] text-slate-400 font-mono hidden lg:inline">Earn USDC</span>
           </Link>
           <Link
             href="/marketplace"
             className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2"
           >
             <Database className="w-4 h-4 text-purple-400" />
-            Orderbook
+            <span>Orderbook</span>
           </Link>
         </nav>
 
         {/* Top-Right Profile & Authentication */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <AnonRpcStatusBadge />
           {isAuthenticated ? (
             /* Authenticated User Profile Pill with Dropdown */
@@ -214,6 +229,18 @@ export default function Navbar() {
 
                   {/* Protocol Links */}
                   <div className="space-y-1 pt-1 text-xs">
+                    <button
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        setIsHowItWorksOpen(true);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800/80 text-cyan-300 hover:text-white transition flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
+                        How It Works Guide
+                      </span>
+                    </button>
                     <Link
                       href="/buyer"
                       onClick={() => setDropdownOpen(false)}
@@ -276,14 +303,85 @@ export default function Navbar() {
             /* Unauthenticated State: Connect & Verify Button */
             <Link
               href="/"
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs font-mono shadow-md flex items-center gap-1.5 transition"
+              className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs font-mono shadow-md flex items-center gap-1.5 transition"
             >
               <UserCheck className="w-3.5 h-3.5 text-cyan-200" />
-              Connect & Verify
+              <span>Connect</span>
             </Link>
           )}
+
+          {/* Mobile Menu Toggle Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-slate-800 bg-[#07090e]/95 backdrop-blur-lg px-4 py-3 space-y-2 animate-in slide-in-from-top-2">
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setIsHowItWorksOpen(true);
+            }}
+            className="w-full text-left px-3 py-2.5 rounded-lg bg-cyan-950/30 text-cyan-300 border border-cyan-800/40 text-sm font-medium flex items-center gap-2.5"
+          >
+            <HelpCircle className="w-4 h-4 text-cyan-400" />
+            How It Works (60s Guide)
+          </button>
+          <Link
+            href="/buyer"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-medium flex items-center justify-between"
+          >
+            <span className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-cyan-400" />
+              Buyer Studio (Use AI)
+            </span>
+          </Link>
+          <Link
+            href="/seller"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-medium flex items-center justify-between"
+          >
+            <span className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-emerald-400" />
+              Seller Hub (Earn USDC)
+            </span>
+          </Link>
+          <Link
+            href="/marketplace"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-medium flex items-center justify-between"
+          >
+            <span className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-purple-400" />
+              Orderbook (Live Listings)
+            </span>
+          </Link>
+          <Link
+            href="/bridge"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-medium flex items-center justify-between"
+          >
+            <span className="flex items-center gap-2">
+              <ArrowRightLeft className="w-4 h-4 text-amber-400" />
+              Arc CCTP Bridge
+            </span>
+          </Link>
+        </div>
+      )}
+
+      {/* Interactive Onboarding Guide Modal */}
+      <HowItWorksModal
+        isOpen={isHowItWorksOpen}
+        onClose={() => setIsHowItWorksOpen(false)}
+      />
     </header>
   );
 }
