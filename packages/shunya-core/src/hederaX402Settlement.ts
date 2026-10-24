@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import { hederaNetworkClient } from "./hederaClient";
 
 export interface HederaX402PaymentQuote {
@@ -20,6 +22,7 @@ export interface HcsSettlementReceipt {
   hcsTopicId: string;
   sequenceNumber: number;
   consensusTimestamp: string;
+  sellerHederaAccountId?: string;
   buyerUpfrontTxId: string;
   buyerSepoliaTxHash?: string;
   sepoliaEtherscanUrl?: string;
@@ -53,16 +56,41 @@ export interface SettleJobParams {
   zeroGAttestationHash: string;
 }
 
-// In-Memory Ledger for settled HCS consensus messages and transfers
+// Persistent Ledger for settled HCS consensus messages and transfers
 export class HederaSettlementEngine {
   private treasuryAccountId: string = process.env.SHUNYA_TREASURY_HEDERA_ID || "0.0.591244";
   private usdcTokenId: string = process.env.HEDERA_USDC_TOKEN_ID || "0.0.429272";
   private hcsTopicId: string = process.env.HEDERA_HCS_TOPIC_ID || "0.0.591300";
   private sequenceCounter: number = 1042;
   private settledReceipts: HcsSettlementReceipt[] = [];
+  private persistencePath: string = path.join(process.cwd(), ".data", "settled_jobs.json");
 
   constructor() {
+    this.loadFromDisk();
     this.seedDefaultReceipts();
+  }
+
+  private loadFromDisk() {
+    try {
+      if (fs.existsSync(this.persistencePath)) {
+        const raw = fs.readFileSync(this.persistencePath, "utf8");
+        const list = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          this.settledReceipts = list;
+          if (list.length > 0 && typeof list[0].sequenceNumber === "number") {
+            this.sequenceCounter = Math.max(this.sequenceCounter, list[0].sequenceNumber);
+          }
+        }
+      }
+    } catch {}
+  }
+
+  private saveToDisk() {
+    try {
+      const dir = path.dirname(this.persistencePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(this.persistencePath, JSON.stringify(this.settledReceipts.slice(0, 100), null, 2));
+    } catch {}
   }
 
   private seedDefaultReceipts() {
@@ -109,6 +137,7 @@ export class HederaSettlementEngine {
     let consensusTimestamp = new Date().toISOString();
     let sellerPayoutTxId = `payout_settled_${Date.now()}`;
     let hashscanUrl = `https://hashscan.io/testnet/topic/${this.hcsTopicId}`;
+    let effectiveSellerAccount = (params.sellerHederaAccountId || "").trim();
 
     // If live Hedera client is configured with operator credentials, execute real HCS and HBAR payout
     if (hederaNetworkClient.isLiveConfigured()) {
@@ -122,6 +151,9 @@ export class HederaSettlementEngine {
         if (payoutResult) {
           sellerPayoutTxId = payoutResult.txId;
           hashscanUrl = payoutResult.hashscanUrl;
+          if (payoutResult.recipientAccount) {
+            effectiveSellerAccount = payoutResult.recipientAccount;
+          }
         }
 
         // 2. Submit real HCS consensus message containing the real CryptoTransfer TxId & Sepolia Payment Tx
@@ -136,7 +168,7 @@ export class HederaSettlementEngine {
           hashscanUrl,
           buyerSepoliaTxHash: params.buyerSepoliaTxHash,
           sepoliaEtherscanUrl,
-          sellerHederaAccountId: params.sellerHederaAccountId,
+          sellerHederaAccountId: effectiveSellerAccount,
           model: params.modelId,
           thinkingLevel: params.thinkingLevel,
           tMaxTokens: params.tMaxTokens,
@@ -167,6 +199,7 @@ export class HederaSettlementEngine {
       hcsTopicId: this.hcsTopicId,
       sequenceNumber,
       consensusTimestamp,
+      sellerHederaAccountId: effectiveSellerAccount,
       buyerUpfrontTxId: params.buyerX402TxId,
       buyerSepoliaTxHash: params.buyerSepoliaTxHash,
       sepoliaEtherscanUrl,
@@ -187,11 +220,22 @@ export class HederaSettlementEngine {
     };
 
     this.settledReceipts.unshift(receipt);
+    this.saveToDisk();
     return { sellerPayoutTxId, receipt };
   }
 
   public getReceipts(): HcsSettlementReceipt[] {
+    this.loadFromDisk();
     return this.settledReceipts;
+  }
+
+  public getReceiptsForAccount(accountId: string): HcsSettlementReceipt[] {
+    const clean = accountId?.trim();
+    if (!clean) return [];
+    this.loadFromDisk();
+    return this.settledReceipts.filter(
+      (r) => r.sellerHederaAccountId === clean || (r as any).sellerAccountId === clean
+    );
   }
 }
 

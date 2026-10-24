@@ -25,6 +25,7 @@ interface ArcBridgeDrawerProps {
   availableUsdcEarnings?: number;
   sellerHederaAccountId?: string;
   onSweepSuccess?: () => void;
+  onRefresh?: () => void;
 }
 
 export const SGUSDC_EVM_CONTRACT = "0x0000000000000000000000000000000000a9e4c1"; // Token 0.0.11134145
@@ -59,6 +60,7 @@ export default function ArcBridgeDrawer({
   availableUsdcEarnings = 1.0,
   sellerHederaAccountId = "",
   onSweepSuccess,
+  onRefresh,
 }: ArcBridgeDrawerProps) {
   const { walletAddress } = useAuth();
   const [selectedToken, setSelectedToken] = useState<string>("USDC");
@@ -78,6 +80,13 @@ export default function ArcBridgeDrawer({
     }
   }, [sellerHederaAccountId]);
 
+  // When drawer opens, immediately fetch latest balance
+  useEffect(() => {
+    if (isOpen && onRefresh) {
+      onRefresh();
+    }
+  }, [isOpen]);
+
   // Live Uniswap Quote State
   const [quotePreview, setQuotePreview] = useState<{
     expectedOut: number;
@@ -94,8 +103,8 @@ export default function ArcBridgeDrawer({
   });
 
   useEffect(() => {
-    if (availableUsdcEarnings > 0) {
-      setSweepAmount(availableUsdcEarnings.toFixed(5));
+    if (availableUsdcEarnings !== undefined) {
+      setSweepAmount(availableUsdcEarnings > 0 ? availableUsdcEarnings.toFixed(5) : "0.00000");
     }
   }, [availableUsdcEarnings]);
 
@@ -230,6 +239,14 @@ export default function ArcBridgeDrawer({
       // Immediately calculate optimistic remaining balance for the drawer
       const newRemaining = Math.max(0, availableUsdcEarnings - parsedAmount);
       setSweepAmount(newRemaining > 0 ? newRemaining.toFixed(5) : "0.00000");
+
+      // Broadcast sweep completed locally and cross-tab
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("shunyagrid_last_sweep_at", Date.now().toString());
+          window.dispatchEvent(new Event("shunyagrid_settlement_completed"));
+        } catch {}
+      }
 
       // Notify parent to refresh balance from Mirror Node and Sweep Ledger
       if (onSweepSuccess) {
@@ -422,12 +439,24 @@ export default function ArcBridgeDrawer({
                   ${availableUsdcEarnings.toFixed(5)} <span className="text-xs font-normal text-slate-400">USDC</span>
                 </div>
               </div>
-              <button
-                onClick={() => setSweepAmount(availableUsdcEarnings.toFixed(5))}
-                className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 transition"
-              >
-                Sweep Max
-              </button>
+              <div className="flex items-center gap-2">
+                {onRefresh && (
+                  <button
+                    type="button"
+                    onClick={onRefresh}
+                    title="Refresh live on-chain balance from Mirror Node"
+                    className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  onClick={() => setSweepAmount(availableUsdcEarnings.toFixed(5))}
+                  className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 transition"
+                >
+                  Sweep Max
+                </button>
+              </div>
             </div>
 
             {/* Hedera Source Payout Account */}

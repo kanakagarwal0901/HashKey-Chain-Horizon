@@ -538,6 +538,18 @@ contract VaultLending {
       const executeData = await executeRes.json();
       setExecutionResult(executeData);
 
+      // Broadcast settlement completion event locally and cross-tab for immediate Seller balance sync
+      if (typeof window !== "undefined") {
+        try {
+          window.dispatchEvent(
+            new CustomEvent("shunyagrid_settlement_completed", { detail: executeData })
+          );
+          localStorage.setItem("shunyagrid_last_settlement_at", Date.now().toString());
+        } catch (syncErr) {
+          console.warn("[Buyer] Failed to dispatch balance sync event:", syncErr);
+        }
+      }
+
       // Phase 4: Local Decryption with K_return
       setExecutionStep("4/4: Decrypting sealed AI output locally in browser with K_return...");
       await new Promise((r) => setTimeout(r, 400));

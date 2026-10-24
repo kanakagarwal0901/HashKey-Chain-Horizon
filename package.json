@@ -20,6 +20,7 @@
     "test:sweep": "tsx scripts/testSellerMetaMaskSweep.ts",
     "test:universal": "tsx scripts/testUniversalPaymentsAndUniswap.ts",
     "test:gateway": "tsx scripts/testSellerHederaGateway.ts",
+    "test:balance": "tsx scripts/testSellerBalanceUpdateOnPurchase.ts",
     "test:ens": "tsx scripts/testRealEnsIntegration.ts",
     "test:e2e": "tsx scripts/runE2EDemo.ts",
     "agent:openclaw": "tsx apps/buyer-cli-agent/openclaw-agent.ts",

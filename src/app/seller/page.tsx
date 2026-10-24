@@ -303,6 +303,51 @@ export default function SellerHubPage() {
     }
   }, [sellerHederaAccount]);
 
+  // Real-time synchronization: listen for buyer purchase events, storage events across tabs, and window focus
+  useEffect(() => {
+    if (!sellerHederaAccount) return;
+
+    const handleSyncEvent = () => {
+      fetchHederaBalance(sellerHederaAccount);
+      fetchListings();
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "shunyagrid_last_settlement_at" || e.key === "shunyagrid_last_sweep_at") {
+        handleSyncEvent();
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        handleSyncEvent();
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("shunyagrid_settlement_completed", handleSyncEvent);
+      window.addEventListener("storage", handleStorage);
+      window.addEventListener("focus", handleSyncEvent);
+      document.addEventListener("visibilitychange", handleVisibility);
+    }
+
+    // 5-second background interval polling to ensure fresh balance during continuous buying
+    const pollInterval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchHederaBalance(sellerHederaAccount);
+    }, 5000);
+
+    return () => {
+      clearInterval(pollInterval);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("shunyagrid_settlement_completed", handleSyncEvent);
+        window.removeEventListener("storage", handleStorage);
+        window.removeEventListener("focus", handleSyncEvent);
+        document.removeEventListener("visibilitychange", handleVisibility);
+      }
+    };
+  }, [sellerHederaAccount]);
+
   // Seal raw API key to 0G Enclave Public Key on input change
   const handleSealApiKey = async () => {
     if (!rawApiKey || rawApiKey.trim().length < 15) {
@@ -1606,6 +1651,11 @@ export default function SellerHubPage() {
         availableUsdcEarnings={totalEarnedUsdc}
         sellerHederaAccountId={sellerHederaAccount || ""}
         onSweepSuccess={() => {
+          if (sellerHederaAccount) {
+            fetchHederaBalance(sellerHederaAccount);
+          }
+        }}
+        onRefresh={() => {
           if (sellerHederaAccount) {
             fetchHederaBalance(sellerHederaAccount);
           }

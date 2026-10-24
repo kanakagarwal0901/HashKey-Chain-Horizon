@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { arcBridgeService } from "@shunya/core";
+import { arcBridgeService, hederaEngine } from "@shunya/core";
 
 const MIRROR_NODE_BASE =
   process.env.NEXT_PUBLIC_HEDERA_MIRROR_URL || "https://testnet.mirrornode.hedera.com";
@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
     let recentSettlements: any[] = [];
     let recentSweeps: any[] = [];
     let isAutoAssociated = false;
+    const seenTxIds = new Set<string>();
 
     // 1. Query Live HTS USDC Token Balance on Hedera Mirror Node
     try {
@@ -84,7 +85,37 @@ export async function GET(request: NextRequest) {
       console.warn("[SellerBalanceAPI] Error querying account balance:", err);
     }
 
-    // 3. Query Real HCS Topic Consensus Messages to calculate total settled earnings & on-chain sweeps
+    // 3. Immediately Ingest Persistent Local Settlements (zero indexing latency)
+    try {
+      const localSettlements =
+        typeof (hederaEngine as any)?.getReceiptsForAccount === "function"
+          ? hederaEngine.getReceiptsForAccount(accountId)
+          : [];
+
+      for (const rec of localSettlements) {
+        const txKey = rec.sellerPayoutTxId || rec.buyerUpfrontTxId;
+        if (txKey && !seenTxIds.has(txKey)) {
+          seenTxIds.add(txKey);
+          const payout = Number(rec.sellerReceivedUsdc) || 0;
+          lifetimeSettledUsdc += payout;
+          recentSettlements.push({
+            sequenceNumber: rec.sequenceNumber,
+            consensusTimestamp: rec.consensusTimestamp,
+            sellerPayoutTxId: rec.sellerPayoutTxId,
+            buyerSepoliaTxHash: rec.buyerSepoliaTxHash,
+            sepoliaEtherscanUrl: rec.sepoliaEtherscanUrl,
+            payoutUsdc: payout,
+            model: rec.model,
+            tokensUsed: rec.tUsedTokens,
+            hashscanUrl: rec.hashscanUrl,
+          });
+        }
+      }
+    } catch (localErr) {
+      console.warn("[SellerBalanceAPI] Error querying local settlements:", localErr);
+    }
+
+    // 4. Query Real HCS Topic Consensus Messages on Hedera Mirror Node
     try {
       const topicRes = await fetch(
         `${MIRROR_NODE_BASE}/api/v1/topics/${HCS_TOPIC_ID}/messages?limit=50&order=desc`,
@@ -97,28 +128,32 @@ export async function GET(request: NextRequest) {
             try {
               const decoded = Buffer.from(msg.message, "base64").toString("utf8");
               const parsed = JSON.parse(decoded);
+
+              // Strict account matching: only match settlements/sweeps for this specific account
               const isAccountMatch =
                 parsed.sellerHederaAccountId === accountId ||
-                accountId === DEFAULT_SELLER_ACCOUNT ||
-                parsed.sellerHederaAccountId === "0.0.482910" ||
-                parsed.sellerHederaAccountId === "0.0.771204";
+                (accountId === DEFAULT_SELLER_ACCOUNT && parsed.sellerHederaAccountId === DEFAULT_SELLER_ACCOUNT);
 
               if (parsed.event === "ZERO_CUTOFF_JOB_SETTLED" && isAccountMatch) {
-                const payout = parseFloat(parsed.sellerPayoutUsdc) || 0;
-                lifetimeSettledUsdc += payout;
-                recentSettlements.push({
-                  sequenceNumber: msg.sequence_number,
-                  consensusTimestamp: msg.consensus_timestamp,
-                  sellerPayoutTxId: parsed.sellerPayoutTxId,
-                  buyerSepoliaTxHash: parsed.buyerSepoliaTxHash,
-                  sepoliaEtherscanUrl: parsed.sepoliaEtherscanUrl,
-                  payoutUsdc: payout,
-                  model: parsed.model,
-                  tokensUsed: parsed.tUsedTokens,
-                  hashscanUrl:
-                    parsed.hashscanUrl ||
-                    `https://hashscan.io/testnet/transaction/${parsed.sellerPayoutTxId}`,
-                });
+                const txKey = parsed.sellerPayoutTxId || parsed.buyerSepoliaTxHash || String(msg.sequence_number);
+                if (!seenTxIds.has(txKey)) {
+                  seenTxIds.add(txKey);
+                  const payout = parseFloat(parsed.sellerPayoutUsdc) || 0;
+                  lifetimeSettledUsdc += payout;
+                  recentSettlements.push({
+                    sequenceNumber: msg.sequence_number,
+                    consensusTimestamp: msg.consensus_timestamp,
+                    sellerPayoutTxId: parsed.sellerPayoutTxId,
+                    buyerSepoliaTxHash: parsed.buyerSepoliaTxHash,
+                    sepoliaEtherscanUrl: parsed.sepoliaEtherscanUrl,
+                    payoutUsdc: payout,
+                    model: parsed.model,
+                    tokensUsed: parsed.tUsedTokens,
+                    hashscanUrl:
+                      parsed.hashscanUrl ||
+                      `https://hashscan.io/testnet/transaction/${parsed.sellerPayoutTxId}`,
+                  });
+                }
               } else if (
                 (parsed.event === "SELLER_SWEEP_DEBIT" || parsed.event === "CCTP_SWEEP_COMPLETED") &&
                 isAccountMatch
@@ -143,7 +178,7 @@ export async function GET(request: NextRequest) {
       console.warn("[SellerBalanceAPI] Error querying HCS messages:", err);
     }
 
-    // 4. Combine and deduplicate sweeps from local persistence ledger & HCS topic
+    // 5. Combine and deduplicate sweeps strictly for this seller account
     const sweepsMap = new Map<
       string,
       {
@@ -156,7 +191,7 @@ export async function GET(request: NextRequest) {
       }
     >();
 
-    // A. From persistent local sweeps ledger
+    // A. From persistent local sweeps ledger (strictly filtered by accountId)
     try {
       const localSweeps =
         typeof (arcBridgeService as any)?.getSweepsForAccount === "function"
@@ -179,7 +214,7 @@ export async function GET(request: NextRequest) {
       console.warn("[SellerBalanceAPI] Error querying local sweeps:", localErr);
     }
 
-    // B. From HCS topic sweeps
+    // B. From HCS topic sweeps (strictly filtered by accountId)
     for (const s of recentSweeps) {
       const key = s.txHash || s.sequenceNumber?.toString();
       if (key && !sweepsMap.has(key)) {
@@ -194,15 +229,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Total unique swept amount across all channels:
+    // Total swept amount strictly for this account
     const allSweepsList = Array.from(sweepsMap.values());
     const totalSweptUsdc = allSweepsList.reduce((sum, s) => sum + (Number(s.amountUsdc) || 0), 0);
 
-    // 5. Accurate Available Balance Calculation:
-    // Base gross earnings are derived from live HTS tokens held and/or verified lifetime job settlements
-    const baseGrossUsdc = Math.max(htsUsdcBalance, lifetimeSettledUsdc);
-    // Net available balance deducting all swept funds that went to MetaMask:
-    const availableBalance = Math.max(0, baseGrossUsdc - totalSweptUsdc);
+    // 6. Accurate Available Balance Calculation:
+    // - htsUsdcBalance is the authentic on-chain token balance currently in the seller's wallet.
+    // - unsettledEarnings represents verified earned payouts minus sweeps that may not yet be reflected in token balance.
+    // - The available balance to sweep is the maximum of the live token balance and any net unsettled earnings.
+    const unsettledEarnings = Math.max(0, lifetimeSettledUsdc - totalSweptUsdc);
+    const availableBalance = Math.max(htsUsdcBalance, unsettledEarnings);
     const displayBalance = Number(availableBalance.toFixed(6));
 
     return NextResponse.json({
