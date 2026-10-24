@@ -33,6 +33,7 @@ export interface ArcBridgeTransaction {
   swappedAmount?: number;
   dexRouter?: string;
   dexRate?: number;
+  onChainDebited?: boolean;
 }
 
 export class ArcBridgeService {
@@ -70,6 +71,7 @@ export class ArcBridgeService {
   public getTotalSweptForAccount(accountId: string): number {
     const clean = accountId?.trim();
     if (!clean) return 0;
+    this.loadFromDisk();
     return this.transactions
       .filter((tx) => tx.sourceAccount === clean || (tx as any).sellerAccountId === clean)
       .reduce((sum, tx) => sum + (Number(tx.amountUsdc) || 0), 0);
@@ -78,6 +80,7 @@ export class ArcBridgeService {
   public getSweepsForAccount(accountId: string): ArcBridgeTransaction[] {
     const clean = accountId?.trim();
     if (!clean) return [];
+    this.loadFromDisk();
     return this.transactions.filter(
       (tx) => tx.sourceAccount === clean || (tx as any).sellerAccountId === clean
     );
@@ -169,6 +172,7 @@ export class ArcBridgeService {
     const cctpAttestation = "0x" + crypto.randomBytes(65).toString("hex");
 
     // 3. Step 1: On-Chain Hedera HTS Debit (if managed seller account)
+    let onChainDebited = false;
     try {
       if (sourceAccountIdStr !== operatorIdStr) {
         const client = Client.forTestnet();
@@ -184,6 +188,7 @@ export class ArcBridgeService {
 
         const debitRes = await debitTx.execute(client);
         await debitRes.getReceipt(client);
+        onChainDebited = true;
         console.log(`[ArcBridgeService] Successfully debited on-chain ${amountUsdc} USDC from seller ${sourceAccountIdStr}`);
       }
     } catch (debitErr: any) {
@@ -277,6 +282,7 @@ export class ArcBridgeService {
         sellerHederaAccountId: sourceAccountIdStr,
         sweepAmountUsdc: amountUsdc,
         sellerPayoutUsdc: amountUsdc,
+        onChainDebited,
         targetToken,
         recipientAddress,
         settlementTxId: txHash,
@@ -313,6 +319,7 @@ export class ArcBridgeService {
       swappedAmount: quote.expectedAmountOut,
       dexRouter: quote.sourceDex,
       dexRate: quote.rate,
+      onChainDebited,
     };
 
     this.transactions.unshift(bridgeTx);

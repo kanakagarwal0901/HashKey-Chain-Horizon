@@ -14,6 +14,20 @@ const DEFAULT_SELLER_ACCOUNT =
 
 export const dynamic = "force-dynamic";
 
+function parseTimestampMs(raw: any): number {
+  if (!raw) return 0;
+  if (typeof raw === "number") {
+    return raw < 1e11 ? Math.round(raw * 1000) : Math.round(raw);
+  }
+  const str = String(raw).trim();
+  if (/^\d+(\.\d+)?$/.test(str)) {
+    const sec = parseFloat(str);
+    return sec < 1e11 ? Math.round(sec * 1000) : Math.round(sec);
+  }
+  const parsed = new Date(str).getTime();
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -47,6 +61,7 @@ export async function GET(request: NextRequest) {
     let hcsSweptUsdc = 0;
     let recentSettlements: any[] = [];
     let recentSweeps: any[] = [];
+    let localSettlements: any[] = [];
     let isAutoAssociated = false;
     const seenTxIds = new Set<string>();
 
@@ -87,7 +102,7 @@ export async function GET(request: NextRequest) {
 
     // 3. Immediately Ingest Persistent Local Settlements (zero indexing latency)
     try {
-      const localSettlements =
+      localSettlements =
         typeof (hederaEngine as any)?.getReceiptsForAccount === "function"
           ? hederaEngine.getReceiptsForAccount(accountId)
           : [];
@@ -168,6 +183,7 @@ export async function GET(request: NextRequest) {
                   targetToken: parsed.targetToken,
                   recipientAddress: parsed.recipientAddress,
                   hashscanUrl: parsed.hashscanUrl,
+                  onChainDebited: Boolean(parsed.onChainDebited),
                 });
               }
             } catch {}
@@ -188,6 +204,7 @@ export async function GET(request: NextRequest) {
         targetToken?: string;
         recipientAddress?: string;
         hashscanUrl?: string;
+        onChainDebited?: boolean;
       }
     >();
 
@@ -207,6 +224,7 @@ export async function GET(request: NextRequest) {
             targetToken: s.swappedToken || "USDC",
             recipientAddress: s.recipientAddress,
             hashscanUrl: s.hashscanUrl,
+            onChainDebited: Boolean(s.onChainDebited),
           });
         }
       }
@@ -225,6 +243,7 @@ export async function GET(request: NextRequest) {
           targetToken: s.targetToken || "USDC",
           recipientAddress: s.recipientAddress,
           hashscanUrl: s.hashscanUrl,
+          onChainDebited: Boolean(s.onChainDebited),
         });
       }
     }
@@ -233,19 +252,83 @@ export async function GET(request: NextRequest) {
     const allSweepsList = Array.from(sweepsMap.values());
     const totalSweptUsdc = allSweepsList.reduce((sum, s) => sum + (Number(s.amountUsdc) || 0), 0);
 
-    // 6. Accurate Available Balance Calculation:
-    // - htsUsdcBalance is the authentic on-chain token balance currently in the seller's wallet.
-    // - unsettledEarnings represents verified earned payouts minus sweeps that may not yet be reflected in token balance.
-    // - The available balance to sweep is the maximum of the live token balance and any net unsettled earnings.
-    const unsettledEarnings = Math.max(0, lifetimeSettledUsdc - totalSweptUsdc);
-    const availableBalance = Math.max(htsUsdcBalance, unsettledEarnings);
-    const displayBalance = Number(availableBalance.toFixed(6));
+    // 6. Chronological Ledger Replay (Real-Time Hedera Consensus Accounting):
+    // Replay all verified EARN (settlement) and SWEEP events in chronological order.
+    interface LedgerEvent {
+      type: "EARN" | "SWEEP";
+      amount: number;
+      time: number;
+      id: string;
+    }
+
+    const ledgerEvents: LedgerEvent[] = [];
+    const ledgerTxSeen = new Set<string>();
+
+    // A) Settlements from persistent local receipts
+    for (const rec of localSettlements) {
+      const txKey = rec.sellerPayoutTxId || rec.buyerUpfrontTxId;
+      if (txKey && !ledgerTxSeen.has(txKey)) {
+        ledgerTxSeen.add(txKey);
+        ledgerEvents.push({
+          type: "EARN",
+          amount: Number(rec.sellerReceivedUsdc) || 0,
+          time: parseTimestampMs(rec.consensusTimestamp || rec.timestamp),
+          id: txKey,
+        });
+      }
+    }
+
+    // B) Settlements from HCS topic messages on Mirror Node
+    for (const set of recentSettlements) {
+      const txKey = set.sellerPayoutTxId || set.buyerSepoliaTxHash;
+      if (txKey && !ledgerTxSeen.has(txKey)) {
+        ledgerTxSeen.add(txKey);
+        ledgerEvents.push({
+          type: "EARN",
+          amount: Number(set.payoutUsdc) || 0,
+          time: parseTimestampMs(set.consensusTimestamp),
+          id: txKey,
+        });
+      }
+    }
+
+    // C) Sweeps from local persistent ledger and HCS topic
+    for (const s of allSweepsList) {
+      const txKey = s.txHash;
+      if (txKey && !ledgerTxSeen.has(txKey)) {
+        ledgerTxSeen.add(txKey);
+        ledgerEvents.push({
+          type: "SWEEP",
+          amount: Number(s.amountUsdc) || 0,
+          time: parseTimestampMs(s.timestamp),
+          id: txKey,
+        });
+      }
+    }
+
+    // Sort all events chronologically
+    ledgerEvents.sort((a, b) => a.time - b.time);
+
+    // Initial baseline if account held pre-existing tokens outside ShunyaGrid settlements
+    // (htsUsdcBalance reflects live on-chain Mirror Node tokens; subtracting lifetimeSettledUsdc isolates external pre-settlement balance)
+    let availableLedgerBalance = Math.max(0, Number((htsUsdcBalance - lifetimeSettledUsdc).toFixed(6)));
+
+    // Replay chronological ledger with non-negative lower bound
+    for (const ev of ledgerEvents) {
+      if (ev.type === "EARN") {
+        availableLedgerBalance += ev.amount;
+      } else if (ev.type === "SWEEP") {
+        availableLedgerBalance = Math.max(0, availableLedgerBalance - ev.amount);
+      }
+    }
+
+    const displayBalance = Number(availableLedgerBalance.toFixed(6));
 
     return NextResponse.json({
       success: true,
       accountId,
       htsTokenId: HTS_USDC_TOKEN_ID,
-      htsUsdcBalance: Number(availableBalance.toFixed(6)),
+      htsUsdcBalance: Number(displayBalance.toFixed(6)),
       rawHtsUsdcBalance: Number(htsUsdcBalance.toFixed(6)),
       hbarBalance,
       isAutoAssociated,
