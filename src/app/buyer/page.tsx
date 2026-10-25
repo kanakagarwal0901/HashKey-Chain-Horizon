@@ -42,6 +42,7 @@ import {
 } from "@/lib/clientCrypto";
 import { useAuth } from "@/context/AuthContext";
 import WorldIdModal from "@/components/WorldIdModal";
+import HowItWorksModal from "@/components/HowItWorksModal";
 import {
   SEPOLIA_CHAIN_ID_HEX,
   SEPOLIA_CIRCLE_USDC_ADDRESS,
@@ -70,7 +71,7 @@ export default function BuyerStudioPage() {
   const [selectedModel, setSelectedModel] = useState<string>("claude-3-7-sonnet");
   const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("medium");
   const [showWorldIdModal, setShowWorldIdModal] = useState<boolean>(false);
-  const [showBuyerGuide, setShowBuyerGuide] = useState<boolean>(false);
+  const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
   const [pendingAutoLock, setPendingAutoLock] = useState<boolean>(false);
 
   // On-Chain Sepolia & USDC Balance State
@@ -635,13 +636,13 @@ contract VaultLending {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Quick How It Works Toggle */}
+          {/* Quick How It Works Pop Up Trigger */}
           <button
-            onClick={() => setShowBuyerGuide(!showBuyerGuide)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-cyan-800/50 hover:border-cyan-600 text-xs font-medium text-cyan-300 transition"
+            onClick={() => setShowHowItWorksModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-cyan-800/50 hover:border-cyan-600 text-xs font-medium text-cyan-300 transition shadow-sm"
           >
             <Info className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{showBuyerGuide ? "Hide Guide" : "How It Works"}</span>
+            <span>How It Works</span>
           </button>
 
           {/* Ethereum Sepolia Network Status */}
@@ -719,44 +720,6 @@ contract VaultLending {
           </Link>
         </div>
       </div>
-
-      {/* Onboarding Guide Accordion for Buyers */}
-      {showBuyerGuide && (
-        <div className="p-4 sm:p-6 rounded-2xl bg-slate-900/90 border border-cyan-500/30 space-y-4 animate-in fade-in duration-200 w-full max-w-full min-w-0 overflow-hidden box-border">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0">
-            <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 min-w-0 break-words">
-              <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span className="break-words">Quick Guide: How to Run Private AI Without Mid-Way Cutoffs</span>
-            </h3>
-            <button
-              onClick={() => setShowBuyerGuide(false)}
-              className="text-xs text-slate-400 hover:text-white self-end sm:self-auto shrink-0 transition"
-            >
-              ✕ Close Guide
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-xs w-full min-w-0">
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
-              <div className="font-bold text-cyan-400 break-words">1. Architecture &amp; Thinking Depth</div>
-              <p className="text-slate-300 leading-relaxed break-words">
-                Choose your model. For reasoning models (like Claude 3.7 Sonnet or o3-mini), select low, medium, or high thinking depth. ShunyaGrid automatically calculates the maximum possible tokens (<strong>T_max</strong>) so your reasoning context is never cut off.
-              </p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
-              <div className="font-bold text-cyan-400 break-words">2. In-Browser Client Encryption</div>
-              <p className="text-slate-300 leading-relaxed break-words">
-                Type your prompt and attach sensitive files (PDFs, code, images). Your browser encrypts everything locally before it leaves your machine. The seller whose API key runs the model never sees your data.
-              </p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
-              <div className="font-bold text-cyan-400 break-words">3. Pay-as-you-go Micro USDC</div>
-              <p className="text-slate-300 leading-relaxed break-words">
-                Confirm the micro-payment in MetaMask. The hardware enclave executes the prompt, returns encrypted results only your browser can read, and settles the seller for exact tokens used.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ========================================================================= */}
       {/* STEP 1: CASCADING SELECTION: AI PROVIDER -> MODEL -> THINKING LEVEL      */}
@@ -1639,6 +1602,13 @@ contract VaultLending {
           setPendingAutoLock(false);
         }}
         onSuccess={handleWorldIdSuccess}
+      />
+
+      {/* How It Works Pop Up Modal */}
+      <HowItWorksModal
+        isOpen={showHowItWorksModal}
+        onClose={() => setShowHowItWorksModal(false)}
+        initialTab="buyer"
       />
     </div>
   );

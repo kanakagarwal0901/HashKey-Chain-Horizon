@@ -31,6 +31,7 @@ import { sealSellerApiKeyInBrowser } from "@/lib/clientCrypto";
 import { useAuth } from "@/context/AuthContext";
 import WorldIdModal from "@/components/WorldIdModal";
 import ArcBridgeDrawer from "@/components/ArcBridgeDrawer";
+import HowItWorksModal from "@/components/HowItWorksModal";
 import {
   PROVIDERS,
   SUPPORTED_MODELS,
@@ -65,7 +66,7 @@ export default function SellerHubPage() {
   // Hedera Account Gateway Input State
   const [inputHederaAccount, setInputHederaAccount] = useState<string>("");
   const [hederaConnectError, setHederaConnectError] = useState<string | null>(null);
-  const [showSellerGuide, setShowSellerGuide] = useState<boolean>(false);
+  const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
 
   // Provider & Model
   const [provider, setProvider] = useState<string>("anthropic");
@@ -592,11 +593,11 @@ export default function SellerHubPage() {
         {/* Crypto Wallet Connector & How It Works */}
         <div className="flex items-center gap-3 self-start md:self-auto">
           <button
-            onClick={() => setShowSellerGuide(!showSellerGuide)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 border border-emerald-800/50 hover:border-emerald-600 text-xs font-medium text-emerald-300 transition"
+            onClick={() => setShowHowItWorksModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 border border-emerald-800/50 hover:border-emerald-600 text-xs font-medium text-emerald-300 transition shadow-sm"
           >
             <Info className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{showSellerGuide ? "Hide Guide" : "How It Works"}</span>
+            <span>How It Works</span>
           </button>
 
           {walletAddress ? (
@@ -628,44 +629,6 @@ export default function SellerHubPage() {
           )}
         </div>
       </div>
-
-      {/* Onboarding Guide Accordion for Sellers */}
-      {showSellerGuide && (
-        <div className="p-4 sm:p-6 rounded-2xl bg-slate-900/90 border border-emerald-500/30 space-y-4 animate-in fade-in duration-200 w-full max-w-full min-w-0 overflow-hidden box-border">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0">
-            <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 min-w-0 break-words">
-              <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="break-words">Quick Guide: How to Safely Monetize Idle API Quotas</span>
-            </h3>
-            <button
-              onClick={() => setShowSellerGuide(false)}
-              className="text-xs text-slate-400 hover:text-white self-end sm:self-auto shrink-0 transition"
-            >
-              ✕ Close Guide
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-xs w-full min-w-0">
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
-              <div className="font-bold text-emerald-400 break-words">1. Verification &amp; Payout Address</div>
-              <p className="text-slate-300 leading-relaxed break-words">
-                Connect your MetaMask wallet and verify your World ID to establish Sybil-resistant human standing. Link your Hedera testnet account ID (e.g. 0.0.xxxxx) to receive instant USDC micro-payments on each request.
-              </p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
-              <div className="font-bold text-emerald-400 break-words">2. Enclave-Protected API Keys</div>
-              <p className="text-slate-300 leading-relaxed break-words">
-                Your API key is encrypted in your local browser using the 0G Enclave RSA public key. The raw key is never stored in any database or visible to buyers—it is only decrypted inside isolated enclave RAM during execution.
-              </p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
-              <div className="font-bold text-emerald-400 break-words">3. Live Earnings &amp; 1-Click Sweep</div>
-              <p className="text-slate-300 leading-relaxed break-words">
-                Buyers pay upfront for maximum tokens. You receive instant USDC for tokens actually consumed. You can sweep your earned balance directly to MetaMask anytime in 1 click using the Hedera bridge below.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 3-Pillar Seller Authentication Gateway */}
       <div className="glass-panel p-6 rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl space-y-4">
@@ -1708,6 +1671,12 @@ export default function SellerHubPage() {
             fetchHederaBalance(sellerHederaAccount);
           }
         }}
+      />
+      {/* How It Works Pop Up Modal */}
+      <HowItWorksModal
+        isOpen={showHowItWorksModal}
+        onClose={() => setShowHowItWorksModal(false)}
+        initialTab="seller"
       />
     </div>
   );
