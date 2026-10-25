@@ -631,35 +631,35 @@ export default function SellerHubPage() {
 
       {/* Onboarding Guide Accordion for Sellers */}
       {showSellerGuide && (
-        <div className="p-6 rounded-2xl bg-slate-900/90 border border-emerald-500/30 space-y-4 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              Quick Guide: How to Safely Monetize Idle API Quotas
+        <div className="p-4 sm:p-6 rounded-2xl bg-slate-900/90 border border-emerald-500/30 space-y-4 animate-in fade-in duration-200 w-full max-w-full min-w-0 overflow-hidden box-border">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0">
+            <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 min-w-0 break-words">
+              <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="break-words">Quick Guide: How to Safely Monetize Idle API Quotas</span>
             </h3>
             <button
               onClick={() => setShowSellerGuide(false)}
-              className="text-xs text-slate-400 hover:text-white"
+              className="text-xs text-slate-400 hover:text-white self-end sm:self-auto shrink-0 transition"
             >
               ✕ Close Guide
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-              <div className="font-bold text-emerald-400">1. Verification & Payout Address</div>
-              <p className="text-slate-300 leading-relaxed">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-xs w-full min-w-0">
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
+              <div className="font-bold text-emerald-400 break-words">1. Verification &amp; Payout Address</div>
+              <p className="text-slate-300 leading-relaxed break-words">
                 Connect your MetaMask wallet and verify your World ID to establish Sybil-resistant human standing. Link your Hedera testnet account ID (e.g. 0.0.xxxxx) to receive instant USDC micro-payments on each request.
               </p>
             </div>
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-              <div className="font-bold text-emerald-400">2. Enclave-Protected API Keys</div>
-              <p className="text-slate-300 leading-relaxed">
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
+              <div className="font-bold text-emerald-400 break-words">2. Enclave-Protected API Keys</div>
+              <p className="text-slate-300 leading-relaxed break-words">
                 Your API key is encrypted in your local browser using the 0G Enclave RSA public key. The raw key is never stored in any database or visible to buyers—it is only decrypted inside isolated enclave RAM during execution.
               </p>
             </div>
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-              <div className="font-bold text-emerald-400">3. Live Earnings & 1-Click Sweep</div>
-              <p className="text-slate-300 leading-relaxed">
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
+              <div className="font-bold text-emerald-400 break-words">3. Live Earnings &amp; 1-Click Sweep</div>
+              <p className="text-slate-300 leading-relaxed break-words">
                 Buyers pay upfront for maximum tokens. You receive instant USDC for tokens actually consumed. You can sweep your earned balance directly to MetaMask anytime in 1 click using the Hedera bridge below.
               </p>
             </div>

@@ -722,35 +722,35 @@ contract VaultLending {
 
       {/* Onboarding Guide Accordion for Buyers */}
       {showBuyerGuide && (
-        <div className="p-6 rounded-2xl bg-slate-900/90 border border-cyan-500/30 space-y-4 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              Quick Guide: How to Run Private AI Without Mid-Way Cutoffs
+        <div className="p-4 sm:p-6 rounded-2xl bg-slate-900/90 border border-cyan-500/30 space-y-4 animate-in fade-in duration-200 w-full max-w-full min-w-0 overflow-hidden box-border">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0">
+            <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 min-w-0 break-words">
+              <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span className="break-words">Quick Guide: How to Run Private AI Without Mid-Way Cutoffs</span>
             </h3>
             <button
               onClick={() => setShowBuyerGuide(false)}
-              className="text-xs text-slate-400 hover:text-white"
+              className="text-xs text-slate-400 hover:text-white self-end sm:self-auto shrink-0 transition"
             >
               ✕ Close Guide
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-              <div className="font-bold text-cyan-400">1. Architecture & Thinking Depth</div>
-              <p className="text-slate-300 leading-relaxed">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-xs w-full min-w-0">
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
+              <div className="font-bold text-cyan-400 break-words">1. Architecture &amp; Thinking Depth</div>
+              <p className="text-slate-300 leading-relaxed break-words">
                 Choose your model. For reasoning models (like Claude 3.7 Sonnet or o3-mini), select low, medium, or high thinking depth. ShunyaGrid automatically calculates the maximum possible tokens (<strong>T_max</strong>) so your reasoning context is never cut off.
               </p>
             </div>
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-              <div className="font-bold text-cyan-400">2. In-Browser Client Encryption</div>
-              <p className="text-slate-300 leading-relaxed">
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
+              <div className="font-bold text-cyan-400 break-words">2. In-Browser Client Encryption</div>
+              <p className="text-slate-300 leading-relaxed break-words">
                 Type your prompt and attach sensitive files (PDFs, code, images). Your browser encrypts everything locally before it leaves your machine. The seller whose API key runs the model never sees your data.
               </p>
             </div>
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-              <div className="font-bold text-cyan-400">3. Pay-as-you-go Micro USDC</div>
-              <p className="text-slate-300 leading-relaxed">
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 min-w-0 break-words">
+              <div className="font-bold text-cyan-400 break-words">3. Pay-as-you-go Micro USDC</div>
+              <p className="text-slate-300 leading-relaxed break-words">
                 Confirm the micro-payment in MetaMask. The hardware enclave executes the prompt, returns encrypted results only your browser can read, and settles the seller for exact tokens used.
               </p>
             </div>
@@ -1203,13 +1203,13 @@ contract VaultLending {
             </div>
 
             {/* Prompt Text Input */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="space-y-2 w-full max-w-full min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 min-w-0">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-cyan-400" />
-                  Confidential Prompt
+                  <FileText className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>Confidential Prompt</span>
                 </label>
-                <span className="text-xs font-mono text-slate-400">
+                <span className="text-xs font-mono text-slate-400 break-words">
                   ~{estimatedPromptTokens.toLocaleString()} prompt tokens ({promptText.length} chars)
                 </span>
               </div>
@@ -1218,7 +1218,7 @@ contract VaultLending {
                 onChange={(e) => setPromptText(e.target.value)}
                 rows={5}
                 placeholder="Enter your confidential instructions or prompt here..."
-                className="w-full bg-slate-950/90 border border-slate-700 rounded-xl p-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans leading-relaxed transition"
+                className="w-full max-w-full box-border bg-slate-950/90 border border-slate-700 rounded-xl p-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans leading-relaxed transition resize-y min-w-0 break-words"
               />
             </div>
 
