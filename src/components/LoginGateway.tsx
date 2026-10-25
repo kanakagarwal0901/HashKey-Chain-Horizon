@@ -226,6 +226,10 @@ export default function LoginGateway({
       <WorldIdModal
         isOpen={showWorldIdModal}
         onClose={() => setShowWorldIdModal(false)}
+        onSuccess={() => {
+          setShowWorldIdModal(false);
+          if (onSuccessRedirect) onSuccessRedirect();
+        }}
       />
     </div>
   );

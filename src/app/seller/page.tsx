@@ -1689,6 +1689,7 @@ export default function SellerHubPage() {
       <WorldIdModal
         isOpen={showWorldIdModal}
         onClose={() => setShowWorldIdModal(false)}
+        onSuccess={() => setShowWorldIdModal(false)}
       />
 
       {/* Circle CCTP Settlement Bridge Drawer */}

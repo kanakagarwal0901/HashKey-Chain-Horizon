@@ -93,7 +93,8 @@ export async function calculateSellerBalance(rawAccountId?: string | null): Prom
   // 1. Query Live HTS USDC Token Balance on Hedera Mirror Node
   try {
     const tokenRes = await fetch(
-      `${MIRROR_NODE_BASE}/api/v1/accounts/${accountId}/tokens?token.id=${HTS_USDC_TOKEN_ID}`
+      `${MIRROR_NODE_BASE}/api/v1/accounts/${accountId}/tokens?token.id=${HTS_USDC_TOKEN_ID}`,
+      { signal: AbortSignal.timeout(6000) }
     );
     if (tokenRes.ok) {
       const tokenData = await tokenRes.json();
@@ -112,7 +113,8 @@ export async function calculateSellerBalance(rawAccountId?: string | null): Prom
   // 2. Query Account Info & Native HBAR Balance
   try {
     const accountRes = await fetch(
-      `${MIRROR_NODE_BASE}/api/v1/accounts/${accountId}`
+      `${MIRROR_NODE_BASE}/api/v1/accounts/${accountId}`,
+      { signal: AbortSignal.timeout(6000) }
     );
     if (accountRes.ok) {
       const accountData = await accountRes.json();
@@ -156,7 +158,8 @@ export async function calculateSellerBalance(rawAccountId?: string | null): Prom
   // 4. Query Real HCS Topic Consensus Messages on Hedera Mirror Node
   try {
     const topicRes = await fetch(
-      `${MIRROR_NODE_BASE}/api/v1/topics/${HCS_TOPIC_ID}/messages?limit=50&order=desc`
+      `${MIRROR_NODE_BASE}/api/v1/topics/${HCS_TOPIC_ID}/messages?limit=50&order=desc`,
+      { signal: AbortSignal.timeout(6000) }
     );
     if (topicRes.ok) {
       const topicData = await topicRes.json();

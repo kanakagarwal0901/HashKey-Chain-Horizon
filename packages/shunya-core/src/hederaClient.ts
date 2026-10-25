@@ -189,31 +189,37 @@ export class HederaNetworkClient {
     const topicId = TopicId.fromString(topicStr);
     const messageJson = JSON.stringify(messagePayload);
 
-    try {
-      const tx = await new TopicMessageSubmitTransaction()
-        .setTopicId(topicId)
-        .setMessage(messageJson)
-        .execute(this.client);
+    const maxRetries = 3;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const tx = await new TopicMessageSubmitTransaction()
+          .setTopicId(topicId)
+          .setMessage(messageJson)
+          .execute(this.client);
 
-      const receipt = await tx.getReceipt(this.client);
-      const sequenceNumber = receipt.topicSequenceNumber ? Number(receipt.topicSequenceNumber.toString()) : 1;
-      const consensusTimestamp = receipt.topicRunningHash
-        ? new Date().toISOString()
-        : new Date().toISOString();
+        const receipt = await tx.getReceipt(this.client);
+        const sequenceNumber = receipt.topicSequenceNumber ? Number(receipt.topicSequenceNumber.toString()) : 1;
+        const consensusTimestamp = new Date().toISOString();
 
-      const txIdFormatted = tx.transactionId.toString();
-      const hashscanUrl = `https://hashscan.io/${this.network}/transaction/${txIdFormatted}`;
+        const txIdFormatted = tx.transactionId.toString();
+        const hashscanUrl = `https://hashscan.io/${this.network}/transaction/${txIdFormatted}`;
 
-      return {
-        sequenceNumber,
-        consensusTimestamp,
-        txId: txIdFormatted,
-        hashscanUrl,
-      };
-    } catch (err) {
-      console.error("[HederaClient] HCS message submission failed:", err);
-      return null;
+        return {
+          sequenceNumber,
+          consensusTimestamp,
+          txId: txIdFormatted,
+          hashscanUrl,
+        };
+      } catch (err) {
+        if (attempt < maxRetries) {
+          await new Promise((r) => setTimeout(r, 750 * attempt));
+          continue;
+        }
+        console.error("[HederaClient] HCS message submission failed after retries:", err);
+        return null;
+      }
     }
+    return null;
   }
 
   // 2. Live HTS / HBAR Micropayment: Execute real transfer from Treasury to Seller Account

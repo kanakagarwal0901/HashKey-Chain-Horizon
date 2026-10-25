@@ -62,6 +62,8 @@ export default function BuyerStudioPage() {
     walletChainId,
     worldIdVerified,
     nullifierHash,
+    connectWallet,
+    isConnectingWallet,
   } = useAuth();
   // Cascading Selection State
   const [selectedProvider, setSelectedProvider] = useState<string>("anthropic");
@@ -69,6 +71,7 @@ export default function BuyerStudioPage() {
   const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("medium");
   const [showWorldIdModal, setShowWorldIdModal] = useState<boolean>(false);
   const [showBuyerGuide, setShowBuyerGuide] = useState<boolean>(false);
+  const [pendingAutoLock, setPendingAutoLock] = useState<boolean>(false);
 
   // On-Chain Sepolia & USDC Balance State
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
@@ -451,13 +454,35 @@ contract VaultLending {
     };
   }, [paymentCurrency, paymentChain, upfrontUsdc]);
 
-  // Execute blind inference
-  const executePrompt = async () => {
-    if (!selectedSeller) return;
-    if (!isAuthenticated) {
+  // Execute blind inference & quota lock
+  const executePrompt = async (forcedAddress?: string) => {
+    if (!selectedSeller) {
+      alert("Please select an eligible seller from Step 2 above first.");
+      return;
+    }
+
+    // Determine active wallet address
+    let activeBuyerAddress =
+      forcedAddress ||
+      walletAddress ||
+      (typeof window !== "undefined" ? (window as any).ethereum?.selectedAddress : null);
+
+    // If wallet not connected, connect it first
+    if (!activeBuyerAddress) {
+      const ok = await connectWallet();
+      if (!ok) return;
+      activeBuyerAddress =
+        (typeof window !== "undefined" ? (window as any).ethereum?.selectedAddress : null) || walletAddress;
+      if (!activeBuyerAddress) return;
+    }
+
+    // If World ID not verified, trigger verification modal with auto-lock resume flag
+    if (!worldIdVerified) {
+      setPendingAutoLock(true);
       setShowWorldIdModal(true);
       return;
     }
+
     setIsExecuting(true);
     setExecutionResult(null);
     setDecryptedResult(null);
@@ -486,7 +511,7 @@ contract VaultLending {
       // Phase 2: Authentic On-Chain Multi-Currency / Uniswap Routed Payment
       setExecutionStep(`2/4: Preparing MetaMask ${paymentCurrency} payment on ${paymentChain}...`);
 
-      if (!walletAddress) {
+      if (!activeBuyerAddress) {
         throw new Error("Wallet not connected. Please connect your Web3 wallet.");
       }
 
@@ -497,7 +522,7 @@ contract VaultLending {
       );
 
       const paymentResult = await executeBuyerUniversalPayment({
-        buyerAddress: walletAddress,
+        buyerAddress: activeBuyerAddress,
         requiredMicroUsdc: upfrontMicroUsdc,
         tokenSymbol: paymentCurrency,
         chainKey: paymentChain,
@@ -527,7 +552,7 @@ contract VaultLending {
           listingId: selectedSeller.id,
           encryptedEnvelope,
           paymentTxId: confirmedTxHash,
-          buyerAddress: walletAddress,
+          buyerAddress: activeBuyerAddress,
         }),
       });
 
@@ -569,6 +594,20 @@ contract VaultLending {
       alert(`Error during execution: ${err.message}`);
     } finally {
       setIsExecuting(false);
+    }
+  };
+
+  // Callback when World ID verification succeeds: automatically resume quota lock & execution
+  const handleWorldIdSuccess = () => {
+    setShowWorldIdModal(false);
+    if (pendingAutoLock) {
+      setPendingAutoLock(false);
+      const activeAddr =
+        walletAddress ||
+        (typeof window !== "undefined" ? (window as any).ethereum?.selectedAddress : null);
+      setTimeout(() => {
+        executePrompt(activeAddr);
+      }, 400);
     }
   };
 
@@ -658,11 +697,17 @@ contract VaultLending {
             </div>
           ) : (
             <button
-              onClick={() => setShowWorldIdModal(true)}
+              onClick={async () => {
+                if (!walletAddress) {
+                  const ok = await connectWallet();
+                  if (!ok) return;
+                }
+                setShowWorldIdModal(true);
+              }}
               className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-900/80 to-cyan-900/80 border border-cyan-500/40 hover:border-cyan-400 text-xs font-mono text-cyan-200 hover:text-white transition shadow-sm"
             >
               <Shield className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Connect & Verify World ID</span>
+              <span>{!walletAddress ? "Connect Wallet" : "Verify World ID"}</span>
             </button>
           )}
           <Link
@@ -1397,7 +1442,7 @@ contract VaultLending {
               {/* Action Button */}
               <button
                 disabled={!selectedSeller || !isInputWithinLimits || isExecuting || !promptText.trim()}
-                onClick={executePrompt}
+                onClick={() => executePrompt()}
                 className={`px-6 py-3.5 rounded-xl font-bold text-white text-sm shadow-lg flex items-center justify-center gap-2 transition ${
                   !selectedSeller || !isInputWithinLimits || isExecuting || !promptText.trim()
                     ? "opacity-50 cursor-not-allowed bg-slate-800"
@@ -1407,9 +1452,11 @@ contract VaultLending {
                 <Shield className="w-4 h-4 text-cyan-300" />
                 {isExecuting
                   ? "Executing Sealed Inference..."
-                  : !isAuthenticated
-                  ? `Connect & Verify to Lock (${paymentQuote.amountFormatted})`
-                  : `Sign in MetaMask & Execute (${paymentQuote.amountFormatted})`}
+                  : !walletAddress
+                  ? `Connect Wallet & Lock (${paymentQuote.amountFormatted})`
+                  : !worldIdVerified
+                  ? `Verify World ID & Lock (${paymentQuote.amountFormatted})`
+                  : `Sign in MetaMask & Lock (${paymentQuote.amountFormatted})`}
               </button>
             </div>
 
@@ -1587,7 +1634,11 @@ contract VaultLending {
       {/* World ID Verification Modal */}
       <WorldIdModal
         isOpen={showWorldIdModal}
-        onClose={() => setShowWorldIdModal(false)}
+        onClose={() => {
+          setShowWorldIdModal(false);
+          setPendingAutoLock(false);
+        }}
+        onSuccess={handleWorldIdSuccess}
       />
     </div>
   );

@@ -23,11 +23,18 @@ import { useAuth } from "@/context/AuthContext";
 export default function WorldIdModal({
   isOpen,
   onClose,
+  onSuccess,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }) {
-  const { walletAddress, completeWorldIdVerification } = useAuth();
+  const {
+    walletAddress,
+    connectWallet,
+    isConnectingWallet,
+    completeWorldIdVerification,
+  } = useAuth();
 
   // Tab: "official" (simulator.worldcoin.org) vs "local" (Embedded Semaphore Simulator)
   const [activeTab, setActiveTab] = useState<"official" | "local">("official");
@@ -177,14 +184,18 @@ export default function WorldIdModal({
       });
 
       setTimeout(() => {
-        onClose();
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          onClose();
+        }
       }, 1000);
     } catch (err) {
       console.error("Local simulator error:", err);
     } finally {
       setIsLocalSimulating(false);
     }
-  }, [walletAddress, actionName, completeWorldIdVerification, onClose]);
+  }, [walletAddress, actionName, completeWorldIdVerification, onClose, onSuccess]);
 
   const handleOpenSimulatorClick = () => {
     setHasOpenedSimulator(true);
@@ -232,7 +243,13 @@ export default function WorldIdModal({
           });
 
           setTimeout(() => {
-            if (active) onClose();
+            if (active) {
+              if (onSuccess) {
+                onSuccess();
+              } else {
+                onClose();
+              }
+            }
           }, 1200);
           return; // Stop polling
         } else if (data.status === "waiting_for_connection") {
@@ -272,7 +289,7 @@ export default function WorldIdModal({
       if (timer) clearTimeout(timer);
       window.removeEventListener("focus", onWindowFocus);
     };
-  }, [sessionId, verifiedSuccess, activeTab, completeWorldIdVerification, onClose]);
+  }, [sessionId, verifiedSuccess, activeTab, completeWorldIdVerification, onClose, onSuccess]);
 
   const copySimulatorLink = () => {
     if (simulatorUrl) {
@@ -309,6 +326,32 @@ export default function WorldIdModal({
             <p className="text-xs text-slate-400">Zero-Knowledge Sybil-Resistant Onboarding</p>
           </div>
         </div>
+
+        {/* Linked Wallet Status / Connect Button */}
+        {!walletAddress ? (
+          <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs relative z-10">
+            <div className="flex items-center gap-2 text-amber-300">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>Connect crypto wallet first to link your World ID.</span>
+            </div>
+            <button
+              type="button"
+              onClick={connectWallet}
+              disabled={isConnectingWallet}
+              className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-mono text-xs shrink-0 transition"
+            >
+              {isConnectingWallet ? "Connecting..." : "Connect MetaMask"}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between px-3.5 py-1.5 rounded-xl bg-slate-950/90 border border-slate-800 text-[11px] font-mono text-slate-400 relative z-10">
+            <span>Linked Web3 Identity:</span>
+            <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5" />
+              {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
+            </span>
+          </div>
+        )}
 
         {/* Tab Switcher */}
         <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-950 border border-slate-800 relative z-10 text-xs font-mono">
