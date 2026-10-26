@@ -238,9 +238,30 @@ export default function BuyerStudioPage() {
   const totalEstimatedInputTokens = estimatedPromptTokens + estimatedFileTokens;
   const isInputWithinLimits = totalEstimatedInputTokens <= bounds.maxInputAndFileTokens;
 
-  // On initial mount: query all listings and auto-select active model if default model has 0 sellers
+  // On initial mount: read URL query parameters (?model=...&thinking=...) or auto-select active model
   useEffect(() => {
+    let urlModelMatched = false;
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlModel = params.get("model");
+      const urlThinking = params.get("thinking");
+      if (urlModel) {
+        const meta = getModelMetadata(urlModel);
+        if (meta) {
+          setSelectedProvider(meta.provider);
+          setSelectedModel(meta.id);
+          if (urlThinking && ["none", "low", "medium", "high"].includes(urlThinking)) {
+            setThinkingLevel(urlThinking as ThinkingLevel);
+          } else {
+            setThinkingLevel(meta.supportsThinking ? "medium" : "none");
+          }
+          urlModelMatched = true;
+        }
+      }
+    }
+
     fetchAllOrderbookListings().then((all) => {
+      if (urlModelMatched) return;
       if (all && all.length > 0) {
         const activeForSelected = all.filter(
           (l: any) => l.model === selectedModel && l.status === "active"

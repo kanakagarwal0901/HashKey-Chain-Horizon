@@ -10,6 +10,7 @@ import {
   Cpu,
   Database,
   ArrowRightLeft,
+  Coins,
   Layers,
   Wallet,
   UserCheck,
@@ -129,15 +130,15 @@ export default function Navbar() {
             <span>Orderbook</span>
           </Link>
           <Link
-            href="/bridge"
+            href="/payout"
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-              pathname === "/bridge"
+              pathname === "/payout" || pathname === "/bridge"
                 ? "bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm"
                 : "text-slate-300 hover:text-white hover:bg-slate-800"
             }`}
           >
-            <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
-            <span>CCTP Bridge</span>
+            <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <span>Seller Payout</span>
           </Link>
         </nav>
 
@@ -296,13 +297,13 @@ export default function Navbar() {
                       </span>
                     </Link>
                     <Link
-                      href="/bridge"
+                      href="/payout"
                       onClick={() => setDropdownOpen(false)}
                       className="block px-3 py-2 rounded-lg hover:bg-slate-800/80 text-slate-300 hover:text-white transition flex items-center justify-between"
                     >
                       <span className="flex items-center gap-2">
-                        <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
-                        Arc CCTP Bridge
+                        <Coins className="w-3.5 h-3.5 text-amber-400" />
+                        Seller Payout
                       </span>
                     </Link>
                   </div>
@@ -389,13 +390,13 @@ export default function Navbar() {
             </span>
           </Link>
           <Link
-            href="/bridge"
+            href="/payout"
             onClick={() => setMobileMenuOpen(false)}
             className="block px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-medium flex items-center justify-between"
           >
             <span className="flex items-center gap-2">
-              <ArrowRightLeft className="w-4 h-4 text-amber-400" />
-              Arc CCTP Bridge
+              <Coins className="w-4 h-4 text-amber-400" />
+              Seller Payout
             </span>
           </Link>
         </div>

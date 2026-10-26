@@ -50,8 +50,8 @@ export default function RootLayout({
                 <Link href="/seller" className="hover:text-emerald-300 transition">
                   Seller Hub
                 </Link>
-                <Link href="/bridge" className="hover:text-amber-300 transition">
-                  Circle CCTP
+                <Link href="/payout" className="hover:text-amber-300 transition">
+                  Seller Payout
                 </Link>
                 <a
                   href="https://github.com"
