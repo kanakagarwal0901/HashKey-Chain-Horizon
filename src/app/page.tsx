@@ -369,6 +369,67 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Protocol Architecture Workflow Stepper */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6">
+        <div className="p-6 sm:p-8 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div>
+              <span className="text-xs font-mono text-cyan-400 font-semibold uppercase tracking-wider block">
+                Cryptographic Execution Pipeline
+              </span>
+              <h3 className="text-xl font-bold text-white mt-1">
+                How ShunyaGrid Executes Confidential P2P Inference
+              </h3>
+            </div>
+            <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-800/50 self-start sm:self-auto">
+              CROPS Privacy Compliant
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/90 space-y-2">
+              <div className="w-7 h-7 rounded-lg bg-cyan-950/80 border border-cyan-800/60 text-cyan-400 flex items-center justify-center font-bold text-xs font-mono">
+                01
+              </div>
+              <h4 className="font-semibold text-white text-sm">Browser Sealing</h4>
+              <p className="text-slate-400 leading-relaxed">
+                Your prompt and files are encrypted with AES-256-GCM in local browser RAM. No unencrypted text ever touches network packets.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/90 space-y-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-950/80 border border-indigo-800/60 text-indigo-400 flex items-center justify-center font-bold text-xs font-mono">
+                02
+              </div>
+              <h4 className="font-semibold text-white text-sm">T_max Quota Lock</h4>
+              <p className="text-slate-400 leading-relaxed">
+                Network calculates upper bound tokens for model & thinking level. A prompt is never scheduled without guaranteed quota headroom.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/90 space-y-2">
+              <div className="w-7 h-7 rounded-lg bg-purple-950/80 border border-purple-800/60 text-purple-400 flex items-center justify-center font-bold text-xs font-mono">
+                03
+              </div>
+              <h4 className="font-semibold text-white text-sm">0G Enclave Compute</h4>
+              <p className="text-slate-400 leading-relaxed">
+                Seller's RSA-OAEP key and prompt decrypt solely in isolated hardware enclave RAM. Even the host node operator cannot read data.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/90 space-y-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-950/80 border border-emerald-800/60 text-emerald-400 flex items-center justify-center font-bold text-xs font-mono">
+                04
+              </div>
+              <h4 className="font-semibold text-white text-sm">Hedera Micro-Settlement</h4>
+              <p className="text-slate-400 leading-relaxed">
+                Seller receives instant USDC for tokens actually used. Unused upfront reservation is refunded to buyer with zero subscription fees.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Live Orderbook / Arkiv Entities */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

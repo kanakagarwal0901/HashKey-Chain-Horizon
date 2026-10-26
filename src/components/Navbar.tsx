@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import AnonRpcStatusBadge from "@/components/AnonRpcStatusBadge";
 import HowItWorksModal from "@/components/HowItWorksModal";
 import {
@@ -43,6 +44,7 @@ export default function Navbar() {
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -85,36 +87,57 @@ export default function Navbar() {
         </Link>
 
         {/* Nav Links */}
-        <nav className="hidden md:flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
+        <nav className="hidden md:flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800/90 shadow-sm">
           <button
             onClick={() => setIsHowItWorksOpen(true)}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium text-cyan-300 hover:text-white hover:bg-cyan-950/40 border border-cyan-800/40 transition flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-cyan-300 hover:text-white hover:bg-cyan-950/40 border border-cyan-800/40 transition flex items-center gap-1.5 shadow-sm"
           >
-            <HelpCircle className="w-4 h-4 text-cyan-400" />
-            How It Works
+            <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
+            <span>How It Works</span>
           </button>
           <Link
             href="/buyer"
-            className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2"
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              pathname === "/buyer"
+                ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                : "text-slate-300 hover:text-white hover:bg-slate-800"
+            }`}
           >
-            <Cpu className="w-4 h-4 text-cyan-400" />
+            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
             <span>Buyer Studio</span>
-            <span className="text-[10px] text-slate-400 font-mono hidden lg:inline">Use AI</span>
           </Link>
           <Link
             href="/seller"
-            className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2"
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              pathname === "/seller"
+                ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                : "text-slate-300 hover:text-white hover:bg-slate-800"
+            }`}
           >
-            <Layers className="w-4 h-4 text-emerald-400" />
+            <Layers className="w-3.5 h-3.5 text-emerald-400" />
             <span>Seller Hub</span>
-            <span className="text-[10px] text-slate-400 font-mono hidden lg:inline">Earn USDC</span>
           </Link>
           <Link
             href="/marketplace"
-            className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2"
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              pathname === "/marketplace"
+                ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/40 shadow-sm"
+                : "text-slate-300 hover:text-white hover:bg-slate-800"
+            }`}
           >
-            <Database className="w-4 h-4 text-purple-400" />
+            <Database className="w-3.5 h-3.5 text-indigo-400" />
             <span>Orderbook</span>
+          </Link>
+          <Link
+            href="/bridge"
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              pathname === "/bridge"
+                ? "bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm"
+                : "text-slate-300 hover:text-white hover:bg-slate-800"
+            }`}
+          >
+            <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
+            <span>CCTP Bridge</span>
           </Link>
         </nav>
 

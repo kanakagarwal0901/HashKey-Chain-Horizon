@@ -18,7 +18,7 @@ try {
   }
 } catch {}
 
-import { uniswapService, arcBridgeService, SUPPORTED_TOKENS, SUPPORTED_CHAINS } from "../packages/shunya-core/src/index";
+import { uniswapService, arcBridgeService, calculateSellerBalance, hederaEngine, SUPPORTED_TOKENS, SUPPORTED_CHAINS } from "../packages/shunya-core/src/index";
 import { verifySepoliaUsdcPayment, SHUNYA_TREASURY_EVM_ADDRESS } from "../src/lib/sepoliaPaymentVerifier";
 
 async function main() {
@@ -64,14 +64,36 @@ async function main() {
   // 3. Test Multi-Token Live Seller Sweep
   console.log("\n[3/4] Executing Live Multi-Token Sweep (HTS USDC -> Target Token to Connected MetaMask)...");
   const targetTokensToSweep = ["USDC", "HBAR"];
+  const sellerAccount = process.env.NEXT_PUBLIC_DEFAULT_SELLER_HEDERA_ACCOUNT || "0.0.11145557";
+  
+  // Ensure seller has sufficient balance before sweeping
+  let balRes = await calculateSellerBalance(sellerAccount);
+  if (balRes.displayBalance < 0.02) {
+    const mockTx = "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+    await hederaEngine.settlePayoutAndConsensusLog({
+      buyerX402TxId: mockTx,
+      buyerSepoliaTxHash: mockTx,
+      sellerHederaAccountId: sellerAccount,
+      modelId: "gemini-2.0-flash",
+      thinkingLevel: "none",
+      tMaxTokens: 10000,
+      tUsedTokens: 5000,
+      buyerChargedMicroUsdc: 100_000,
+      sellerPayoutMicroUsdc: 50_000, // $0.05 USDC
+      webAppCommissionMicroUsdc: 50_000,
+      zeroGAttestationHash: "0xattestation_universal_" + Date.now(),
+    });
+    balRes = await calculateSellerBalance(sellerAccount);
+  }
+  const sweepAmount = Math.min(0.01, Number(balRes.displayBalance.toFixed(4)));
 
   for (const targetToken of targetTokensToSweep) {
-    console.log(`\n  Executing live sweep for target asset: ${targetToken}...`);
+    console.log(`\n  Executing live sweep for target asset: ${targetToken} ($${sweepAmount.toFixed(4)} USDC)...`);
     try {
       const sweepTx = await arcBridgeService.executeLiveSellerSweep({
-        sourceAccount: process.env.NEXT_PUBLIC_DEFAULT_SELLER_HEDERA_ACCOUNT || "0.0.11145557",
+        sourceAccount: sellerAccount,
         recipientAddress: buyerAddress,
-        amountUsdc: 0.05,
+        amountUsdc: sweepAmount,
         destinationChain: "hedera-testnet",
         targetToken,
       });
