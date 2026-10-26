@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowRightLeft,
   X,
@@ -73,6 +74,11 @@ export default function ArcBridgeDrawer({
   const [isBridging, setIsBridging] = useState<boolean>(false);
   const [addedTokenSuccess, setAddedTokenSuccess] = useState<boolean>(false);
   const [addedNetworkSuccess, setAddedNetworkSuccess] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Derived balance constraint checks
   const currentAvailable = Number((availableUsdcEarnings ?? 0).toFixed(6));
@@ -176,7 +182,7 @@ export default function ArcBridgeDrawer({
   } | null>(null);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleSweepEarnings = async () => {
     setIsBridging(true);
@@ -326,8 +332,8 @@ export default function ArcBridgeDrawer({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-700/80 p-6 shadow-2xl text-slate-200 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
@@ -666,6 +672,7 @@ export default function ArcBridgeDrawer({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

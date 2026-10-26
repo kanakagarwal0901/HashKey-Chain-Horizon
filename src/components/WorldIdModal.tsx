@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   UserCheck,
   X,
@@ -42,6 +43,11 @@ export default function WorldIdModal({
   // Official Simulator state
   const [appId, setAppId] = useState<string>("app_9c7005e230a8dc3eced53aaa2b78a17f");
   const [actionName, setActionName] = useState<string>("shunyagrid-gate");
+  const [mounted, setMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [showAppIdSettings, setShowAppIdSettings] = useState<boolean>(false);
   const [isLoadingSession, setIsLoadingSession] = useState<boolean>(true);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -299,10 +305,10 @@ export default function WorldIdModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
       <div className="glass-panel w-full max-w-lg p-6 sm:p-7 rounded-3xl border border-indigo-500/40 shadow-2xl space-y-5 relative overflow-hidden">
         {/* Ambient Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-24 bg-indigo-500/15 blur-2xl pointer-events-none rounded-full" />
@@ -664,6 +670,7 @@ export default function WorldIdModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

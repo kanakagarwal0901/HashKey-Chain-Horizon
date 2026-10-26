@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Shield,
@@ -29,6 +30,11 @@ export default function HowItWorksModal({
   initialTab = "buyer",
 }: HowItWorksModalProps) {
   const [activeTab, setActiveTab] = useState<"buyer" | "seller" | "technology">(initialTab);
+  const [mounted, setMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sync active tab whenever modal opens or initialTab changes
   useEffect(() => {
@@ -52,11 +58,11 @@ export default function HowItWorksModal({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden bg-slate-950/85 backdrop-blur-md p-3 sm:p-4 md:p-6 flex items-center justify-center animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] overflow-y-auto overflow-x-hidden bg-slate-950/85 backdrop-blur-md p-3 sm:p-4 md:p-6 flex items-center justify-center animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -297,6 +303,7 @@ export default function HowItWorksModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
