@@ -1545,6 +1545,10 @@ contract VaultLending {
                   </div>
                 </div>
 
+                <p className="text-[11px] text-zinc-400 leading-relaxed pt-1">
+                  Settlement Breakdown: The seller received <span className="text-emerald-400 font-semibold tabular-data">${executionResult.tokenAccounting.sellerPayoutUsdc.toFixed(6)} USDC</span> for actual tokens used. The remaining balance of <span className="text-zinc-200 font-semibold tabular-data">${executionResult.tokenAccounting.protocolCommissionUsdc.toFixed(6)} USDC</span> is retained as protocol commission.
+                </p>
+
                 {/* Proofs & Dual Verified On-Chain Receipts */}
                 <div className="pt-4 border-t border-white/[0.08] space-y-3.5 text-xs">
                   <div className="text-xs font-semibold text-zinc-300 flex items-center gap-2">

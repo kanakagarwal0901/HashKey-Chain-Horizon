@@ -67,7 +67,7 @@ export default function HomePage() {
 
         <p className="text-lg sm:text-2xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed font-normal">
           Run frontier reasoning models with hardware-grade data blindness.
-          Your prompts remain sealed in memory. Guaranteed token headroom or immediate refund.
+          Your prompts remain sealed in memory. Guaranteed token headroom prevents mid-stream cutoffs, with 100% automated refund on error.
         </p>
 
         {/* Action Hub & Segmented Role Selector */}
@@ -147,7 +147,7 @@ export default function HomePage() {
                 <div className="p-6 sm:p-7 rounded-2xl liquid-glass-interactive space-y-3">
                   <div className="font-semibold text-base text-zinc-900 dark:text-white">Zero-Cutoff Execution</div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Token limits are mathematically bounded. Stream outputs with atomic settlement and refund guarantees.
+                    Token limits are mathematically bounded. Stream outputs with atomic seller settlement; remaining balance powers protocol routing.
                   </div>
                 </div>
               </AntigravityStagger>
@@ -342,7 +342,7 @@ export default function HomePage() {
               </li>
               <li className="flex items-start gap-3">
                 <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong>Exact per-token settlement:</strong> Pay solely for actual tokens consumed, with immediate automated refund.</span>
+                <span><strong>Deterministic settlement:</strong> Sellers earn for actual tokens consumed, remaining balance is retained as protocol commission, and failed queries receive 100% automated refunds.</span>
               </li>
             </ul>
           </SpatialCard>

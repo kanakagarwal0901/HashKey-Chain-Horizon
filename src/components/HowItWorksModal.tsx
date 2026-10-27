@@ -154,7 +154,7 @@ export default function HowItWorksModal({
                   Pay-As-You-Go with Zero Monthly Subscriptions
                 </h3>
                 <p className="text-xs text-neutral-400 leading-relaxed break-words">
-                  Pay fractions of a cent per prompt in USDC or ETH via MetaMask. You only pay for the exact tokens consumed. Unused upfront reservation is refunded in the same token.
+                  Deposit upfront in USDC or ETH for your guaranteed token bound (T_max). When execution finishes, the seller is paid for actual tokens consumed (T_used), and the remaining balance is kept as protocol commission. If an upstream rejection or failure occurs, 100% of your deposit is refunded automatically on-chain.
                 </p>
               </div>
             </div>
