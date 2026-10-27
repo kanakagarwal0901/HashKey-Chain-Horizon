@@ -168,6 +168,17 @@ contract HashKeyVaultLending {
   console.log(`  Transaction Hash:      ${lockReceipt?.hash}`);
   console.log(`  Blockscout Explorer:   ${HASHKEY_EXPLORER_TX}/${lockReceipt?.hash}`);
 
+  // Allow 2.5s for block propagation across all HashKey testnet RPC load-balanced nodes
+  console.log(`  Waiting for block propagation across RPC nodes...`);
+  await new Promise((r) => setTimeout(r, 2500));
+  let verified = await hspClient.getMandateStatus(mandateId);
+  let retries = 5;
+  while (verified.status !== "LOCKED" && retries > 0) {
+    await new Promise((r) => setTimeout(r, 1000));
+    verified = await hspClient.getMandateStatus(mandateId);
+    retries--;
+  }
+
   // Step 6: Atomic Token Lock & Enclave Inference
   console.log(`\n[6. ZERO-CUTOFF HARDWARE ENCLAVE INFERENCE]`);
   arkivDb.atomicLockTokens(selectedSeller.id, bounds.totalMaxTokens);
