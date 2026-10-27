@@ -83,6 +83,9 @@ export default function SpatialCard({
       className={`relative rounded-3xl overflow-hidden liquid-glass ${className}`}
       {...props}
     >
+      {/* Luminous Specular Top Rim Reflection */}
+      <div data-ui="specular-rim" className="specular-rim-highlight" />
+
       {/* Specular lighting sheen */}
       {glare && !isReducedMotion && (
         <div

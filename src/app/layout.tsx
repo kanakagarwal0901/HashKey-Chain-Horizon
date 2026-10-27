@@ -4,6 +4,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import LiquidGlassFilters from "@/components/LiquidGlassFilters";
 
 export const metadata: Metadata = {
   title: "ShunyaGrid | Zero-Cutoff Confidential AI Exchange",
@@ -28,6 +29,9 @@ export default function RootLayout({
       <body className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col antialiased selection:bg-zinc-200 selection:text-zinc-900 dark:selection:bg-zinc-800 dark:selection:text-white transition-colors duration-200" suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
+            {/* Liquid Glass Optical SVG Caustic Filters */}
+            <LiquidGlassFilters />
+
             {/* EF Anon-RPC Sandboxed Harness (Hidden Iframe for anonymous JSON-RPC) */}
             <iframe
               src="/anon-rpc/sandbox.html"
