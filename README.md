@@ -235,7 +235,11 @@ hashkey/
 │   └── shunya-core/
 │       └── src/
 │           ├── hspClient.ts            # EIP-712 mandate creation and on-chain verification
+│           ├── hashkeyTreasury.ts      # Treasury accounting & universal multi-chain sweeper
 │           ├── tokenBoundsCatalog.ts   # Deterministic token matrix and cutoff gates
+│           ├── arkivQuotaManager.ts    # Arkiv decentralized orderbook database engine
+│           ├── zeroGEnclave.ts         # 0G hardware enclave & blind encryption
+│           ├── worldIdVerification.ts  # World ID proof of personhood / sybil resistance
 │           ├── blindCrypto.ts          # Server-side Enclave cryptographic unwrapping
 │           └── uniswapService.ts       # Multi-asset conversion utilities
 ├── src/
