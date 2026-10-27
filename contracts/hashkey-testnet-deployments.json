@@ -14,7 +14,13 @@
     }
   },
   "tokens": {
+    "native": "HSK",
     "USDC": "0x054ed45810DbBAb8B27668922D110669c9D88D0a",
-    "native": "HSK"
+    "USDT": "0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029",
+    "WHSK": "0xB210D2120d57b758EE163cFfb43e73728c471Cf1"
+  },
+  "ccip": {
+    "networkName": "ethereum-mainnet-hashkey-1",
+    "chainSelector": "7613811247471741961"
   }
 }

@@ -36,7 +36,7 @@ export default function Footer() {
               
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full liquid-glass-pill text-[11px] text-zinc-700 dark:text-zinc-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 pulse-ring-emerald" />
-                <span>Hedera Testnet 296 &bull; Sepolia 11155111</span>
+                <span>HashKey Chain 133 (HSP) &bull; Hedera 296 &bull; Sepolia 11155111</span>
               </div>
             </div>
           </div>
@@ -117,7 +117,29 @@ export default function Footer() {
             <ul className="space-y-2.5">
               <li>
                 <a
-                  href="https://github.com"
+                  href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold"
+                >
+                  <span>HashKey Explorer (HSP)</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://dorahacks.io/hackathon/hskchainindia/detail"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
+                >
+                  <span>DoraHacks Horizon</span>
+                  <ArrowUpRight className="w-3 h-3 text-zinc-400" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/kanakagarwal0901/HashKey-Chain-Horizon"
                   target="_blank"
                   rel="noreferrer"
                   className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
@@ -128,45 +150,23 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://portal.hedera.com"
+                  href="https://hashkey-merchant.github.io/#/"
                   target="_blank"
                   rel="noreferrer"
                   className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
                 >
-                  <span>Hedera HTS Explorer</span>
+                  <span>HashKey Merchant / HSP</span>
                   <ArrowUpRight className="w-3 h-3 text-zinc-400" />
                 </a>
               </li>
               <li>
                 <a
-                  href="https://sepolia.etherscan.io"
+                  href="https://luma.com/hashkey-demo-day-mumbai"
                   target="_blank"
                   rel="noreferrer"
                   className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
                 >
-                  <span>Sepolia Etherscan</span>
-                  <ArrowUpRight className="w-3 h-3 text-zinc-400" />
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://world.org"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
-                >
-                  <span>World ID Protocol</span>
-                  <ArrowUpRight className="w-3 h-3 text-zinc-400" />
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://circle.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
-                >
-                  <span>Circle CCTP Protocol</span>
+                  <span>Mumbai Demo Day (Luma)</span>
                   <ArrowUpRight className="w-3 h-3 text-zinc-400" />
                 </a>
               </li>
