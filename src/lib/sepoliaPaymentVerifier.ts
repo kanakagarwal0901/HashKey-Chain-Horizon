@@ -114,7 +114,7 @@ export async function verifySepoliaUsdcPayment(
   }
 
   try {
-    const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
+    const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL, 11155111, { staticNetwork: true });
 
     // 2. Fetch Transaction Receipt on Sepolia
     const receipt = await provider.getTransactionReceipt(cleanTxHash);

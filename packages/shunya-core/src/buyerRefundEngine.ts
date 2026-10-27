@@ -105,7 +105,7 @@ export class BuyerRefundEngine {
     if (isEVM) {
       if (treasuryPk && treasuryPk.length === 66) {
         try {
-          const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
+          const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL, 11155111, { staticNetwork: true });
           const wallet = new ethers.Wallet(treasuryPk, provider);
 
           // Attempt ERC-20 Circle USDC transfer first
