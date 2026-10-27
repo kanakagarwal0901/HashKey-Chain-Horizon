@@ -556,7 +556,7 @@ contract VaultLending {
 
       const confirmedTxHash = paymentResult.txHash;
       setExecutionStep(`Payment broadcasted (${confirmedTxHash.slice(0, 10)}...). Waiting for block confirmation...`);
-      await waitForSepoliaConfirmation(confirmedTxHash, 45000);
+      await waitForSepoliaConfirmation(confirmedTxHash, paymentChain, 45000);
 
       setBuyerSepoliaTxHash(confirmedTxHash);
       setExecutionStep(`Payment confirmed. Enclave verifying transaction receipt...`);
@@ -570,6 +570,8 @@ contract VaultLending {
         headers: {
           "Content-Type": "application/json",
           "X-402-Payment-TxId": confirmedTxHash,
+          "X-Payment-Chain": paymentChain,
+          "X-Payment-Token": paymentCurrency,
         },
         body: JSON.stringify({
           modelId: selectedModel,
@@ -579,6 +581,7 @@ contract VaultLending {
           paymentTxId: confirmedTxHash,
           buyerAddress: activeBuyerAddress,
           paymentCurrency,
+          paymentChain,
         }),
       });
 
@@ -1577,12 +1580,22 @@ contract VaultLending {
                         </span>
                         {(executionResult.sepoliaPayment?.etherscanUrl || executionResult.hederaSettlement?.sepoliaEtherscanUrl || buyerSepoliaTxHash) && (
                           <a
-                            href={executionResult.sepoliaPayment?.etherscanUrl || executionResult.hederaSettlement?.sepoliaEtherscanUrl || `https://sepolia.etherscan.io/tx/${buyerSepoliaTxHash}`}
+                            href={
+                              executionResult.sepoliaPayment?.etherscanUrl ||
+                              executionResult.hederaSettlement?.sepoliaEtherscanUrl ||
+                              (paymentChain === "arbitrum-sepolia"
+                                ? `https://sepolia.arbiscan.io/tx/${buyerSepoliaTxHash}`
+                                : paymentChain === "base-sepolia"
+                                ? `https://sepolia.basescan.org/tx/${buyerSepoliaTxHash}`
+                                : paymentChain === "hedera-testnet"
+                                ? `https://hashscan.io/testnet/transaction/${buyerSepoliaTxHash}`
+                                : `https://sepolia.etherscan.io/tx/${buyerSepoliaTxHash}`)
+                            }
                             target="_blank"
                             rel="noreferrer"
                             className="text-white hover:underline flex items-center gap-1 font-semibold text-xs"
                           >
-                            View on Etherscan
+                            View on {paymentChain === "arbitrum-sepolia" ? "Arbiscan" : paymentChain === "base-sepolia" ? "Basescan" : paymentChain === "hedera-testnet" ? "HashScan" : "Etherscan"}
                             <ExternalLink className="w-3 h-3" />
                           </a>
                         )}

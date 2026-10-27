@@ -322,7 +322,33 @@ export class ArcBridgeService {
               console.log(`[ArcBridgeService] Delivered live ETH on block #${confirmedBlock}! Explorer: ${explorerUrl}`);
             }
           } else {
-            console.log(`[ArcBridgeService] Treasury balance on ${chainConfig.name} (${ethers.formatEther(treasuryBal)} ETH) < required (${nativeAmount.toFixed(6)} ETH). Utilizing Circle CCTP Relayer...`);
+            console.log(`[ArcBridgeService] Treasury balance on ${chainConfig.name} (${ethers.formatEther(treasuryBal)} ETH) < required (${nativeAmount.toFixed(6)} ETH). Checking Ethereum Sepolia treasury...`);
+            try {
+              const sepoliaProvider = new ethers.JsonRpcProvider(
+                process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com",
+                11155111,
+                { staticNetwork: true }
+              );
+              const sepoliaWallet = new ethers.Wallet(treasuryPk, sepoliaProvider);
+              const sepBal = await sepoliaProvider.getBalance(sepoliaWallet.address).catch(() => 0n);
+              if (sepBal >= weiAmount + ethers.parseEther("0.0001")) {
+                console.log(`[ArcBridgeService] Delivering live native ETH (${nativeAmount.toFixed(6)} ETH) to ${recipientAddress} via Ethereum Sepolia treasury...`);
+                const evmTx = await sepoliaWallet.sendTransaction({
+                  to: recipientAddress,
+                  value: weiAmount,
+                });
+                const receipt = await evmTx.wait(1);
+                if (receipt && receipt.status === 1) {
+                  txHash = receipt.hash;
+                  confirmedBlock = receipt.blockNumber;
+                  explorerUrl = `https://sepolia.etherscan.io/tx/${txHash}`;
+                  onChainSuccess = true;
+                  console.log(`[ArcBridgeService] Delivered live ETH on Ethereum Sepolia block #${confirmedBlock}! Explorer: ${explorerUrl}`);
+                }
+              }
+            } catch (crossErr) {
+              console.warn("[ArcBridgeService] Cross-chain Sepolia fallback notice:", crossErr);
+            }
           }
         } else if (targetToken === "HBAR") {
           const hederaProvider = new ethers.JsonRpcProvider("https://testnet.hashio.io/api", 296, { staticNetwork: true });
@@ -380,7 +406,50 @@ export class ArcBridgeService {
               }
             }
           } else {
-            console.log(`[ArcBridgeService] Treasury ERC-20 balance on ${chainConfig.name} (${tokenBal}) < required (${rawUnits}). Utilizing Circle CCTP Relayer...`);
+            console.log(`[ArcBridgeService] Treasury ERC-20 balance on ${chainConfig.name} (${tokenBal}) < required (${rawUnits}). Checking native asset delivery...`);
+            const treasuryBal = await provider.getBalance(wallet.address).catch(() => 0n);
+            const nativeEthForUsdc = Math.max(0.0001, (amountUsdc / 2600));
+            const weiForUsdc = ethers.parseEther(nativeEthForUsdc.toFixed(6));
+
+            if (treasuryBal >= weiForUsdc + ethers.parseEther("0.0001")) {
+              console.log(`[ArcBridgeService] Delivering equivalent native asset (${nativeEthForUsdc.toFixed(6)} ETH) directly to ${recipientAddress} on ${chainConfig.name}...`);
+              const evmTx = await wallet.sendTransaction({
+                to: recipientAddress,
+                value: weiForUsdc,
+              });
+              const receipt = await evmTx.wait(1);
+              if (receipt && receipt.status === 1) {
+                txHash = receipt.hash;
+                confirmedBlock = receipt.blockNumber;
+                explorerUrl = `${chainConfig.explorerBaseUrl}${txHash}`;
+                onChainSuccess = true;
+                console.log(`[ArcBridgeService] Delivered live native asset on block #${confirmedBlock}! Explorer: ${explorerUrl}`);
+              }
+            } else {
+              try {
+                const sepoliaProvider = new ethers.JsonRpcProvider(
+                  process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com",
+                  11155111,
+                  { staticNetwork: true }
+                );
+                const sepoliaWallet = new ethers.Wallet(treasuryPk, sepoliaProvider);
+                const sepBal = await sepoliaProvider.getBalance(sepoliaWallet.address).catch(() => 0n);
+                if (sepBal >= weiForUsdc + ethers.parseEther("0.0001")) {
+                  console.log(`[ArcBridgeService] Delivering equivalent native ETH to ${recipientAddress} via Ethereum Sepolia...`);
+                  const evmTx = await sepoliaWallet.sendTransaction({
+                    to: recipientAddress,
+                    value: weiForUsdc,
+                  });
+                  const receipt = await evmTx.wait(1);
+                  if (receipt && receipt.status === 1) {
+                    txHash = receipt.hash;
+                    confirmedBlock = receipt.blockNumber;
+                    explorerUrl = `https://sepolia.etherscan.io/tx/${txHash}`;
+                    onChainSuccess = true;
+                  }
+                }
+              } catch {}
+            }
           }
         }
       } catch (onChainErr: any) {
@@ -408,9 +477,7 @@ export class ArcBridgeService {
         confirmedBlock = 42328800 + Math.floor(Math.random() * 500);
       }
 
-      explorerUrl = normalizedChain === "arc"
-        ? `https://hashscan.io/testnet/topic/${process.env.HEDERA_HCS_TOPIC_ID || "0.0.11134146"}`
-        : `${chainConfig.explorerBaseUrl}${txHash}`;
+      explorerUrl = `https://hashscan.io/testnet/topic/${process.env.HEDERA_HCS_TOPIC_ID || "0.0.11134146"}`;
 
       if (destChain.includes("hedera")) {
         gasSentHbar = 0.05;

@@ -17,7 +17,7 @@ import {
   buyerRefundEngine,
 } from "@shunya/core";
 import crypto from "crypto";
-import { verifySepoliaUsdcPayment } from "@/lib/sepoliaPaymentVerifier";
+import { verifyUniversalBuyerPayment, verifySepoliaUsdcPayment } from "@/lib/sepoliaPaymentVerifier";
 
 // Next.js Route: Blind Execution with Zero Plaintext & Automated Buyer Escrow Refund
 export async function POST(request: NextRequest) {
@@ -96,16 +96,21 @@ export async function POST(request: NextRequest) {
 
     if (paymentHeader.startsWith("0x")) {
       isSepoliaPayment = true;
-      const sepoliaResult = await verifySepoliaUsdcPayment(
-        paymentHeader,
-        buyerAddress || "",
-        upfrontChargeMicroUsdc
-      );
+      const paymentChain = request.headers.get("x-payment-chain") || body.paymentChain;
+      const paymentToken = request.headers.get("x-payment-token") || body.paymentToken || body.paymentCurrency;
+
+      const sepoliaResult = await verifyUniversalBuyerPayment({
+        txHash: paymentHeader,
+        buyerAddress: buyerAddress || "",
+        requiredMicroUsdc: upfrontChargeMicroUsdc,
+        chainKey: paymentChain,
+        tokenSymbol: paymentToken,
+      });
 
       if (!sepoliaResult.verified) {
         return NextResponse.json(
           {
-            error: "Ethereum Sepolia USDC payment verification failed",
+            error: "Web3 payment verification failed",
             detail: sepoliaResult.error,
             requiredMicroUsdc: upfrontChargeMicroUsdc,
             txHash: paymentHeader,

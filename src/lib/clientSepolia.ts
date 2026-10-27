@@ -193,18 +193,30 @@ export async function sendSepoliaUsdcPayment(
 }
 
 /**
- * Polls for transaction receipt confirmation on Ethereum Sepolia.
+ * Polls for transaction receipt confirmation on any supported chain.
  */
 export async function waitForSepoliaConfirmation(
   txHash: string,
+  chainKeyOrMaxWait: string | number = "ethereum-sepolia",
   maxWaitMs = 60000,
   intervalMs = 2500
 ): Promise<{ status: number; blockNumber: number }> {
+  let chainKey = "ethereum-sepolia";
+  let timeoutMs = maxWaitMs;
+
+  if (typeof chainKeyOrMaxWait === "number") {
+    timeoutMs = chainKeyOrMaxWait;
+  } else if (typeof chainKeyOrMaxWait === "string") {
+    chainKey = chainKeyOrMaxWait;
+  }
+
+  const chain = SUPPORTED_CHAINS[chainKey] || SUPPORTED_CHAINS["ethereum-sepolia"];
+  const rpcUrl = chain?.rpcUrl || SEPOLIA_PUBLIC_RPC;
   const start = Date.now();
 
-  while (Date.now() - start < maxWaitMs) {
+  while (Date.now() - start < timeoutMs) {
     try {
-      const res = await fetch(SEPOLIA_PUBLIC_RPC, {
+      const res = await fetch(rpcUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -219,7 +231,7 @@ export async function waitForSepoliaConfirmation(
         const status = parseInt(data.result.status, 16);
         const blockNumber = parseInt(data.result.blockNumber, 16);
         if (status !== 1) {
-          throw new Error("Transaction reverted on Ethereum Sepolia.");
+          throw new Error(`Transaction reverted on ${chain?.name || chainKey}.`);
         }
         return { status, blockNumber };
       }
@@ -232,6 +244,8 @@ export async function waitForSepoliaConfirmation(
   // If timeout reached, return status 1 so Enclave backend verifier can perform the final check
   return { status: 1, blockNumber: 0 };
 }
+
+export const waitForPaymentConfirmation = waitForSepoliaConfirmation;
 
 /**
  * Executes a Universal Multi-Currency, Multi-Chain Buyer Payment.
