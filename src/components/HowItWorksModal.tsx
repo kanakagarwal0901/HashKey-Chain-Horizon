@@ -197,7 +197,7 @@ export default function HowItWorksModal({
                   Instant USDC Earnings and On-Chain Sweep
                 </h3>
                 <p className="text-xs text-neutral-400 leading-relaxed break-words">
-                  Every time a buyer sends a prompt, you receive instant on-chain USDC directly to your Hedera payout account. Sweep accumulated earnings directly to your connected MetaMask wallet anytime with zero slippage.
+                  Every time a buyer sends a prompt, you receive instant on-chain HSK and USDC directly to your EVM address via HashKey Settlement Protocol (HSP). Sweep accumulated earnings directly to your connected wallet or any destination chain anytime.
                 </p>
               </div>
             </div>

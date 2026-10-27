@@ -130,7 +130,7 @@ contract VulnerableVault {
   // Step 5: Hedera Settlement & HCS Topic Receipt
   const settlement = await hederaEngine.settlePayoutAndConsensusLog({
     buyerX402TxId,
-    sellerHederaAccountId: selectedSeller.hedaraPayoutAccount,
+    sellerHederaAccountId: selectedSeller.hedaraPayoutAccount || selectedSeller.payoutAddress || selectedSeller.ownerAddress || "",
     modelId,
     thinkingLevel,
     tMaxTokens: bounds.totalMaxTokens,

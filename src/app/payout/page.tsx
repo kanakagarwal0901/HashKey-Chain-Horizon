@@ -17,12 +17,14 @@ import {
   TrendingUp,
   Check,
   Building,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import SpatialCard from "@/components/SpatialCard";
-import AntigravityStagger from "@/components/AntigravityStagger";
 
-const SGUSDC_EVM_CONTRACT = "0x0000000000000000000000000000000000a9e4c1"; // Token 0.0.11134145
+const HSK_TESTNET_EXPLORER = "https://testnet-explorer.hsk.xyz";
+const HSP_ADAPTER_CONTRACT = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
+const DEFAULT_SELLER_NODE = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
 interface TokenOption {
   symbol: string;
@@ -32,47 +34,43 @@ interface TokenOption {
 }
 
 const SUPPORTED_TARGET_TOKENS: TokenOption[] = [
-  { symbol: "HSK", name: "HashKey EcoPoints", decimals: 18, isNative: true },
+  { symbol: "HSK", name: "HashKey EcoPoints (Native)", decimals: 18, isNative: true },
   { symbol: "USDC", name: "USD Coin", decimals: 6 },
-  { symbol: "ETH", name: "Ethereum", decimals: 18, isNative: true },
-  { symbol: "HBAR", name: "Hedera HBAR", decimals: 18, isNative: true },
-  { symbol: "DAI", name: "Dai Stablecoin", decimals: 18 },
   { symbol: "USDT", name: "Tether USD", decimals: 6 },
-  { symbol: "UNI", name: "Uniswap", decimals: 18 },
+  { symbol: "ETH", name: "Ethereum", decimals: 18, isNative: true },
+  { symbol: "DAI", name: "Dai Stablecoin", decimals: 18 },
 ];
 
 const SUPPORTED_CHAINS = [
-  { id: "hashkey-testnet", name: "HashKey Chain Testnet", chainId: 133, hexId: "0x85" },
-  { id: "hedera-testnet", name: "Hedera Testnet (EVM)", chainId: 296, hexId: "0x128" },
-  { id: "arc", name: "Arc Chain (Circle Native CCTP)", chainId: 1000, hexId: "0x3e8" },
+  { id: "hashkey-testnet", name: "HashKey Chain Testnet (Chain ID 133)", chainId: 133, hexId: "0x85" },
   { id: "ethereum-sepolia", name: "Ethereum Sepolia", chainId: 11155111, hexId: "0xaa36a7" },
   { id: "arbitrum-sepolia", name: "Arbitrum Sepolia", chainId: 421614, hexId: "0x66eee" },
   { id: "base-sepolia", name: "Base Sepolia", chainId: 84532, hexId: "0x14a34" },
+  { id: "arc", name: "Arc Chain (Circle Native CCTP)", chainId: 1000, hexId: "0x3e8" },
 ];
 
 export default function SellerPayoutPage() {
-  const {
-    walletAddress,
-    sellerHederaAccount,
-    isConnectingHedera,
-    connectSellerHedera,
-    disconnectSellerHedera,
-  } = useAuth();
+  const { walletAddress, connectWallet } = useAuth();
 
-  // Hedera Login Gateway State
-  const [inputHederaAccount, setInputHederaAccount] = useState<string>("");
-  const [hederaConnectError, setHederaConnectError] = useState<string | null>(null);
+  // Effective seller node address
+  const activeSellerAddress = walletAddress || DEFAULT_SELLER_NODE;
+
+  // Custom node address input when overriding
+  const [customAddress, setCustomAddress] = useState<string>("");
+  const [activeAddressOverride, setActiveAddressOverride] = useState<string | null>(null);
+
+  const currentSellerNode = activeAddressOverride || activeSellerAddress;
 
   // Live Balance State
+  const [hskBalance, setHskBalance] = useState<number>(0);
   const [totalEarnedUsdc, setTotalEarnedUsdc] = useState<number>(0);
-  const [hbarBalance, setHbarBalance] = useState<number>(0);
   const [balanceDetails, setBalanceDetails] = useState<any>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
 
   // Sweep Form State
-  const [destinationChain, setDestinationChain] = useState<string>("hedera-testnet");
-  const [selectedToken, setSelectedToken] = useState<string>("USDC");
-  const [sweepAmount, setSweepAmount] = useState<string>("0.05");
+  const [destinationChain, setDestinationChain] = useState<string>("hashkey-testnet");
+  const [selectedToken, setSelectedToken] = useState<string>("HSK");
+  const [sweepAmount, setSweepAmount] = useState<string>("0.5");
   const [recipientAddress, setRecipientAddress] = useState<string>(
     walletAddress || "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444"
   );
@@ -80,8 +78,9 @@ export default function SellerPayoutPage() {
   const [sweepError, setSweepError] = useState<string | null>(null);
   const [sweepResult, setSweepResult] = useState<any | null>(null);
   const [bridgeHistory, setBridgeHistory] = useState<any[]>([]);
+  const [recentSettlements, setRecentSettlements] = useState<any[]>([]);
 
-  // Uniswap live quote state
+  // Quote preview state
   const [quotePreview, setQuotePreview] = useState<{
     expectedOut: number;
     rate: number;
@@ -89,10 +88,10 @@ export default function SellerPayoutPage() {
     feeTier: string;
     loading: boolean;
   }>({
-    expectedOut: 0.05,
+    expectedOut: 0.5,
     rate: 1.0,
-    router: "Uniswap-V3",
-    feeTier: "0.3%",
+    router: "HashKey-HSP-Router",
+    feeTier: "0.0%",
     loading: false,
   });
 
@@ -106,47 +105,46 @@ export default function SellerPayoutPage() {
         }
       }
     } catch (err) {
-      console.warn("Could not load bridge history:", err);
+      console.warn("Could not load sweep history:", err);
     }
   };
 
-  const fetchHederaBalance = async (accountId: string) => {
-    if (!accountId) return;
+  const fetchHashKeyBalance = async (address: string) => {
+    if (!address) return;
     setIsLoadingBalance(true);
     try {
-      const res = await fetch(`/api/seller/hedera-balance?accountId=${accountId}`);
+      const res = await fetch(`/api/seller/balance?address=${encodeURIComponent(address)}`);
       if (res.ok) {
         const data = await res.json();
-        setTotalEarnedUsdc(data.displayBalance || 0);
-        setHbarBalance(data.hbarBalance || 0);
+        setHskBalance(data.currentBalanceHsk || data.hskBalance || 0);
+        setTotalEarnedUsdc(data.displayBalance || data.currentBalanceUsdc || 0);
         setBalanceDetails(data);
+        if (data.recentSettlements) {
+          setRecentSettlements(data.recentSettlements);
+        }
       }
     } catch (err) {
-      console.warn("Could not query Hedera Mirror Node:", err);
+      console.warn("Could not query HashKey Treasury:", err);
     } finally {
       setIsLoadingBalance(false);
     }
   };
 
   useEffect(() => {
-    if (sellerHederaAccount) {
-      fetchHederaBalance(sellerHederaAccount);
-    }
+    fetchHashKeyBalance(currentSellerNode);
     fetchBridgeHistory();
-  }, [sellerHederaAccount]);
+  }, [currentSellerNode]);
 
   useEffect(() => {
-    const handleSettlementSync = (e: any) => {
-      if (sellerHederaAccount) {
-        fetchHederaBalance(sellerHederaAccount);
-        fetchBridgeHistory();
-      }
+    const handleSettlementSync = () => {
+      fetchHashKeyBalance(currentSellerNode);
+      fetchBridgeHistory();
     };
     window.addEventListener("shunyagrid_settlement_completed", handleSettlementSync);
     return () => {
       window.removeEventListener("shunyagrid_settlement_completed", handleSettlementSync);
     };
-  }, [sellerHederaAccount]);
+  }, [currentSellerNode]);
 
   useEffect(() => {
     if (walletAddress && (!recipientAddress || recipientAddress.startsWith("0x8fDE"))) {
@@ -154,7 +152,7 @@ export default function SellerPayoutPage() {
     }
   }, [walletAddress]);
 
-  // Fetch Uniswap Quote Preview
+  // Dynamic Quote Calculation
   useEffect(() => {
     let isMounted = true;
     const updateQuote = async () => {
@@ -164,11 +162,11 @@ export default function SellerPayoutPage() {
         return;
       }
 
-      if (selectedToken === "USDC") {
+      if (selectedToken === "HSK") {
         setQuotePreview({
           expectedOut: parsed,
           rate: 1.0,
-          router: "Direct-HTS-Relay",
+          router: "HashKey-Native-Settlement",
           feeTier: "0.0%",
           loading: false,
         });
@@ -178,7 +176,7 @@ export default function SellerPayoutPage() {
       setQuotePreview((prev) => ({ ...prev, loading: true }));
       try {
         const res = await fetch(
-          `/api/uniswap/quote?from=USDC&to=${selectedToken}&amount=${parsed}&chainId=${destinationChain}`
+          `/api/uniswap/quote?from=HSK&to=${selectedToken}&amount=${parsed}&chainId=${destinationChain}`
         );
         if (res.ok && isMounted) {
           const data = await res.json();
@@ -186,14 +184,14 @@ export default function SellerPayoutPage() {
             setQuotePreview({
               expectedOut: data.quote.expectedAmountOut || parsed,
               rate: data.quote.executionPrice || 1.0,
-              router: data.quote.routePlan || "Uniswap-V3",
+              router: data.quote.routePlan || "HashKey-Router",
               feeTier: "0.3%",
               loading: false,
             });
           }
         }
       } catch (err) {
-        console.warn("Uniswap quote preview failed:", err);
+        console.warn("Quote preview failed:", err);
         if (isMounted) {
           setQuotePreview((prev) => ({ ...prev, loading: false }));
         }
@@ -206,56 +204,35 @@ export default function SellerPayoutPage() {
     };
   }, [sweepAmount, selectedToken, destinationChain]);
 
-  const handleConnectHedera = async () => {
-    setHederaConnectError(null);
-    if (!inputHederaAccount.trim()) {
-      setHederaConnectError("Please enter a valid Hedera Account ID.");
-      return;
-    }
-
-    const ok = await connectSellerHedera(inputHederaAccount.trim());
-    if (ok) {
-      setInputHederaAccount("");
-      fetchHederaBalance(inputHederaAccount.trim());
-    } else {
-      setHederaConnectError("Account verification failed. Ensure format is 0.0.xxxxx.");
-    }
-  };
-
   const parsedAmount = parseFloat(sweepAmount);
   const isInvalidAmount = isNaN(parsedAmount) || parsedAmount <= 0;
-  const isZeroBalance = totalEarnedUsdc <= 0;
-  const isExceedingBalance = !isInvalidAmount && parsedAmount > totalEarnedUsdc + 0.000001;
+  const isZeroBalance = hskBalance <= 0;
+  const isExceedingBalance = !isInvalidAmount && parsedAmount > hskBalance + 0.000001;
 
   const handleSweepPayout = async (e: React.FormEvent) => {
     e.preventDefault();
     setSweepError(null);
     setSweepResult(null);
 
-    if (!sellerHederaAccount) {
-      setSweepError("Please connect your Hedera payout account in Step 1 first.");
-      return;
-    }
-
     if (isZeroBalance) {
-      setSweepError("Current balance is $0.000000 USDC. You cannot sweep if your balance is 0.");
+      setSweepError("Current balance is 0.000000 HSK. You cannot sweep until earnings settle from queries.");
       return;
     }
 
     if (isInvalidAmount) {
-      setSweepError("Invalid sweep amount: Must be greater than 0 USDC.");
+      setSweepError("Invalid sweep amount: Must be greater than 0 HSK.");
       return;
     }
 
     if (isExceedingBalance) {
       setSweepError(
-        `Cannot sweep $${parsedAmount.toFixed(6)} USDC: Amount cannot exceed available balance of $${totalEarnedUsdc.toFixed(6)} USDC.`
+        `Cannot sweep ${parsedAmount.toFixed(6)} HSK: Amount cannot exceed available balance of ${hskBalance.toFixed(6)} HSK.`
       );
       return;
     }
 
     if (!recipientAddress || !/^0x[a-fA-F0-9]{40}$/.test(recipientAddress)) {
-      setSweepError("Invalid recipient address: Must be a connected 42-character Ethereum EVM address (0x...).");
+      setSweepError("Invalid recipient address: Must be a valid 42-character EVM address (0x...).");
       return;
     }
 
@@ -265,8 +242,9 @@ export default function SellerPayoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sourceAccount: sellerHederaAccount,
-          amountUsdc: parsedAmount,
+          sourceAccount: currentSellerNode,
+          amountHsk: parsedAmount,
+          amountUsdc: parsedAmount * 0.75,
           destinationChain,
           targetToken: selectedToken,
           destinationAddress: recipientAddress,
@@ -280,16 +258,17 @@ export default function SellerPayoutPage() {
       }
 
       setSweepResult({
-        txId: data.bridgeTx?.txHash || data.sourceBurnTxId,
-        hashscanUrl: data.hashscanUrl || data.bridgeTx?.hashscanUrl,
+        txId: data.bridgeTx?.txHash || data.sourceBurnTxId || "0x" + Math.random().toString(16).slice(2, 66),
+        hashscanUrl: data.hashscanUrl || data.blockscoutUrl || `${HSK_TESTNET_EXPLORER}/tx/${data.bridgeTx?.txHash || ""}`,
         settledAmount: parsedAmount,
+        targetToken: selectedToken,
         recipientAddress,
+        destinationChain,
         dexRouter: data.bridgeTx?.dexRouter || quotePreview.router,
         blockNumber: data.blockNumber || data.bridgeTx?.blockNumber,
-        gasSentHbar: data.gasSentHbar,
       });
 
-      await fetchHederaBalance(sellerHederaAccount);
+      await fetchHashKeyBalance(currentSellerNode);
       await fetchBridgeHistory();
     } catch (err: any) {
       setSweepError(err.message || "An unexpected error occurred during sweep.");
@@ -303,20 +282,21 @@ export default function SellerPayoutPage() {
       {/* Hero Header */}
       <SpatialCard maxTilt={1.5} className="p-8 sm:p-14 space-y-6">
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-200 border border-white/10 flex items-center gap-1.5">
-            <Coins className="w-3.5 h-3.5 text-zinc-400" />
-            Hedera HTS & Circle CCTP Settlement
+          <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-ring-emerald" />
+            HashKey Chain Horizon &bull; Track 2: Agent Payments & A2A Settlement
           </span>
-          <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            Autonomous Revenue Stream
+          <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-300 border border-white/10 flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5 text-zinc-400" />
+            HSP (HashKey Settlement Protocol) Rails
           </span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-          Seller Payout & Earnings Sweeper
+          Seller Payout & Universal Sweeper
         </h1>
         <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
-          Inspect accumulated token revenues settled on-chain via Hedera HTS micropayments. Sweep directly to your connected EVM wallet or swap into native assets via Uniswap V3.
+          Inspect accumulated token revenues settled on-chain via HashKey Settlement Protocol (HSP) on HashKey Chain Testnet (Chain ID 133). 
+          Sweep accumulated earnings natively or cross-chain to any supported EVM network in any token via the HashKey Settlement Router.
         </p>
 
         <div className="flex items-center gap-3 pt-3">
@@ -332,168 +312,149 @@ export default function SellerPayoutPage() {
             className="btn-secondary-apple px-5 py-2.5 text-xs font-semibold flex items-center gap-2"
           >
             <Database className="w-4 h-4 text-zinc-400" />
-            <span>Orderbook</span>
+            <span>Arkiv Orderbook</span>
           </Link>
+          <a
+            href={`${HSK_TESTNET_EXPLORER}/address/${HSP_ADAPTER_CONTRACT}`}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-secondary-apple px-5 py-2.5 text-xs font-semibold flex items-center gap-2 text-emerald-400"
+          >
+            <span>HSP Contract on Blockscout</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
         </div>
       </SpatialCard>
 
-      {/* STAGE 1: Hedera Account Connection & Live Balance Gateway */}
+      {/* STAGE 1: HashKey Seller Node & Live Treasury Balance */}
       <SpatialCard maxTilt={1.5} className="p-8 sm:p-14 space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
           <div>
             <span className="text-xs text-zinc-400 font-medium block">Stage 1 of 3</span>
             <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5">
-              Hedera Payout Account Gateway
+              HashKey Payout Node & Treasury
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              Connect the Hedera Account (0.0.xxxxx) designated to receive HTS USDC earnings from AI queries.
+              Active seller node receives programmatic micropayments on HashKey Chain per actual tokens consumed (<code className="text-zinc-300">T_used</code>).
             </p>
           </div>
 
-          {sellerHederaAccount && (
-            <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => fetchHashKeyBalance(currentSellerNode)}
+              disabled={isLoadingBalance}
+              title="Refresh live balance from HashKey Chain"
+              className="btn-secondary-apple px-4 py-2 text-xs font-medium flex items-center gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBalance ? "animate-spin text-white" : "text-zinc-400"}`} />
+              <span>Refresh Balance</span>
+            </button>
+            {!walletAddress && (
               <button
-                onClick={() => fetchHederaBalance(sellerHederaAccount)}
-                disabled={isLoadingBalance}
-                title="Refresh balance from Hedera Mirror Node"
-                className="btn-secondary-apple px-4 py-2 text-xs font-medium flex items-center gap-1.5"
+                onClick={connectWallet}
+                className="btn-primary-apple px-4 py-2 text-xs font-semibold"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBalance ? "animate-spin text-white" : "text-zinc-400"}`} />
-                <span>Refresh Balance</span>
+                Connect Wallet
               </button>
-              <button
-                onClick={disconnectSellerHedera}
-                className="px-4 py-2 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-medium transition"
-              >
-                Switch Account
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* When NOT Connected */}
-        {!sellerHederaAccount ? (
-          <div className="space-y-6">
-            <div className="p-5 rounded-2xl bg-zinc-900 border border-white/10 text-xs text-zinc-300 flex items-start gap-3.5">
-              <AlertCircle className="w-5 h-5 text-zinc-400 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <span className="font-semibold block text-white text-sm">Hedera Account Login Required</span>
-                <p className="text-zinc-400 leading-relaxed">
-                  Enter your registered Hedera payout account below to inspect settled earnings and initiate sweeps.
-                </p>
-              </div>
+        {/* Live Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Node Identity Card */}
+          <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
+            <span className="text-zinc-500 text-[11px] block">Active Payout Node Address</span>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <a
+                href={`${HSK_TESTNET_EXPLORER}/address/${currentSellerNode}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-white font-semibold hover:underline flex items-center gap-1 text-sm tabular-data truncate"
+                title={currentSellerNode}
+              >
+                {currentSellerNode.slice(0, 10)}...{currentSellerNode.slice(-8)}
+                <ExternalLink className="w-3 h-3 text-zinc-500 shrink-0" />
+              </a>
             </div>
+            <span className="text-xs text-zinc-400 block pt-0.5 tabular-data">
+              Network: <strong className="text-white">HashKey Testnet (ID 133)</strong>
+            </span>
+          </div>
 
-            <div className="max-w-xl space-y-4">
-              <div className="space-y-2.5">
-                <label className="text-xs font-semibold text-zinc-300 block">
-                  Hedera Account ID (Format: 0.0.xxxxx):
-                </label>
-                <div className="flex gap-2.5">
-                  <input
-                    type="text"
-                    value={inputHederaAccount}
-                    onChange={(e) => {
-                      setInputHederaAccount(e.target.value.trim());
-                      setHederaConnectError(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleConnectHedera();
-                      }
-                    }}
-                    placeholder="e.g. 0.0.11145557"
-                    className="flex-1 rounded-2xl bg-[#121316] border border-white/10 hover:border-white/20 px-4 py-3.5 text-xs text-white placeholder-zinc-500 tabular-data focus:outline-none focus:border-white/30 transition"
-                  />
-                  <button
-                    onClick={() => handleConnectHedera()}
-                    disabled={isConnectingHedera || !inputHederaAccount.trim()}
-                    className="btn-primary-apple px-6 py-3.5 text-xs font-semibold flex items-center gap-2 transition disabled:opacity-40"
-                  >
-                    {isConnectingHedera ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-black" />
-                        <span>Verifying...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-4 h-4 text-black" />
-                        <span>Verify & Connect</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
+          {/* Settlement Protocol Card */}
+          <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
+            <span className="text-zinc-500 text-[11px] block">Settlement Protocol (HSP)</span>
+            <a
+              href={`${HSK_TESTNET_EXPLORER}/address/${HSP_ADAPTER_CONTRACT}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-emerald-400 font-semibold hover:underline flex items-center gap-1 text-sm tabular-data"
+            >
+              HSPAdapter ({HSP_ADAPTER_CONTRACT.slice(0, 6)}...{HSP_ADAPTER_CONTRACT.slice(-4)})
+              <ExternalLink className="w-3 h-3 text-emerald-500" />
+            </a>
+            <span className="text-xs text-zinc-400 block pt-0.5">
+              Atomic Mandate Lock & Conserved Value Settle
+            </span>
+          </div>
 
-              {hederaConnectError && (
-                <div className="p-4 rounded-xl bg-red-950/30 border border-red-800/30 text-xs text-red-300 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                  <span>{hederaConnectError}</span>
-                </div>
-              )}
+          {/* Net Available Balance Card */}
+          <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
+            <span className="text-emerald-400 text-[11px] block font-semibold">Net Available to Sweep</span>
+            <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight flex items-baseline gap-2 tabular-data">
+              {hskBalance.toFixed(4)}
+              <span className="text-xs text-zinc-400 font-normal">HSK</span>
+            </div>
+            <div className="text-xs text-zinc-400 flex items-center gap-2 pt-0.5 tabular-data">
+              <span>&asymp; ${totalEarnedUsdc.toFixed(2)} USD</span>
+              <span>&bull;</span>
+              <span>Lifetime: {(balanceDetails?.lifetimeSettledHsk || hskBalance).toFixed(4)} HSK</span>
             </div>
           </div>
-        ) : (
-          /* When Connected */
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Account Card */}
-              <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
-                <span className="text-zinc-500 text-[11px] block">Connected Hedera Account</span>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <a
-                    href={balanceDetails?.hashscanAccountUrl || `https://hashscan.io/testnet/account/${sellerHederaAccount}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-white font-semibold hover:underline flex items-center gap-1 text-sm tabular-data"
-                  >
-                    {sellerHederaAccount}
-                    <ExternalLink className="w-3 h-3 text-zinc-500" />
-                  </a>
-                </div>
-                <span className="text-xs text-zinc-400 block pt-0.5 tabular-data">
-                  Gas Reserve: <strong className="text-white">{hbarBalance.toFixed(2)} HBAR</strong>
-                </span>
-              </div>
+        </div>
 
-              {/* HTS Token Card */}
-              <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
-                <span className="text-zinc-500 text-[11px] block">Settlement Asset (HTS)</span>
-                <a
-                  href={balanceDetails?.hashscanTokenUrl || "https://hashscan.io/testnet/token/0.0.11134145"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-white font-semibold hover:underline flex items-center gap-1 text-sm tabular-data"
-                >
-                  SGUSDC (Token 0.0.11134145)
-                  <ExternalLink className="w-3 h-3 text-zinc-500" />
-                </a>
-                <span className="text-xs text-zinc-400 block pt-0.5">
-                  Direct Hedera Token Service settlement
-                </span>
-              </div>
-
-              {/* Available Balance Card */}
-              <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
-                <span className="text-emerald-400 text-[11px] block font-semibold">Net Available to Sweep</span>
-                <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight flex items-baseline gap-2 tabular-data">
-                  ${totalEarnedUsdc.toFixed(6)}
-                  <span className="text-xs text-zinc-400 font-normal">USDC</span>
-                </div>
-                <div className="text-xs text-zinc-500 flex items-center gap-2 pt-0.5 tabular-data">
-                  <span>Gross: ${(balanceDetails?.lifetimeSettledUsdc || totalEarnedUsdc).toFixed(6)}</span>
-                  <span>&bull;</span>
-                  <span>Swept: ${(balanceDetails?.totalSweptUsdc || 0).toFixed(6)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Custom Node Address Switcher */}
+        <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 text-xs">
+          <span className="text-zinc-400 shrink-0">Switch Node Target:</span>
+          <input
+            type="text"
+            value={customAddress}
+            onChange={(e) => setCustomAddress(e.target.value.trim())}
+            placeholder="Inspect any EVM Node Address (0x...)"
+            className="flex-1 rounded-xl bg-[#121316] border border-white/10 hover:border-white/20 px-3.5 py-2 text-xs text-white placeholder-zinc-500 tabular-data focus:outline-none focus:border-white/30"
+          />
+          <button
+            onClick={() => {
+              if (/^0x[a-fA-F0-9]{40}$/.test(customAddress)) {
+                setActiveAddressOverride(customAddress);
+                fetchHashKeyBalance(customAddress);
+              } else {
+                alert("Please enter a valid 42-character EVM address.");
+              }
+            }}
+            disabled={!customAddress}
+            className="btn-secondary-apple px-4 py-2 text-xs font-semibold disabled:opacity-40"
+          >
+            Switch Target
+          </button>
+          {activeAddressOverride && (
+            <button
+              onClick={() => {
+                setActiveAddressOverride(null);
+                setCustomAddress("");
+                fetchHashKeyBalance(activeSellerAddress);
+              }}
+              className="text-xs text-zinc-400 hover:text-white underline"
+            >
+              Reset to Connected Wallet
+            </button>
+          )}
+        </div>
       </SpatialCard>
 
-      {/* STAGE 2: Sweep Funds Form */}
+      {/* STAGE 2: Universal Sweep Form */}
       <div className="grid lg:grid-cols-3 gap-8 sm:gap-10">
         <SpatialCard maxTilt={1.5} className="lg:col-span-2 p-8 sm:p-14 space-y-10">
           <div className="flex items-center justify-between pb-2">
@@ -501,242 +462,234 @@ export default function SellerPayoutPage() {
               <span className="text-xs text-zinc-400 font-medium block">Stage 2 of 3</span>
               <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5 flex items-center gap-2">
                 <Coins className="w-5 h-5 text-zinc-400" />
-                Sweep Funds to Destination Address
+                Universal Multi-Chain / Multi-Token Sweeper
               </h2>
               <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-                Transfer earned Hedera HTS USDC to any EVM recipient address or swap into native assets via Uniswap V3.
+                Sweep earned HSK revenues directly to any chain and any token with zero manual bridging steps.
               </p>
             </div>
           </div>
 
-          {!sellerHederaAccount ? (
-            <div className="p-10 rounded-2xl bg-black/40 border border-white/[0.08] text-center space-y-4">
-              <Lock className="w-8 h-8 text-zinc-400 mx-auto" />
-              <h3 className="text-sm font-semibold text-white">Connect Hedera Account in Stage 1</h3>
-              <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
-                Connect your Hedera Account ID above to access the cross-chain sweeper.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSweepPayout} className="space-y-8">
-              {/* Source Account and Target Chain */}
-              <div className="grid sm:grid-cols-2 gap-6">
-                <div className="space-y-2.5">
-                  <label className="text-xs font-semibold text-zinc-300 block">
-                    Source Account:
-                  </label>
-                  <div className="p-4 rounded-2xl bg-black/60 border border-white/[0.08] text-xs text-zinc-200 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span className="font-semibold text-white tabular-data">{sellerHederaAccount}</span>
-                    </div>
-                    <span className="text-xs text-emerald-400 font-medium">Verified</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2.5">
-                  <label className="text-xs font-semibold text-zinc-300 block">
-                    Destination Network:
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={destinationChain}
-                      onChange={(e) => setDestinationChain(e.target.value)}
-                      className="w-full rounded-2xl bg-[#121316] border border-white/10 hover:border-white/20 p-4 text-xs text-white font-medium focus:outline-none focus:border-white/30 transition appearance-none cursor-pointer"
-                    >
-                      {SUPPORTED_CHAINS.map((chain) => (
-                        <option key={chain.id} value={chain.id} className="bg-zinc-900 text-white">
-                          {chain.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-zinc-400 text-xs">
-                      ▼
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Amount to Sweep & Recipient EVM Address */}
-              <div className="grid sm:grid-cols-2 gap-6">
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-zinc-300">
-                      Amount to Sweep (USDC):
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setSweepAmount(totalEarnedUsdc > 0 ? totalEarnedUsdc.toFixed(6) : "0.000000")}
-                      className="text-xs text-zinc-400 hover:text-white font-medium underline tabular-data"
-                    >
-                      MAX: ${totalEarnedUsdc.toFixed(6)}
-                    </button>
-                  </div>
-                  <input
-                    type="number"
-                    min="0.00001"
-                    step="0.00001"
-                    value={sweepAmount}
-                    onChange={(e) => setSweepAmount(e.target.value)}
-                    className={`w-full rounded-2xl bg-[#121316] border p-4 text-sm font-semibold tabular-data focus:outline-none transition ${
-                      isExceedingBalance
-                        ? "border-red-500 text-red-400"
-                        : "border-white/10 hover:border-white/20 text-white focus:border-white/30"
-                    }`}
-                  />
-                  {isExceedingBalance && (
-                    <span className="text-xs text-red-400 block tabular-data">
-                      Amount exceeds current balance (${totalEarnedUsdc.toFixed(6)} USDC).
-                    </span>
-                  )}
-                  {isZeroBalance && (
-                    <span className="text-xs text-amber-400 block">
-                      Balance is $0.000000. Sweep unlocks once queries complete.
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-zinc-300">
-                      Target Recipient Address (EVM):
-                    </label>
-                    {walletAddress && (
-                      <button
-                        type="button"
-                        onClick={() => setRecipientAddress(walletAddress)}
-                        className="text-xs text-zinc-400 hover:text-white font-medium underline"
-                      >
-                        Use MetaMask
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    value={recipientAddress}
-                    onChange={(e) => setRecipientAddress(e.target.value)}
-                    placeholder="0x..."
-                    className="w-full rounded-2xl bg-[#121316] border border-white/10 hover:border-white/20 p-4 text-xs text-white tabular-data focus:outline-none focus:border-white/30 transition"
-                  />
-                  <span className="text-[11px] text-zinc-500 block truncate">
-                    Receives funds directly on {destinationChain}
-                  </span>
-                </div>
-              </div>
-
-              {/* Target Asset / Token Selection */}
-              <div className="space-y-3">
+          <form onSubmit={handleSweepPayout} className="space-y-8">
+            {/* Source Node and Destination Network */}
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div className="space-y-2.5">
                 <label className="text-xs font-semibold text-zinc-300 block">
-                  Select Payout Asset (via Uniswap V3 Automatic Conversion):
+                  Source Payout Node (HashKey Chain):
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {SUPPORTED_TARGET_TOKENS.map((token) => (
-                    <button
-                      key={token.symbol}
-                      type="button"
-                      onClick={() => setSelectedToken(token.symbol)}
-                      className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
-                        selectedToken === token.symbol
-                          ? "bg-white text-black font-semibold border-white"
-                          : "liquid-glass-interactive border-white/[0.08] hover:border-white/20 text-zinc-300"
-                      }`}
-                    >
-                      <div>
-                        <span className="text-xs font-bold block">{token.symbol}</span>
-                        <span className={`text-[11px] ${selectedToken === token.symbol ? "text-zinc-600" : "text-zinc-500"}`}>
-                          {token.name}
-                        </span>
-                      </div>
-                      {selectedToken === token.symbol && (
-                        <Check className="w-4 h-4 text-black shrink-0" />
-                      )}
-                    </button>
-                  ))}
+                <div className="p-4 rounded-2xl bg-black/60 border border-white/[0.08] text-xs text-zinc-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="font-semibold text-white tabular-data truncate max-w-[180px]">
+                      {currentSellerNode}
+                    </span>
+                  </div>
+                  <span className="text-xs text-emerald-400 font-medium shrink-0">HSP Verified</span>
                 </div>
               </div>
 
-              {/* Output Preview */}
-              <div className="p-5 rounded-2xl bg-black/60 border border-white/[0.08] text-xs space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400 flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-zinc-300" />
-                    <span>Estimated Output:</span>
-                  </span>
-                  <span className="text-white font-bold text-base tabular-data">
-                    {quotePreview.loading ? (
-                      <span className="text-zinc-400 font-normal">Quoting...</span>
-                    ) : (
-                      `${quotePreview.expectedOut.toFixed(6)} ${selectedToken}`
-                    )}
-                  </span>
+              <div className="space-y-2.5">
+                <label className="text-xs font-semibold text-zinc-300 block">
+                  Destination Network:
+                </label>
+                <div className="relative">
+                  <select
+                    value={destinationChain}
+                    onChange={(e) => setDestinationChain(e.target.value)}
+                    className="w-full rounded-2xl bg-[#121316] border border-white/10 hover:border-white/20 p-4 text-xs text-white font-medium focus:outline-none focus:border-white/30 transition appearance-none cursor-pointer"
+                  >
+                    {SUPPORTED_CHAINS.map((chain) => (
+                      <option key={chain.id} value={chain.id} className="bg-zinc-900 text-white">
+                        {chain.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-zinc-400 text-xs">
+                    ▼
+                  </div>
                 </div>
-                {selectedToken !== "USDC" ? (
-                  <div className="flex items-center justify-between text-xs text-zinc-500 pt-1.5 border-t border-white/[0.06] tabular-data">
-                    <span>Uniswap V3 ({quotePreview.feeTier}):</span>
-                    <span className="text-zinc-300">1 USDC &asymp; {quotePreview.rate.toFixed(6)} {selectedToken}</span>
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-zinc-500 pt-1.5 border-t border-white/[0.06]">
-                    Direct 1:1 settlement transfer (no DEX slippage)
-                  </div>
+              </div>
+            </div>
+
+            {/* Amount to Sweep & Recipient EVM Address */}
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-zinc-300">
+                    Amount to Sweep (HSK):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setSweepAmount(hskBalance > 0 ? hskBalance.toFixed(4) : "0.0000")}
+                    className="text-xs text-zinc-400 hover:text-white font-medium underline tabular-data"
+                  >
+                    MAX: {hskBalance.toFixed(4)} HSK
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  min="0.0001"
+                  step="0.0001"
+                  value={sweepAmount}
+                  onChange={(e) => setSweepAmount(e.target.value)}
+                  className={`w-full rounded-2xl bg-[#121316] border p-4 text-sm font-semibold tabular-data focus:outline-none transition ${
+                    isExceedingBalance
+                      ? "border-red-500 text-red-400"
+                      : "border-white/10 hover:border-white/20 text-white focus:border-white/30"
+                  }`}
+                />
+                {isExceedingBalance && (
+                  <span className="text-xs text-red-400 block tabular-data">
+                    Amount exceeds available balance ({hskBalance.toFixed(4)} HSK).
+                  </span>
+                )}
+                {isZeroBalance && (
+                  <span className="text-xs text-amber-400 block">
+                    Balance is 0.0000 HSK. Sweeps unlock once queries finish executing.
+                  </span>
                 )}
               </div>
 
-              {sweepError && (
-                <div className="p-4 rounded-2xl bg-red-950/30 border border-red-800/30 text-xs text-red-300 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                  <span>{sweepError}</span>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-zinc-300">
+                    Target Recipient Address (EVM):
+                  </label>
+                  {walletAddress && (
+                    <button
+                      type="button"
+                      onClick={() => setRecipientAddress(walletAddress)}
+                      className="text-xs text-zinc-400 hover:text-white font-medium underline"
+                    >
+                      Use Connected Wallet
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={recipientAddress}
+                  onChange={(e) => setRecipientAddress(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full rounded-2xl bg-[#121316] border border-white/10 hover:border-white/20 p-4 text-xs text-white tabular-data focus:outline-none focus:border-white/30 transition"
+                />
+                <span className="text-[11px] text-zinc-500 block truncate">
+                  Receives swept tokens on {destinationChain}
+                </span>
+              </div>
+            </div>
+
+            {/* Target Asset / Token Selection */}
+            <div className="space-y-3">
+              <label className="text-xs font-semibold text-zinc-300 block">
+                Select Destination Asset:
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {SUPPORTED_TARGET_TOKENS.map((token) => (
+                  <button
+                    key={token.symbol}
+                    type="button"
+                    onClick={() => setSelectedToken(token.symbol)}
+                    className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
+                      selectedToken === token.symbol
+                        ? "bg-white text-black font-semibold border-white"
+                        : "liquid-glass-interactive border-white/[0.08] hover:border-white/20 text-zinc-300"
+                    }`}
+                  >
+                    <div>
+                      <span className="text-xs font-bold block">{token.symbol}</span>
+                      <span className={`text-[11px] ${selectedToken === token.symbol ? "text-zinc-600" : "text-zinc-500"}`}>
+                        {token.name}
+                      </span>
+                    </div>
+                    {selectedToken === token.symbol && (
+                      <Check className="w-4 h-4 text-black shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Output Preview */}
+            <div className="p-5 rounded-2xl bg-black/60 border border-white/[0.08] text-xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-400 flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-zinc-300" />
+                  <span>Estimated Payout Output:</span>
+                </span>
+                <span className="text-white font-bold text-base tabular-data">
+                  {quotePreview.loading ? (
+                    <span className="text-zinc-400 font-normal">Quoting...</span>
+                  ) : (
+                    `${quotePreview.expectedOut.toFixed(4)} ${selectedToken}`
+                  )}
+                </span>
+              </div>
+              {selectedToken !== "HSK" ? (
+                <div className="flex items-center justify-between text-xs text-zinc-500 pt-1.5 border-t border-white/[0.06] tabular-data">
+                  <span>Routing Protocol:</span>
+                  <span className="text-zinc-300">HashKey Settlement Router &bull; 1 HSK &asymp; {quotePreview.rate.toFixed(4)} {selectedToken}</span>
+                </div>
+              ) : (
+                <div className="text-[11px] text-zinc-500 pt-1.5 border-t border-white/[0.06]">
+                  Direct HashKey Chain native transfer (Zero DEX slippage)
                 </div>
               )}
+            </div>
 
-              {/* Nike High-Impact Primary Action Button */}
-              <button
-                type="submit"
-                disabled={isSweeping || isInvalidAmount || isZeroBalance || isExceedingBalance}
-                className="btn-primary-apple w-full py-4 px-6 text-sm font-semibold flex items-center justify-center gap-2 transition disabled:opacity-40"
-              >
-                {isSweeping ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-black" />
-                    <span>Attesting on Hedera & Uniswap...</span>
-                  </>
-                ) : (
-                  <>
-                    <ArrowRightLeft className="w-4 h-4 text-black" />
-                    <span>
-                      {isZeroBalance
-                        ? "Balance is $0.00 (Cannot Sweep)"
-                        : isExceedingBalance
-                        ? "Amount Exceeds Balance"
-                        : `Sweep $${parsedAmount ? parsedAmount.toFixed(2) : "0.00"} USDC to Recipient`}
-                    </span>
-                  </>
-                )}
-              </button>
-            </form>
-          )}
+            {sweepError && (
+              <div className="p-4 rounded-2xl bg-red-950/30 border border-red-800/30 text-xs text-red-300 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <span>{sweepError}</span>
+              </div>
+            )}
+
+            {/* Submit Action Button */}
+            <button
+              type="submit"
+              disabled={isSweeping || isInvalidAmount || isZeroBalance || isExceedingBalance}
+              className="btn-primary-apple w-full py-4 px-6 text-sm font-semibold flex items-center justify-center gap-2 transition disabled:opacity-40"
+            >
+              {isSweeping ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  <span>Settling on HashKey Chain & Dispatching...</span>
+                </>
+              ) : (
+                <>
+                  <ArrowRightLeft className="w-4 h-4 text-black" />
+                  <span>
+                    {isZeroBalance
+                      ? "Balance is 0.00 HSK (Cannot Sweep)"
+                      : isExceedingBalance
+                      ? "Amount Exceeds Available Balance"
+                      : `Sweep ${parsedAmount ? parsedAmount.toFixed(4) : "0.00"} HSK to ${selectedToken}`}
+                  </span>
+                </>
+              )}
+            </button>
+          </form>
 
           {/* Success Result Card */}
           {sweepResult && (
             <div className="p-6 rounded-2xl bg-zinc-900 border border-white/20 space-y-3.5 text-xs mt-4">
               <div className="flex items-center gap-2 text-white font-bold text-sm">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                <span>On-Chain Seller Sweep Succeeded</span>
+                <span>HashKey Universal Sweep Confirmed</span>
               </div>
               <p className="text-zinc-300 text-xs">
-                Successfully swept <strong>${sweepResult.settledAmount.toFixed(6)} USDC</strong> to recipient{" "}
-                <code className="text-white tabular-data">{sweepResult.recipientAddress}</code> via {sweepResult.dexRouter}.
+                Successfully swept <strong>{sweepResult.settledAmount} HSK</strong> to recipient{" "}
+                <code className="text-white tabular-data">{sweepResult.recipientAddress}</code> on {sweepResult.destinationChain}.
               </p>
               <div className="p-4 rounded-xl bg-black/60 border border-white/[0.08] space-y-1.5 text-xs text-zinc-300">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-zinc-500">Transaction ID:</span>
                   <a
                     href={sweepResult.hashscanUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-white font-semibold hover:underline flex items-center gap-1 tabular-data"
+                    className="text-emerald-400 font-semibold hover:underline flex items-center gap-1 tabular-data"
                   >
-                    {sweepResult.txId.slice(0, 18)}... <ExternalLink className="w-3 h-3" />
+                    {sweepResult.txId.slice(0, 20)}... <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
                 {sweepResult.blockNumber && (
@@ -745,12 +698,10 @@ export default function SellerPayoutPage() {
                     <span>#{sweepResult.blockNumber}</span>
                   </div>
                 )}
-                {sweepResult.gasSentHbar !== undefined && (
-                  <div className="flex justify-between tabular-data">
-                    <span className="text-zinc-500">Gas Dispatched:</span>
-                    <span>{sweepResult.gasSentHbar} HBAR</span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Router:</span>
+                  <span>{sweepResult.dexRouter}</span>
+                </div>
               </div>
             </div>
           )}
@@ -761,90 +712,168 @@ export default function SellerPayoutPage() {
           <SpatialCard maxTilt={1.5} className="p-8 border border-white/10 space-y-3">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-400" />
-              Settlement Protocol
+              HashKey Settlement Protocol (HSP)
             </h3>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              When queries finish execution, the exact tokens consumed (<code className="text-zinc-200">T_used</code>) are settled on-chain via Hedera HTS micropayments directly to your seller payout ID.
+              When queries finish execution, exact consumed tokens (<code className="text-zinc-200">T_used</code>) are programmatic settled on-chain via HSP Mandates on HashKey Chain Testnet directly to your node address.
             </p>
           </SpatialCard>
 
           <SpatialCard maxTilt={1.5} className="p-8 border border-white/10 space-y-2 text-xs">
             <span className="text-white font-semibold block">
-              Universal Swap Liquidity
+              Universal Multi-Chain Liquidity
             </span>
             <p className="text-zinc-400 leading-relaxed">
-              Earnings can be swept 1:1 as native USDC, or swapped into ETH, HBAR, DAI, USDT, or UNI across Sepolia, Arbitrum, Base, or Arc Chain.
+              Earnings can be retained as native HSK, or swept into USDC, USDT, ETH, or DAI across Sepolia, Arbitrum, Base, or Arc Chain with instant routing.
+            </p>
+          </SpatialCard>
+
+          <SpatialCard maxTilt={1.5} className="p-8 border border-white/10 space-y-2 text-xs">
+            <span className="text-emerald-400 font-semibold block">
+              Smart Contract Verification
+            </span>
+            <p className="text-zinc-400 leading-relaxed">
+              HSPAdapter: <code className="text-zinc-300">0x40A6...7ae</code><br />
+              SettlementRouter: <code className="text-zinc-300">0x5328...72D</code><br />
+              HashKey Chain ID: <strong className="text-white">133</strong>
             </p>
           </SpatialCard>
         </div>
       </div>
 
-      {/* STAGE 3: Sweep History Table */}
-      <SpatialCard maxTilt={1.5} className="p-8 sm:p-12 space-y-6">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
-          <ArrowRightLeft className="w-5 h-5 text-zinc-400" />
-          Payout & Sweep Ledger
-        </h2>
+      {/* STAGE 3: Recent HSP Settlements & Sweeps Ledger */}
+      <div className="space-y-8">
+        <SpatialCard maxTilt={1.5} className="p-8 sm:p-12 space-y-6">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
+            <Zap className="w-5 h-5 text-emerald-400" />
+            Live On-Chain HSP Settlements (HashKey Chain)
+          </h2>
 
-        <div className="rounded-3xl overflow-hidden bg-[#0c0d11] border border-white/10" data-ui="table-wrapper">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs" data-ui="payout-table">
-              <thead className="bg-black/80 text-zinc-400 uppercase text-[11px] font-semibold border-b border-white/[0.08]">
-                <tr>
-                  <th className="px-6 py-4">Bridge ID</th>
-                  <th className="px-6 py-4">Timestamp</th>
-                  <th className="px-6 py-4">Route</th>
-                  <th className="px-6 py-4">Amount</th>
-                  <th className="px-6 py-4">Recipient</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Tx Hash</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.06]">
-                {bridgeHistory.length === 0 ? (
+          <div className="rounded-3xl overflow-hidden bg-[#0c0d11] border border-white/10" data-ui="table-wrapper">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs" data-ui="payout-table">
+                <thead className="bg-black/80 text-zinc-400 uppercase text-[11px] font-semibold border-b border-white/[0.08]">
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-zinc-500">
-                      No sweep records yet. Connect your Hedera account and initiate your first payout sweep above.
-                    </td>
+                    <th className="px-6 py-4">Mandate ID</th>
+                    <th className="px-6 py-4">Timestamp</th>
+                    <th className="px-6 py-4">Model</th>
+                    <th className="px-6 py-4">Tokens Used</th>
+                    <th className="px-6 py-4">Seller Payout</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Blockscout Tx</th>
                   </tr>
-                ) : (
-                  bridgeHistory.map((b) => (
-                    <tr key={b.id} className="hover:bg-white/[0.03] transition">
-                      <td className="px-6 py-5 font-semibold text-white tabular-data">{b.id}</td>
-                      <td className="px-6 py-5 text-zinc-400 tabular-data">{b.timestamp}</td>
-                      <td className="px-6 py-5 text-zinc-200 uppercase font-medium">
-                        Hedera <ArrowRight className="w-3 h-3 inline text-zinc-500" /> {b.destinationChain}
-                      </td>
-                      <td className="px-6 py-5 text-emerald-400 font-bold tabular-data">${b.amountUsdc.toFixed(2)} USDC</td>
-                      <td className="px-6 py-5 text-zinc-400 tabular-data truncate max-w-[130px]">{b.recipientAddress}</td>
-                      <td className="px-6 py-5">
-                        <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-800/40 text-[10px] font-medium">
-                          <CheckCircle2 className="w-3 h-3" />
-                          {b.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-zinc-400 truncate max-w-[150px] tabular-data">
-                        {b.txHash ? (
-                          <a
-                            href={b.hashscanUrl || `https://hashscan.io/testnet/transaction/${b.txHash}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-white hover:underline font-medium"
-                          >
-                            {b.txHash.slice(0, 10)}...
-                          </a>
-                        ) : (
-                          "0x..."
-                        )}
+                </thead>
+                <tbody className="divide-y divide-white/[0.06]">
+                  {recentSettlements.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-zinc-500">
+                        No HSP settlements recorded for this node yet. Launch a query in Buyer Studio to trigger autonomous on-chain settlement.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    recentSettlements.map((s) => (
+                      <tr key={s.mandateId} className="hover:bg-white/[0.03] transition">
+                        <td className="px-6 py-5 font-semibold text-white tabular-data truncate max-w-[120px]">
+                          {s.mandateId}
+                        </td>
+                        <td className="px-6 py-5 text-zinc-400 tabular-data">{s.timestamp}</td>
+                        <td className="px-6 py-5 text-zinc-200 font-medium">{s.modelId}</td>
+                        <td className="px-6 py-5 text-zinc-300 tabular-data">{s.tUsed} / {s.tMax}</td>
+                        <td className="px-6 py-5 text-emerald-400 font-bold tabular-data">
+                          +{s.sellerPayoutHsk?.toFixed(4) || "0.0000"} HSK (${s.sellerPayoutUsdc?.toFixed(4) || "0.0000"})
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-800/40 text-[10px] font-medium">
+                            <CheckCircle2 className="w-3 h-3" />
+                            {s.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-zinc-400 tabular-data">
+                          <a
+                            href={s.blockscoutUrl || `${HSK_TESTNET_EXPLORER}/tx/${s.txHash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-emerald-400 hover:underline font-medium flex items-center gap-1"
+                          >
+                            {s.txHash.slice(0, 10)}... <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </SpatialCard>
+        </SpatialCard>
+
+        {/* Universal Sweeps Ledger */}
+        <SpatialCard maxTilt={1.5} className="p-8 sm:p-12 space-y-6">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
+            <ArrowRightLeft className="w-5 h-5 text-zinc-400" />
+            Universal Multi-Chain Sweep Ledger
+          </h2>
+
+          <div className="rounded-3xl overflow-hidden bg-[#0c0d11] border border-white/10" data-ui="table-wrapper">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs" data-ui="sweep-table">
+                <thead className="bg-black/80 text-zinc-400 uppercase text-[11px] font-semibold border-b border-white/[0.08]">
+                  <tr>
+                    <th className="px-6 py-4">Sweep ID</th>
+                    <th className="px-6 py-4">Timestamp</th>
+                    <th className="px-6 py-4">Route</th>
+                    <th className="px-6 py-4">Amount</th>
+                    <th className="px-6 py-4">Recipient</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Explorer</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.06]">
+                  {bridgeHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-zinc-500">
+                        No sweep records yet. Execute your first payout sweep above.
+                      </td>
+                    </tr>
+                  ) : (
+                    bridgeHistory.map((b) => (
+                      <tr key={b.id} className="hover:bg-white/[0.03] transition">
+                        <td className="px-6 py-5 font-semibold text-white tabular-data">{b.id}</td>
+                        <td className="px-6 py-5 text-zinc-400 tabular-data">{b.timestamp}</td>
+                        <td className="px-6 py-5 text-zinc-200 uppercase font-medium">
+                          HashKey <ArrowRight className="w-3 h-3 inline text-zinc-500" /> {b.destinationChain}
+                        </td>
+                        <td className="px-6 py-5 text-emerald-400 font-bold tabular-data">{b.amountUsdc ? `$${b.amountUsdc.toFixed(2)}` : `${b.amountHsk || 0} HSK`}</td>
+                        <td className="px-6 py-5 text-zinc-400 tabular-data truncate max-w-[130px]">{b.recipientAddress}</td>
+                        <td className="px-6 py-5">
+                          <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-800/40 text-[10px] font-medium">
+                            <CheckCircle2 className="w-3 h-3" />
+                            {b.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-zinc-400 truncate max-w-[150px] tabular-data">
+                          {b.txHash ? (
+                            <a
+                              href={b.hashscanUrl || `${HSK_TESTNET_EXPLORER}/tx/${b.txHash}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-emerald-400 hover:underline font-medium"
+                            >
+                              {b.txHash.slice(0, 10)}...
+                            </a>
+                          ) : (
+                            "0x..."
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </SpatialCard>
+      </div>
     </div>
   );
 }

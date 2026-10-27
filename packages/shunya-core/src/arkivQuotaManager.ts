@@ -14,7 +14,8 @@ export interface ArkivSellerListingEntity {
   humanVerified: boolean;
   worldIdNullifier?: string;
   sealedApiKey: string; // Encrypted to Enclave Public Key
-  hedaraPayoutAccount: string;
+  hedaraPayoutAccount?: string;
+  payoutAddress?: string; // EVM Payout Address (defaults to ownerAddress on HashKey Chain)
   createdAtBlock: number;
   expiresAtBlock: number; // 1-hour expiration (~1200 blocks)
   status: "active" | "exhausted" | "expired";

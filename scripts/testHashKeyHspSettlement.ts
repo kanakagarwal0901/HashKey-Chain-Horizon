@@ -52,6 +52,10 @@ async function runHashKeyHspTest() {
   console.log(`  • Explorer: https://testnet-explorer.hsk.xyz/tx/${lockReceipt.hash}`);
   console.log(`  ✔ [PASS] Mandate successfully locked in HSPAdapter on HashKey Chain!`);
 
+  // Wait 2.5s for testnet RPC load-balancer propagation across public nodes
+  console.log(`  Waiting for block propagation across HashKey RPC nodes...`);
+  await new Promise((r) => setTimeout(r, 2500));
+
   console.log(`\n[4/5] Simulating Enclave Execution & Token Accounting...`);
   // Enclave executes: 14,192 actual tokens consumed out of 24,192 reserved
   const tUsed = 14192;

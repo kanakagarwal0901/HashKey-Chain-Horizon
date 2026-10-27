@@ -206,7 +206,7 @@ contract VaultLending {
 
   const settlement = await hederaEngine.settlePayoutAndConsensusLog({
     buyerX402TxId: buyerPaymentTxId,
-    sellerHederaAccountId: activeSeller.hedaraPayoutAccount,
+    sellerHederaAccountId: activeSeller.hedaraPayoutAccount || activeSeller.payoutAddress || activeSeller.ownerAddress || "",
     modelId: requestedModel,
     thinkingLevel: requestedThinking,
     tMaxTokens: bounds.totalMaxTokens,

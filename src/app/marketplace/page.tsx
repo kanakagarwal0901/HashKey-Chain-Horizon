@@ -124,8 +124,8 @@ export default function MarketplacePage() {
             <span className="text-white font-bold text-lg mt-0.5 block tabular-data">{totalVerifiedHumans} Verified</span>
           </div>
           <div className="p-4 sm:p-5 rounded-2xl liquid-glass-interactive">
-            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">Settlement Asset</span>
-            <span className="text-zinc-200 font-bold text-lg mt-0.5 block">Hedera HTS USDC</span>
+            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">Settlement Rail</span>
+            <span className="text-emerald-400 font-bold text-lg mt-0.5 block">HashKey HSP (HSK / USDC)</span>
           </div>
         </div>
       </SpatialCard>

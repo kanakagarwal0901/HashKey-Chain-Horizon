@@ -155,10 +155,14 @@ export async function POST(request: NextRequest) {
       pricePer1kMicroUsdc,
       sealedApiKey,
       hedaraPayoutAccount,
+      sellerPayoutAddress,
+      payoutAddress,
       worldIdProof,
     } = body;
 
-    if (!ownerAddress || !model || !availableTokens || !sealedApiKey || !hedaraPayoutAccount) {
+    const resolvedPayout = (payoutAddress || sellerPayoutAddress || hedaraPayoutAccount || ownerAddress || "").trim();
+
+    if (!ownerAddress || !model || !availableTokens || !sealedApiKey || !resolvedPayout) {
       return NextResponse.json({ error: "Missing mandatory fields" }, { status: 400 });
     }
 
@@ -251,7 +255,7 @@ export async function POST(request: NextRequest) {
       ? ensService.mintSubname({
           label: ensLabel,
           ownerAddress,
-          hedaraPayoutAccount,
+          hedaraPayoutAccount: resolvedPayout,
           supportedModel: model,
         }).subname
       : `${ownerAddress.slice(0, 6).toLowerCase()}.shunyagrid.eth`;
@@ -267,7 +271,8 @@ export async function POST(request: NextRequest) {
       humanVerified,
       worldIdNullifier: nullifier,
       sealedApiKey,
-      hedaraPayoutAccount,
+      hedaraPayoutAccount: resolvedPayout,
+      payoutAddress: resolvedPayout,
     });
 
     return NextResponse.json({

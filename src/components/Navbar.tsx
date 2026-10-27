@@ -30,7 +30,6 @@ export default function Navbar() {
   const {
     walletAddress,
     isAuthenticated,
-    sellerHederaAccount,
     ensName,
     ensAvatar,
     nullifierHash,
@@ -237,15 +236,19 @@ export default function Navbar() {
                       )}
                     </div>
 
-                    {/* Hedera Account (if connected by Seller) */}
-                    {sellerHederaAccount && (
-                      <div className="p-3 rounded-xl bg-black/[0.03] dark:bg-black/50 border border-black/[0.06] dark:border-white/[0.06] text-xs space-y-1">
-                        <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-300">
-                          <span>Hedera Payout:</span>
-                          <span className="text-zinc-900 dark:text-white font-semibold tabular-data truncate max-w-[140px]">{sellerHederaAccount}</span>
-                        </div>
+                    {/* HashKey Chain HSP Node Status */}
+                    <div className="p-3 rounded-xl bg-black/[0.03] dark:bg-black/50 border border-black/[0.06] dark:border-white/[0.06] text-xs space-y-1">
+                      <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-300">
+                        <span>Settlement Rails:</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-ring-emerald" />
+                          HashKey HSP
+                        </span>
                       </div>
-                    )}
+                      <div className="text-[11px] text-zinc-500 truncate" title="HashKey Testnet Chain ID 133">
+                        HashKey Testnet (ID 133)
+                      </div>
+                    </div>
 
                     {/* Navigation Links inside Dropdown */}
                     <div className="space-y-1 pt-1 text-xs">

@@ -24,12 +24,14 @@ interface ArcBridgeDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   availableUsdcEarnings?: number;
+  availableHskEarnings?: number;
   sellerHederaAccountId?: string;
+  sellerNodeAddress?: string;
   onSweepSuccess?: () => void;
   onRefresh?: () => void;
 }
 
-export const SGUSDC_EVM_CONTRACT = "0x0000000000000000000000000000000000a9e4c1"; // Token 0.0.11134145
+export const SGUSDC_EVM_CONTRACT = "0x054ed45810DbBAb8B27668922D110669c9D88D0a"; // HashKey Testnet USDC
 
 interface TokenOption {
   symbol: string;
@@ -40,16 +42,15 @@ interface TokenOption {
 }
 
 const SUPPORTED_TARGET_TOKENS: TokenOption[] = [
+  { symbol: "HSK", name: "HashKey EcoPoints (Native)", decimals: 18, isNative: true, iconBg: "bg-emerald-950 text-emerald-400" },
   { symbol: "USDC", name: "USD Coin", decimals: 6, iconBg: "bg-neutral-800 text-neutral-300" },
-  { symbol: "ETH", name: "Ethereum", decimals: 18, isNative: true, iconBg: "bg-neutral-800 text-neutral-300" },
-  { symbol: "HBAR", name: "Hedera HBAR", decimals: 18, isNative: true, iconBg: "bg-emerald-950 text-emerald-400" },
-  { symbol: "DAI", name: "Dai Stablecoin", decimals: 18, iconBg: "bg-neutral-800 text-neutral-300" },
   { symbol: "USDT", name: "Tether USD", decimals: 6, iconBg: "bg-neutral-800 text-neutral-300" },
-  { symbol: "UNI", name: "Uniswap", decimals: 18, iconBg: "bg-neutral-800 text-neutral-300" },
+  { symbol: "ETH", name: "Ethereum", decimals: 18, isNative: true, iconBg: "bg-neutral-800 text-neutral-300" },
+  { symbol: "DAI", name: "Dai Stablecoin", decimals: 18, iconBg: "bg-neutral-800 text-neutral-300" },
 ];
 
 const SUPPORTED_CHAINS = [
-  { id: "hedera-testnet", name: "Hedera Testnet (EVM)", chainId: 296, hexId: "0x128" },
+  { id: "hashkey-testnet", name: "HashKey Chain Testnet (Chain ID 133)", chainId: 133, hexId: "0x85" },
   { id: "ethereum-sepolia", name: "Ethereum Sepolia", chainId: 11155111, hexId: "0xaa36a7" },
   { id: "arbitrum-sepolia", name: "Arbitrum Sepolia", chainId: 421614, hexId: "0x66eee" },
   { id: "base-sepolia", name: "Base Sepolia", chainId: 84532, hexId: "0x14a34" },
@@ -59,14 +60,18 @@ export default function ArcBridgeDrawer({
   isOpen,
   onClose,
   availableUsdcEarnings = 1.0,
+  availableHskEarnings = 0.5,
   sellerHederaAccountId = "",
+  sellerNodeAddress = "",
   onSweepSuccess,
   onRefresh,
 }: ArcBridgeDrawerProps) {
   const { walletAddress } = useAuth();
-  const [selectedToken, setSelectedToken] = useState<string>("USDC");
-  const [selectedChain, setSelectedChain] = useState<string>("hedera-testnet");
-  const [sourceAccountId, setSourceAccountId] = useState<string>(sellerHederaAccountId || "");
+  const [selectedToken, setSelectedToken] = useState<string>("HSK");
+  const [selectedChain, setSelectedChain] = useState<string>("hashkey-testnet");
+  const [sourceAccountId, setSourceAccountId] = useState<string>(
+    sellerNodeAddress || sellerHederaAccountId || walletAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+  );
   const [sweepAmount, setSweepAmount] = useState<string>(availableUsdcEarnings.toFixed(5));
   const [destinationEvmAddress, setDestinationEvmAddress] = useState<string>(
     walletAddress || "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444"
@@ -210,24 +215,24 @@ export default function ArcBridgeDrawer({
         throw new Error("Invalid recipient address: Must be a connected 42-character Ethereum EVM address (0x...).");
       }
 
-      const cleanSourceAccount = (sourceAccountId || sellerHederaAccountId || "").trim();
-      if (!cleanSourceAccount) {
-        throw new Error("Missing Hedera Account ID: Please manually fill the Hedera Payout Account ID (0.0.xxxxx) to sweep funds from.");
-      }
-      const hederaRegex = /^0\.0\.\d+$/;
-      if (!hederaRegex.test(cleanSourceAccount)) {
-        throw new Error("Invalid Hedera Account ID format: Must be 0.0.xxxxx (e.g. 0.0.11145557).");
-      }
+      const cleanSourceAccount = (
+        sourceAccountId ||
+        sellerNodeAddress ||
+        sellerHederaAccountId ||
+        walletAddress ||
+        "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      ).trim();
 
       const res = await fetch("/api/bridge/cctp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sourceChain: "hedera-testnet",
+          sourceChain: "hashkey-testnet",
           destinationChain: selectedChain,
           sourceAccount: cleanSourceAccount,
           recipientAddress: destinationEvmAddress.trim(),
           amountUsdc: parsedAmount,
+          amountHsk: parsedAmount,
           targetToken: selectedToken,
         }),
       });

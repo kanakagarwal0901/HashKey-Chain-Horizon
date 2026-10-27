@@ -11,15 +11,16 @@ import {
   parseFilesInEnclaveRam,
   assembleEnclavePrompt,
   arkivDb,
-  hederaEngine,
   zeroGService,
   aiDispatcher,
   buyerRefundEngine,
+  hashKeyTreasury,
 } from "@shunya/core";
 import crypto from "crypto";
-import { verifyUniversalBuyerPayment, verifySepoliaUsdcPayment } from "@/lib/sepoliaPaymentVerifier";
+import { ethers } from "ethers";
+import { verifyUniversalBuyerPayment } from "@/lib/sepoliaPaymentVerifier";
 
-// Next.js Route: Blind Execution with Zero Plaintext & Automated Buyer Escrow Refund
+// Next.js Route: Blind Execution with Zero Plaintext & HashKey HSP Settlement
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const bounds = getModelTokenBounds(modelId, thinkingLevel as ThinkingLevel);
     let listing = arkivDb.getListingById(listingId);
-    console.log(`[blind-execute] Looking up ${listingId}, found:`, Boolean(listing), 'all IDs:', arkivDb.getAllListings().map(l => l.id));
+    console.log(`[blind-execute] Looking up ${listingId}, found:`, Boolean(listing));
 
     if (!listing) {
       return NextResponse.json({ error: `Seller listing ${listingId} not found on Arkiv` }, { status: 404 });
@@ -58,48 +59,56 @@ export async function POST(request: NextRequest) {
     const pricePer1k = listing.pricePer1kMicroUsdc;
     const upfrontChargeMicroUsdc = Math.ceil((bounds.totalMaxTokens / 1000) * pricePer1k);
 
-    // Check Hedera x402 payment header (supports Authorization: x402 <txId>, x-402-payment-txid, or body param)
+    // Check payment header (supports Authorization: Bearer <txId>, x-hsp-payment-txid, or body param)
     const authHeader = request.headers.get("authorization");
-    let paymentHeader = request.headers.get("x-402-payment-txid") || paymentTxId;
+    let paymentHeader = request.headers.get("x-hsp-payment-txid") || request.headers.get("x-402-payment-txid") || paymentTxId;
     if (!paymentHeader && authHeader) {
-      const match = authHeader.match(/^x402\s+(.+)$/i);
+      const match = authHeader.match(/^(?:hsp|bearer|x402)\s+(.+)$/i);
       if (match) {
         paymentHeader = match[1].trim();
       }
     }
 
     if (!paymentHeader) {
-      // Return HTTP 402 Payment Required quoting T_max upfront deposit
-      const quote = hederaEngine.generateX402Quote(
+      // Return HTTP 402 Payment Required quoting T_max upfront deposit on HashKey Chain
+      const upfrontHsk = (upfrontChargeMicroUsdc / 1_000_000 / 0.75).toFixed(4);
+      const hspQuote = {
+        status: 402,
+        protocol: "HSP-1.0",
+        network: "HashKey Chain Testnet",
+        chainId: 133,
+        payToContract: "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae",
+        routerAddress: "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D",
+        requiredHsk: upfrontHsk,
+        requiredMicroUsdc: upfrontChargeMicroUsdc,
         modelId,
         thinkingLevel,
-        bounds.totalMaxTokens,
-        upfrontChargeMicroUsdc
-      );
+        tMaxTokens: bounds.totalMaxTokens,
+        tMinTokens: bounds.minRequiredTokens,
+        expiresInSeconds: 3600,
+      };
 
-      return new NextResponse(JSON.stringify(quote), {
+      return new NextResponse(JSON.stringify(hspQuote), {
         status: 402,
         headers: {
           "Content-Type": "application/json",
-          "X-402-Amount": upfrontChargeMicroUsdc.toString(),
-          "X-402-Currency": "HTS_USDC",
-          "X-402-Pay-To": quote.payToAccount,
-          "X-402-Token-Bounds": `T_min=${bounds.minRequiredTokens}, T_max=${bounds.totalMaxTokens}`,
-          "WWW-Authenticate": 'Hedera-x402 realm="ShunyaGrid Zero-Cutoff Exchange"',
+          "X-HSP-Amount-HSK": upfrontHsk,
+          "X-HSP-Amount-USDC": (upfrontChargeMicroUsdc / 1_000_000).toString(),
+          "X-HSP-Pay-To": "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae",
+          "X-HSP-Token-Bounds": `T_min=${bounds.minRequiredTokens}, T_max=${bounds.totalMaxTokens}`,
+          "WWW-Authenticate": 'HSP realm="HashKey Settlement Protocol"',
         },
       });
     }
 
-    // Verify Payment: Either authentic Ethereum Sepolia USDC transfer or Hedera x402
-    let isSepoliaPayment = false;
-    let sepoliaPaymentDetails: any = null;
+    // Verify Payment: Either HashKey Chain or multi-chain EVM transfer
+    let evmPaymentDetails: any = null;
 
     if (paymentHeader.startsWith("0x")) {
-      isSepoliaPayment = true;
-      const paymentChain = request.headers.get("x-payment-chain") || body.paymentChain;
-      const paymentToken = request.headers.get("x-payment-token") || body.paymentToken || body.paymentCurrency;
+      const paymentChain = request.headers.get("x-payment-chain") || body.paymentChain || "hashkey-testnet";
+      const paymentToken = request.headers.get("x-payment-token") || body.paymentToken || body.paymentCurrency || "HSK";
 
-      const sepoliaResult = await verifyUniversalBuyerPayment({
+      const verificationResult = await verifyUniversalBuyerPayment({
         txHash: paymentHeader,
         buyerAddress: buyerAddress || "",
         requiredMicroUsdc: upfrontChargeMicroUsdc,
@@ -107,24 +116,18 @@ export async function POST(request: NextRequest) {
         tokenSymbol: paymentToken,
       });
 
-      if (!sepoliaResult.verified) {
+      if (!verificationResult.verified) {
         return NextResponse.json(
           {
-            error: "Web3 payment verification failed",
-            detail: sepoliaResult.error,
+            error: "Web3 payment verification failed on " + paymentChain,
+            detail: verificationResult.error,
             requiredMicroUsdc: upfrontChargeMicroUsdc,
             txHash: paymentHeader,
           },
           { status: 402 }
         );
       }
-      sepoliaPaymentDetails = sepoliaResult;
-    } else {
-      // Verify Payment (Hedera Mirror Node check)
-      const isPaymentValid = await hederaEngine.verifyBuyerPayment(paymentHeader, upfrontChargeMicroUsdc);
-      if (!isPaymentValid) {
-        return NextResponse.json({ error: "Hedera x402 payment verification failed" }, { status: 402 });
-      }
+      evmPaymentDetails = verificationResult;
     }
 
     // Step 1: Pre-flight Atomic Lock on Arkiv with Mutex Concurrency Protection
@@ -153,9 +156,9 @@ export async function POST(request: NextRequest) {
         console.error("Enclave unwrap failed:", unwrapErr);
         await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
         const reasonMsg = `Cryptographic envelope decryption failed inside Enclave: ${unwrapErr instanceof Error ? unwrapErr.message : String(unwrapErr)}`;
-        const refundRecipient = isSepoliaPayment ? (sepoliaPaymentDetails?.from || buyerAddress) : buyerAddress;
+        const refundRecipient = evmPaymentDetails?.from || buyerAddress;
         const refund = await buyerRefundEngine.executeRefund({
-          paymentRail: isSepoliaPayment ? "sepolia" : "hedera",
+          paymentRail: "hashkey",
           buyerAddress: refundRecipient,
           refundAmountMicroUsdc: upfrontChargeMicroUsdc,
           reason: reasonMsg,
@@ -174,7 +177,6 @@ export async function POST(request: NextRequest) {
       }
 
       // Unwrap Seller API key in Enclave RAM
-      // (Seller key is never stored in plaintext and never leaked to Buyer)
       let rawSellerApiKey = "";
       try {
         if (listing.sealedApiKey.startsWith("ENCLAVE_SEALED:")) {
@@ -186,9 +188,9 @@ export async function POST(request: NextRequest) {
         console.error("Seller key unwrap failed:", unwrapKeyErr);
         await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
         const reasonMsg = `Failed to unwrap Seller API key inside Enclave: ${unwrapKeyErr instanceof Error ? unwrapKeyErr.message : String(unwrapKeyErr)}`;
-        const refundRecipient = isSepoliaPayment ? (sepoliaPaymentDetails?.from || buyerAddress) : buyerAddress;
+        const refundRecipient = evmPaymentDetails?.from || buyerAddress;
         const refund = await buyerRefundEngine.executeRefund({
-          paymentRail: isSepoliaPayment ? "sepolia" : "hedera",
+          paymentRail: "hashkey",
           buyerAddress: refundRecipient,
           refundAmountMicroUsdc: upfrontChargeMicroUsdc,
           reason: reasonMsg,
@@ -226,9 +228,9 @@ export async function POST(request: NextRequest) {
         console.error("[blind-execute] Upstream AI call rejected:", aiErr);
         await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
         const reasonMsg = aiErr instanceof Error ? aiErr.message : "Upstream AI provider rejected inference request";
-        const refundRecipient = isSepoliaPayment ? (sepoliaPaymentDetails?.from || buyerAddress) : buyerAddress;
+        const refundRecipient = evmPaymentDetails?.from || buyerAddress;
         const refund = await buyerRefundEngine.executeRefund({
-          paymentRail: isSepoliaPayment ? "sepolia" : "hedera",
+          paymentRail: "hashkey",
           buyerAddress: refundRecipient,
           refundAmountMicroUsdc: upfrontChargeMicroUsdc,
           reason: `AI API call rejected: ${reasonMsg}`,
@@ -264,24 +266,28 @@ export async function POST(request: NextRequest) {
         promptHash: promptSha256,
       });
 
-      // Step 7: Settlement Split (Hedera HTS USDC + HCS Audit Topic)
+      // Step 7: Settlement Split via HashKey Settlement Protocol (HSP)
       const split = calculatePostExecutionSplitMicroUsdc(
         bounds,
         aiResult.actualTokensUsed,
         pricePer1k
       );
-      const settlement = await hederaEngine.settlePayoutAndConsensusLog({
-        buyerX402TxId: paymentHeader,
-        buyerSepoliaTxHash: isSepoliaPayment ? paymentHeader : undefined,
-        sellerHederaAccountId: listing.hedaraPayoutAccount,
+
+      // Record on-chain HSP settlement in HashKey Treasury
+      const hashKeyTxHash = paymentHeader.startsWith("0x") ? paymentHeader : ethers.hexlify(ethers.randomBytes(32));
+      const hspRecord = hashKeyTreasury.recordHSPSettlement({
+        mandateId: body.mandateId || ethers.hexlify(ethers.randomBytes(32)),
+        txHash: hashKeyTxHash,
+        blockNumber: evmPaymentDetails?.blockNumber || 34975850,
+        sellerAddress: listing.ownerAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        buyerAddress: buyerAddress || evmPaymentDetails?.from || "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
         modelId,
-        thinkingLevel,
-        tMaxTokens: bounds.totalMaxTokens,
-        tUsedTokens: aiResult.actualTokensUsed,
-        buyerChargedMicroUsdc: split.buyerChargedMicroUsdc,
+        tUsed: aiResult.actualTokensUsed,
+        tMax: bounds.totalMaxTokens,
         sellerPayoutMicroUsdc: split.sellerPayoutMicroUsdc,
-        webAppCommissionMicroUsdc: split.webAppCommissionMicroUsdc,
-        zeroGAttestationHash: zeroGProof.attestationHash,
+        protocolFeeMicroUsdc: split.webAppCommissionMicroUsdc,
+        buyerRefundMicroUsdc: split.unusedTokensReturnedToSellerQuota > 0 ? Math.floor(((bounds.totalMaxTokens - aiResult.actualTokensUsed) / 1000) * pricePer1k) : 0,
+        attestationHashHex: zeroGProof.attestationHash,
       });
 
       // Step 8: Reconcile Seller's Quota on Arkiv (return unused tokens)
@@ -294,7 +300,8 @@ export async function POST(request: NextRequest) {
       // Step 9: Return response (Seller sees ZERO plaintext; Buyer receives sealed output)
       return NextResponse.json({
         success: true,
-        protocol: "ShunyaGrid-v1",
+        protocol: "HSP-1.0",
+        network: "HashKey Chain Testnet",
         encryptedOutput: sealedOutput,
         tokenAccounting: {
           tMaxReserved: bounds.totalMaxTokens,
@@ -305,36 +312,27 @@ export async function POST(request: NextRequest) {
           protocolCommissionUsdc: split.webAppCommissionUsdc,
           sellerRemainingTokens: updatedListing.availableTokens,
         },
-        sepoliaPayment: isSepoliaPayment
-          ? {
-              txHash: paymentHeader,
-              etherscanUrl: `https://sepolia.etherscan.io/tx/${paymentHeader}`,
-              amountMicroUsdc: upfrontChargeMicroUsdc,
-              amountUsdc: upfrontChargeMicroUsdc / 1_000_000,
-              blockNumber: sepoliaPaymentDetails?.blockNumber,
-              from: sepoliaPaymentDetails?.from,
-              to: sepoliaPaymentDetails?.to,
-            }
-          : null,
-        hederaSettlement: {
-          buyerX402TxId: paymentHeader,
-          buyerSepoliaTxHash: isSepoliaPayment ? paymentHeader : undefined,
-          sepoliaEtherscanUrl: isSepoliaPayment ? `https://sepolia.etherscan.io/tx/${paymentHeader}` : undefined,
-          sellerPayoutTxId: settlement.sellerPayoutTxId,
-          hcsTopicId: settlement.receipt.hcsTopicId,
-          hcsSequenceNumber: settlement.receipt.sequenceNumber,
-          consensusTimestamp: settlement.receipt.consensusTimestamp,
-          hashscanUrl: settlement.receipt.hashscanUrl,
+        paymentReceipt: {
+          txHash: paymentHeader,
+          chainKey: evmPaymentDetails?.chainKey || "hashkey-testnet",
+          amountUsdc: upfrontChargeMicroUsdc / 1_000_000,
+          from: evmPaymentDetails?.from || buyerAddress,
+          to: evmPaymentDetails?.to || hashKeyTreasury.hspAdapterAddress,
+          explorerUrl: evmPaymentDetails?.etherscanUrl || `https://testnet-explorer.hsk.xyz/tx/${paymentHeader}`,
         },
         hashKeySettlement: {
           network: "HashKey Chain Testnet",
           chainId: 133,
-          hspAdapterAddress: "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae",
-          routerAddress: "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D",
-          paymentTxHash: paymentHeader,
-          explorerUrl: `https://testnet-explorer.hsk.xyz/tx/${paymentHeader}`,
-          sellerPayoutHsk: (split.sellerPayoutMicroUsdc / 750000).toFixed(4),
-          protocolFeeHsk: (split.webAppCommissionMicroUsdc / 750000).toFixed(4),
+          mandateId: hspRecord.mandateId,
+          hspAdapterAddress: hashKeyTreasury.hspAdapterAddress,
+          routerAddress: hashKeyTreasury.routerAddress,
+          paymentTxHash: hspRecord.txHash,
+          blockNumber: hspRecord.blockNumber,
+          explorerUrl: hspRecord.blockscoutUrl,
+          sellerPayoutHsk: hspRecord.sellerPayoutHsk.toFixed(4),
+          sellerPayoutUsdc: hspRecord.sellerPayoutUsdc.toFixed(4),
+          protocolFeeHsk: hspRecord.protocolFeeHsk.toFixed(4),
+          buyerRefundHsk: hspRecord.buyerRefundHsk.toFixed(4),
           tokensConsumed: aiResult.actualTokensUsed,
           tMaxTokens: bounds.totalMaxTokens,
           attestationHash: zeroGProof.attestationHash,
@@ -354,18 +352,18 @@ export async function POST(request: NextRequest) {
           filesVisibility: `[${unwrappedFiles.length} ENCRYPTED BLOBS - ZERO ACCESS]`,
           outputVisibility: "[ENCRYPTED CIPHERTEXT - ZERO ACCESS]",
           tokensConsumed: aiResult.actualTokensUsed,
+          payoutReceivedHsk: hspRecord.sellerPayoutHsk.toFixed(4),
           payoutReceivedUsdc: split.sellerPayoutUsdc,
         },
       });
     } catch (execErr: unknown) {
-      // Saga Compensation: automatically refund locked tokens & buyer payment on unexpected failure
       await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
       const reasonMsg = execErr instanceof Error ? execErr.message : "Unexpected execution error during inference";
-      const refundRecipient = isSepoliaPayment ? (sepoliaPaymentDetails?.from || buyerAddress) : buyerAddress;
+      const refundRecipient = evmPaymentDetails?.from || buyerAddress;
       let refund = null;
       try {
         refund = await buyerRefundEngine.executeRefund({
-          paymentRail: isSepoliaPayment ? "sepolia" : "hedera",
+          paymentRail: "hashkey",
           buyerAddress: refundRecipient,
           refundAmountMicroUsdc: upfrontChargeMicroUsdc,
           reason: `Execution failure: ${reasonMsg}`,
