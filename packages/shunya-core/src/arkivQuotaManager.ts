@@ -80,6 +80,7 @@ export class ArkivDatabaseEngine {
   public reloadFromDisk(): void {
     this.listings.clear();
     this.entityMutexes.clear();
+    this.seedDefaultListings();
     this.loadFromDisk();
   }
 
@@ -89,8 +90,17 @@ export class ArkivDatabaseEngine {
       if (fs.existsSync(this.persistencePath)) {
         const raw = fs.readFileSync(this.persistencePath, "utf8");
         const list: ArkivSellerListingEntity[] = JSON.parse(raw);
-        for (const item of list) {
-          this.listings.set(item.id, item);
+        if (Array.isArray(list)) {
+          this.listings.clear();
+          const seenEns = new Set<string>();
+          for (const item of list) {
+            if (item.ensName) {
+              const key = item.ensName.toLowerCase();
+              if (seenEns.has(key)) continue;
+              seenEns.add(key);
+            }
+            this.listings.set(item.id, item);
+          }
         }
       }
     } catch {}
@@ -146,6 +156,28 @@ export class ArkivDatabaseEngine {
 
   // Create or update a seller listing entity
   public createListing(params: Omit<ArkivSellerListingEntity, "id" | "createdAtBlock" | "expiresAtBlock" | "lockedTokens" | "status">): ArkivSellerListingEntity {
+    this.loadFromDisk();
+
+    // Prevent duplicate entries for the same seller ENS or (owner + model)
+    const existing = Array.from(this.listings.values()).find(
+      (l) =>
+        (params.ensName && l.ensName?.toLowerCase() === params.ensName.toLowerCase()) ||
+        (l.ownerAddress.toLowerCase() === params.ownerAddress.toLowerCase() &&
+          l.model.toLowerCase() === params.model.toLowerCase())
+    );
+
+    if (existing) {
+      Object.assign(existing, {
+        ...params,
+        lockedTokens: 0,
+        createdAtBlock: this.currentBlock,
+        expiresAtBlock: this.currentBlock + 1200,
+        status: "active",
+      });
+      this.saveToDisk();
+      return existing;
+    }
+
     const id = `arkiv_entity_${crypto.randomBytes(6).toString("hex")}`;
     const entity: ArkivSellerListingEntity = {
       ...params,
@@ -162,12 +194,20 @@ export class ArkivDatabaseEngine {
 
   // Query listings matching model and T_max eligibility
   public queryEligibleListings(model: string, requiredTMax: number): ArkivSellerListingEntity[] {
+    this.loadFromDisk();
     const results: ArkivSellerListingEntity[] = [];
+    const seenEns = new Set<string>();
+
     for (const listing of this.listings.values()) {
       if (listing.status !== "active") continue;
       if (this.currentBlock >= listing.expiresAtBlock) continue;
       if (listing.model.toLowerCase() !== model.toLowerCase()) continue;
       if (listing.availableTokens >= requiredTMax) {
+        if (listing.ensName) {
+          const key = listing.ensName.toLowerCase();
+          if (seenEns.has(key)) continue;
+          seenEns.add(key);
+        }
         results.push(listing);
       }
     }
@@ -177,10 +217,22 @@ export class ArkivDatabaseEngine {
 
   // Query all listings for UI
   public getAllListings(): ArkivSellerListingEntity[] {
-    return Array.from(this.listings.values());
+    this.loadFromDisk();
+    const seenEns = new Set<string>();
+    const unique: ArkivSellerListingEntity[] = [];
+    for (const listing of this.listings.values()) {
+      if (listing.ensName) {
+        const key = listing.ensName.toLowerCase();
+        if (seenEns.has(key)) continue;
+        seenEns.add(key);
+      }
+      unique.push(listing);
+    }
+    return unique;
   }
 
   public getListingById(id: string): ArkivSellerListingEntity | undefined {
+    this.loadFromDisk();
     return this.listings.get(id);
   }
 

@@ -29,6 +29,16 @@ export async function GET() {
     console.warn("[arc-discovery] Failed to read disk mirror:", err);
   }
 
+  // Deduplicate active listings by ENS domain
+  const seenEns = new Set<string>();
+  allListings = allListings.filter((l: any) => {
+    if (!l.ensName) return true;
+    const key = l.ensName.toLowerCase();
+    if (seenEns.has(key)) return false;
+    seenEns.add(key);
+    return true;
+  });
+
   const catalogEntries = Object.entries(MODEL_TOKEN_CATALOG);
 
   // Discover pools for each model

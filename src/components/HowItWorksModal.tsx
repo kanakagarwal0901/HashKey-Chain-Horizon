@@ -7,15 +7,8 @@ import {
   Shield,
   Cpu,
   Coins,
-  Lock,
-  Zap,
-  CheckCircle2,
   ArrowRight,
   X,
-  FileText,
-  UserCheck,
-  RefreshCw,
-  Wallet,
 } from "lucide-react";
 
 interface HowItWorksModalProps {
@@ -62,74 +55,74 @@ export default function HowItWorksModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[99999] overflow-y-auto overflow-x-hidden bg-slate-950/85 backdrop-blur-md p-3 sm:p-4 md:p-6 flex items-center justify-center animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] overflow-y-auto overflow-x-hidden bg-black/80 p-3 sm:p-4 md:p-6 flex items-center justify-center animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-2xl my-auto rounded-2xl bg-[#0d111a] border border-slate-700/80 p-5 sm:p-7 shadow-2xl text-slate-200 flex flex-col max-h-[85vh] sm:max-h-[88vh] min-w-0 box-border overflow-hidden"
+        className="relative w-full max-w-2xl my-auto rounded-3xl apple-surface border border-[var(--border-subtle)] p-6 sm:p-8 text-neutral-200 flex flex-col max-h-[85vh] sm:max-h-[88vh] min-w-0 box-border overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute right-3.5 top-3.5 sm:right-5 sm:top-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition z-10"
+          className="absolute right-4 top-4 sm:right-6 sm:top-6 p-2 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800 transition z-10"
           aria-label="Close guide"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Title */}
-        <div className="space-y-1.5 pb-4 border-b border-slate-800 shrink-0 pr-10">
+        <div className="space-y-1.5 pb-4 border-b border-[var(--border-subtle)] shrink-0 pr-10">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-            <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-semibold">
-              Platform Guide
+            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+            <span className="text-xs text-neutral-400 font-medium">
+              Platform guide
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight break-words">
-            How ShunyaGrid Works
+            How ShunyaGrid works
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 break-words leading-relaxed">
+          <p className="text-xs sm:text-sm text-neutral-400 break-words leading-relaxed">
             A peer-to-peer exchange where buyers run private AI reasoning prompts and sellers monetize spare API quotas.
           </p>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2 p-1.5 rounded-xl bg-slate-900 border border-slate-800 my-4 sm:my-5 shrink-0 min-w-0 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 p-1 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] my-4 sm:my-5 shrink-0 min-w-0 w-full">
           <button
             onClick={() => setActiveTab("buyer")}
-            className={`w-full py-2 px-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 min-w-0 ${
+            className={`w-full py-2 px-3 rounded-full text-xs font-semibold transition flex items-center justify-center gap-2 min-w-0 ${
               activeTab === "buyer"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-white text-black font-semibold"
+                : "text-neutral-400 hover:text-white"
             }`}
           >
-            <Cpu className="w-4 h-4 text-cyan-300 shrink-0" />
+            <Cpu className="w-4 h-4 shrink-0" />
             <span className="truncate sm:whitespace-normal">For Buyers (Use AI)</span>
           </button>
           <button
             onClick={() => setActiveTab("seller")}
-            className={`w-full py-2 px-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 min-w-0 ${
+            className={`w-full py-2 px-3 rounded-full text-xs font-semibold transition flex items-center justify-center gap-2 min-w-0 ${
               activeTab === "seller"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-white text-black font-semibold"
+                : "text-neutral-400 hover:text-white"
             }`}
           >
-            <Coins className="w-4 h-4 text-emerald-400 shrink-0" />
+            <Coins className="w-4 h-4 shrink-0" />
             <span className="truncate sm:whitespace-normal">For Sellers (Earn USDC)</span>
           </button>
           <button
             onClick={() => setActiveTab("technology")}
-            className={`w-full py-2 px-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 min-w-0 ${
+            className={`w-full py-2 px-3 rounded-full text-xs font-semibold transition flex items-center justify-center gap-2 min-w-0 ${
               activeTab === "technology"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-white text-black font-semibold"
+                : "text-neutral-400 hover:text-white"
             }`}
           >
-            <Shield className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="truncate sm:whitespace-normal">Why It&apos;s Zero-Cutoff</span>
+            <Shield className="w-4 h-4 shrink-0" />
+            <span className="truncate sm:whitespace-normal">Zero-Cutoff Design</span>
           </button>
         </div>
 
@@ -138,42 +131,30 @@ export default function HowItWorksModal({
           {/* Content Tab 1: Buyer Flow */}
           {activeTab === "buyer" && (
             <div className="space-y-3 min-w-0">
-              {/* Step 1 */}
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 min-w-0 break-words">
-                <div className="flex items-start sm:items-center gap-2 text-cyan-400 font-semibold text-sm min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-xs font-mono shrink-0 mt-0.5 sm:mt-0">
-                    1
-                  </div>
-                  <span className="break-words">Choose Model &amp; Reasoning Depth</span>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed pl-8 break-words">
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
+                  Choose Model and Reasoning Depth
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
                   Select from frontier reasoning models like <strong>Claude 3.7 Sonnet</strong>, <strong>Gemini 2.0 Flash Thinking</strong>, or <strong>o3-mini</strong>. Choose low, medium, or high thinking level based on your task.
                 </p>
               </div>
 
-              {/* Step 2 */}
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 min-w-0 break-words">
-                <div className="flex items-start sm:items-center gap-2 text-indigo-400 font-semibold text-sm min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-indigo-950 border border-indigo-800 flex items-center justify-center text-xs font-mono shrink-0 mt-0.5 sm:mt-0">
-                    2
-                  </div>
-                  <span className="break-words">Write Prompt &amp; Attach Files with Total Privacy</span>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed pl-8 break-words">
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
+                  Write Prompt and Attach Files with Total Privacy
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
                   Your prompt and files (PDFs, code, images, CSVs) are encrypted inside your browser with AES-256-GCM before transmission. <strong>The seller whose key runs the inference can never see your prompt, your files, or your output.</strong>
                 </p>
               </div>
 
-              {/* Step 3 */}
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 min-w-0 break-words">
-                <div className="flex items-start sm:items-center gap-2 text-emerald-400 font-semibold text-sm min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-950 border border-emerald-800 flex items-center justify-center text-xs font-mono shrink-0 mt-0.5 sm:mt-0">
-                    3
-                  </div>
-                  <span className="break-words">Pay-As-You-Go with Zero Monthly Subscriptions</span>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed pl-8 break-words">
-                  Pay small fractions of a cent per prompt in USDC or ETH via MetaMask. You only pay for the exact tokens consumed. Unused upfront reservation is never charged.
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
+                  Pay-As-You-Go with Zero Monthly Subscriptions
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
+                  Pay fractions of a cent per prompt in USDC or ETH via MetaMask. You only pay for the exact tokens consumed. Unused upfront reservation is refunded in the same token.
                 </p>
               </div>
             </div>
@@ -182,41 +163,29 @@ export default function HowItWorksModal({
           {/* Content Tab 2: Seller Flow */}
           {activeTab === "seller" && (
             <div className="space-y-3 min-w-0">
-              {/* Step 1 */}
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 min-w-0 break-words">
-                <div className="flex items-start sm:items-center gap-2 text-emerald-400 font-semibold text-sm min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-950 border border-emerald-800 flex items-center justify-center text-xs font-mono shrink-0 mt-0.5 sm:mt-0">
-                    1
-                  </div>
-                  <span className="break-words">List Spare Model Quotas</span>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed pl-8 break-words">
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
+                  List Spare Model Quotas
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
                   If you have unused Tier-3/Tier-4 API limits on OpenAI, Google, or Anthropic, list your available tokens on the orderbook and set your own rate (e.g. $0.012 per 1k tokens).
                 </p>
               </div>
 
-              {/* Step 2 */}
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 min-w-0 break-words">
-                <div className="flex items-start sm:items-center gap-2 text-indigo-400 font-semibold text-sm min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-indigo-950 border border-indigo-800 flex items-center justify-center text-xs font-mono shrink-0 mt-0.5 sm:mt-0">
-                    2
-                  </div>
-                  <span className="break-words">Hardware Enclave Key Security</span>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed pl-8 break-words">
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
+                  Hardware Enclave Key Security
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
                   Your API key is sealed with RSA-OAEP to the hardware secure enclave. It is decrypted only in isolated enclave RAM during prompt execution and cannot be extracted or stolen by anyone.
                 </p>
               </div>
 
-              {/* Step 3 */}
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 min-w-0 break-words">
-                <div className="flex items-start sm:items-center gap-2 text-amber-400 font-semibold text-sm min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-amber-950 border border-amber-800 flex items-center justify-center text-xs font-mono shrink-0 mt-0.5 sm:mt-0">
-                    3
-                  </div>
-                  <span className="break-words">Instant USDC Earnings &amp; 1-Click Sweep</span>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed pl-8 break-words">
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
+                  Instant USDC Earnings and On-Chain Sweep
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
                   Every time a buyer sends a prompt, you receive instant on-chain USDC directly to your Hedera payout account. Sweep accumulated earnings directly to your connected MetaMask wallet anytime with zero slippage.
                 </p>
               </div>
@@ -226,29 +195,29 @@ export default function HowItWorksModal({
           {/* Content Tab 3: Technology & Zero Cutoff */}
           {activeTab === "technology" && (
             <div className="space-y-3 min-w-0">
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 min-w-0 break-words">
-                <h4 className="text-sm font-semibold text-cyan-400 break-words">
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
                   What is a Mid-Generation Cutoff?
-                </h4>
-                <p className="text-xs text-slate-300 leading-relaxed break-words">
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
                   Reasoning models generate thousands of hidden thinking tokens before delivering answers. On ordinary decentralized networks, if a seller runs out of quota mid-thought, the model stops generating midway, wasting the buyer&apos;s money and giving broken output.
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 min-w-0 break-words">
-                <h4 className="text-sm font-semibold text-indigo-400 break-words">
-                  How ShunyaGrid Prevents Cutoffs: Deterministic Bounds (T_max)
-                </h4>
-                <p className="text-xs text-slate-300 leading-relaxed break-words">
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
+                  Deterministic Bounds (T_max)
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
                   Before a prompt is accepted, ShunyaGrid computes the mathematical upper bound of tokens needed (T_max) for that model and thinking level. If the seller&apos;s available quota is less than T_max, the prompt is safely redirected to another node. <strong>A prompt is never started unless completion is mathematically guaranteed.</strong>
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 min-w-0 break-words">
-                <h4 className="text-sm font-semibold text-emerald-400 break-words">
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
                   Sybil Resistance with World ID
-                </h4>
-                <p className="text-xs text-slate-300 leading-relaxed break-words">
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
                   Both buyers and sellers verify proof-of-personhood using World ID Zero-Knowledge proofs. This eliminates bot farms, orderbook spoofing, and sybil pricing manipulation while preserving 100% user anonymity.
                 </p>
               </div>
@@ -257,14 +226,14 @@ export default function HowItWorksModal({
         </div>
 
         {/* Pinned Action Footer */}
-        <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-3 shrink-0">
-          <div className="text-[11px] text-slate-500 hidden sm:block font-mono">
+        <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-neutral-500 hidden sm:block">
             ShunyaGrid Protocol &bull; Zero-Cutoff Guaranteed
           </div>
           <div className="flex items-center gap-2.5 ml-auto">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              className="btn-secondary-apple px-4 py-2 rounded-full text-xs font-medium"
             >
               Close
             </button>
@@ -272,9 +241,9 @@ export default function HowItWorksModal({
               <Link
                 href="/buyer"
                 onClick={onClose}
-                className="px-4 sm:px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs text-white flex items-center gap-2 transition shadow-sm"
+                className="btn-primary-apple px-4 sm:px-5 py-2 rounded-full font-semibold text-xs flex items-center gap-2"
               >
-                <Cpu className="w-4 h-4 text-cyan-200" />
+                <Cpu className="w-4 h-4" />
                 Go to Buyer Studio
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -283,9 +252,9 @@ export default function HowItWorksModal({
               <Link
                 href="/seller"
                 onClick={onClose}
-                className="px-4 sm:px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold text-xs text-white flex items-center gap-2 transition shadow-sm"
+                className="btn-primary-apple px-4 sm:px-5 py-2 rounded-full font-semibold text-xs flex items-center gap-2"
               >
-                <Coins className="w-4 h-4 text-emerald-200" />
+                <Coins className="w-4 h-4" />
                 Go to Seller Hub
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -294,7 +263,7 @@ export default function HowItWorksModal({
               <Link
                 href="/marketplace"
                 onClick={onClose}
-                className="px-4 sm:px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs text-white flex items-center gap-2 transition shadow-sm"
+                className="btn-primary-apple px-4 sm:px-5 py-2 rounded-full font-semibold text-xs flex items-center gap-2"
               >
                 Explore Live Orderbook
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -307,3 +276,4 @@ export default function HowItWorksModal({
     document.body
   );
 }
+

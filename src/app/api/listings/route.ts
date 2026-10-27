@@ -23,6 +23,11 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const model = searchParams.get("model");
   const tMaxStr = searchParams.get("tMax");
+  const reload = searchParams.get("reload");
+
+  if (reload === "true") {
+    arkivDb.reloadFromDisk();
+  }
 
   if (model && tMaxStr) {
     const tMax = parseInt(tMaxStr, 10);

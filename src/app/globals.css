@@ -3,76 +3,440 @@
 @tailwind utilities;
 
 :root {
-  --background: #06080d;
-  --foreground: #f1f5f9;
+  --background: #fbfbfd;
+  --foreground: #111827;
+  --surface-1: #ffffff;
+  --surface-2: #f4f5f8;
+  --surface-3: #e5e7eb;
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.16);
+  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.65) 50%, rgba(246, 248, 252, 0.8) 100%);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: inset 0 1px 1.5px 0 #ffffff, inset 0 0 20px 0 rgba(255, 255, 255, 0.4), 0 20px 40px -15px rgba(0, 0, 0, 0.05);
+  --glass-hover-border: rgba(0, 0, 0, 0.14);
+  --glass-hover-shadow: inset 0 1px 1.5px 0 #ffffff, 0 24px 48px -12px rgba(0, 0, 0, 0.09);
+  --interactive-glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.55) 50%, rgba(246, 248, 252, 0.72) 100%);
+  --interactive-glass-border: rgba(0, 0, 0, 0.07);
+  --interactive-glass-shadow: inset 0 1px 1px 0 #ffffff, 0 8px 20px -6px rgba(0, 0, 0, 0.04);
+  --interactive-glass-hover-bg: rgba(255, 255, 255, 0.96);
+  --interactive-glass-hover-border: rgba(0, 0, 0, 0.12);
+  --interactive-glass-hover-shadow: inset 0 1px 1.5px 0 #ffffff, 0 16px 32px -8px rgba(0, 0, 0, 0.08);
+  --pill-bg: rgba(255, 255, 255, 0.8);
+  --pill-border: rgba(0, 0, 0, 0.09);
+  --pill-shadow: inset 0 1px 1px 0 #ffffff, 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  --navbar-bg: rgba(251, 251, 253, 0.86);
+  --navbar-border: rgba(0, 0, 0, 0.07);
+  --navbar-shadow: inset 0 -1px 0 0 rgba(0, 0, 0, 0.03), 0 12px 28px -12px rgba(0, 0, 0, 0.04);
+}
+
+.dark {
+  --background: #000000;
+  --foreground: #f4f4f5;
+  --surface-1: #0a0a0c;
+  --surface-2: #121316;
+  --surface-3: #1a1b21;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 45%, rgba(10, 11, 15, 0.75) 100%);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 20px 0 rgba(255, 255, 255, 0.02), 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  --glass-hover-border: rgba(255, 255, 255, 0.24);
+  --glass-hover-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.35), inset 0 0 25px 0 rgba(255, 255, 255, 0.04), 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+  --interactive-glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.015) 50%, rgba(12, 13, 17, 0.65) 100%);
+  --interactive-glass-border: rgba(255, 255, 255, 0.1);
+  --interactive-glass-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.18), 0 12px 28px -10px rgba(0, 0, 0, 0.5);
+  --interactive-glass-hover-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(18, 20, 26, 0.8) 100%);
+  --interactive-glass-hover-border: rgba(255, 255, 255, 0.22);
+  --interactive-glass-hover-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.3), 0 20px 40px -10px rgba(0, 0, 0, 0.7);
+  --pill-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --pill-border: rgba(255, 255, 255, 0.14);
+  --pill-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), 0 8px 20px -4px rgba(0, 0, 0, 0.5);
+  --navbar-bg: rgba(8, 9, 13, 0.78);
+  --navbar-border: rgba(255, 255, 255, 0.1);
+  --navbar-shadow: inset 0 -1px 0 0 rgba(255, 255, 255, 0.06), 0 16px 36px -12px rgba(0, 0, 0, 0.7);
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
   overflow-x: hidden;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Subtle cryptographic background grid */
-.bg-grid-pattern {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 28px 28px;
+/* Precision tabular figures for data and token counters */
+.tabular-data {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
-/* Custom Web3 Scrollbars */
+/* Custom Minimal Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #090c14;
+  background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e2638;
-  border-radius: 4px;
+  background: #d4d4d8;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #a1a1aa;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #27272a;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
 }
 
-/* Cybernetic Glows & Glassmorphism */
-.glass-panel {
-  background: rgba(12, 16, 26, 0.78);
+/* Apple & Nike Precision Surfaces */
+.apple-surface {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+}
+
+.apple-surface-interactive {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.apple-surface-interactive:hover {
+  border-color: var(--border-strong);
+  background-color: var(--surface-2);
+}
+
+/* Machined Primary Button */
+.btn-primary-apple {
+  background-color: #111827;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 9999px;
+  transition: all 0.15s ease;
+}
+.btn-primary-apple:hover {
+  background-color: #1f2937;
+  transform: scale(0.99);
+}
+.dark .btn-primary-apple {
+  background-color: #ffffff;
+  color: #000000;
+}
+.dark .btn-primary-apple:hover {
+  background-color: #e4e4e7;
+}
+
+.btn-secondary-apple {
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  transition: all 0.15s ease;
+}
+.btn-secondary-apple:hover {
+  background-color: #f4f5f8;
+  border-color: var(--border-strong);
+}
+.dark .btn-secondary-apple {
+  background-color: #14151a;
+  color: #f4f4f5;
+  border: 1px solid var(--border-subtle);
+}
+.dark .btn-secondary-apple:hover {
+  background-color: #1c1d24;
+  color: #ffffff;
+}
+
+/* Antigravity Design & Spatial Depth Motion System */
+@keyframes antigravity-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes antigravity-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.antigravity-float {
+  animation: antigravity-float 4.5s ease-in-out infinite;
+}
+
+.antigravity-float-delayed {
+  animation: antigravity-float 5.5s ease-in-out 1.5s infinite;
+}
+
+/* Antigravity Glassmorphic Surfaces with Spatial Depth */
+.antigravity-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease;
+}
+
+.antigravity-glass:hover {
+  transform: translateY(-3px);
+  border-color: var(--glass-hover-border);
+  box-shadow: var(--glass-hover-shadow);
+}
+
+.antigravity-glass-interactive {
+  background: var(--interactive-glass-bg);
   backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--interactive-glass-border);
+  box-shadow: var(--interactive-glass-shadow);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.glass-panel-hover {
+.antigravity-glass-interactive:hover {
+  background: var(--interactive-glass-hover-bg);
+  transform: translateY(-2px);
+  border-color: var(--interactive-glass-hover-border);
+  box-shadow: var(--interactive-glass-hover-shadow);
+}
+
+.antigravity-glass-interactive:hover {
+  background: rgba(20, 22, 28, 0.85);
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+}
+
+/* 3D Perspective Container */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Ambient Radial Glow */
+.antigravity-glow-hero {
+  position: relative;
+}
+.antigravity-glow-hero::before {
+  content: "";
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.005) 40%, transparent 70%);
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: -1;
+}
+.dark .antigravity-glow-hero::before {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 40%, transparent 70%);
+}
+
+/* ==========================================================================
+   LIQUID GLASS DESIGN SYSTEM (Brand Identity)
+   Multi-layer optical refraction, frosted rim lighting, and liquid caustics
+   Adaptive light/dark support with luminous light crystal default.
+   ========================================================================== */
+.liquid-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease, background 0.28s ease;
+}
+
+.liquid-glass:hover {
+  transform: translateY(-3px);
+  border-color: var(--glass-hover-border);
+  box-shadow: var(--glass-hover-shadow);
+}
+
+.liquid-glass-interactive {
+  background: var(--interactive-glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--interactive-glass-border);
+  box-shadow: var(--interactive-glass-shadow);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-interactive:hover {
+  background: var(--interactive-glass-hover-bg);
+  transform: translateY(-2px);
+  border-color: var(--interactive-glass-hover-border);
+  box-shadow: var(--interactive-glass-hover-shadow);
+}
+
+/* Liquid Glass Pill: For badges, status indicators, and segmented controls */
+.liquid-glass-pill {
+  background: var(--pill-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--pill-border);
+  box-shadow: var(--pill-shadow);
+}
+
+/* Liquid Glass Navbar: Frosted crystal top bar with subtle refraction */
+.liquid-glass-navbar {
+  background: var(--navbar-bg);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border-bottom: 1px solid var(--navbar-border);
+  box-shadow: var(--navbar-shadow);
+}
+
+/* Liquid Glass Button: Tactile optical action elements */
+.btn-liquid-glass {
+  background: linear-gradient(180deg, #18181b 0%, #09090b 100%);
+  color: #ffffff;
+  border: 1px solid #18181b;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.12);
+  font-weight: 600;
+  border-radius: 9999px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.glass-panel-hover:hover {
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.15);
+
+.btn-liquid-glass:hover {
+  background: linear-gradient(180deg, #27272a 0%, #18181b 100%);
   transform: translateY(-1px);
 }
 
-.glass-panel-cyan:hover {
-  border-color: rgba(6, 182, 212, 0.4);
-  box-shadow: 0 4px 25px -2px rgba(6, 182, 212, 0.15);
+.dark .btn-liquid-glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.4),
+    0 8px 16px -4px rgba(0, 0, 0, 0.4);
 }
 
-.glass-panel-emerald:hover {
-  border-color: rgba(16, 185, 129, 0.4);
-  box-shadow: 0 4px 25px -2px rgba(16, 185, 129, 0.15);
+.dark .btn-liquid-glass:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.09) 100%);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.5),
+    0 12px 24px -6px rgba(0, 0, 0, 0.6);
 }
 
-.glow-accent {
-  box-shadow: 0 0 35px -5px rgba(99, 102, 241, 0.25);
+.btn-liquid-glass:active {
+  transform: scale(0.98);
 }
 
-.glow-cyan {
-  box-shadow: 0 0 35px -5px rgba(6, 182, 212, 0.25);
+/* Welcoming pulse ring */
+@keyframes antigravity-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(52, 211, 153, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+  }
+}
+.pulse-ring-emerald {
+  animation: antigravity-ring 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.glow-emerald {
-  box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.25);
+/* Light Mode Optical Polish */
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]),
+html:not(.dark) textarea,
+html:not(.dark) select {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #111827;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: #9ca3af;
+}
+
+html:not(.dark) .liquid-glass,
+html:not(.dark) .liquid-glass-interactive {
+  color: #111827;
+}
+
+html:not(.dark) .liquid-glass .text-white,
+html:not(.dark) .liquid-glass-interactive .text-white {
+  color: #09090b;
+}
+
+html:not(.dark) .liquid-glass .text-zinc-100,
+html:not(.dark) .liquid-glass-interactive .text-zinc-100,
+html:not(.dark) .liquid-glass .text-zinc-200,
+html:not(.dark) .liquid-glass-interactive .text-zinc-200 {
+  color: #18181b;
+}
+
+html:not(.dark) .liquid-glass .text-zinc-300,
+html:not(.dark) .liquid-glass-interactive .text-zinc-300,
+html:not(.dark) .liquid-glass .text-zinc-400,
+html:not(.dark) .liquid-glass-interactive .text-zinc-400 {
+  color: #52525b;
+}
+
+html:not(.dark) .liquid-glass .border-white\/10,
+html:not(.dark) .liquid-glass .border-white\/15,
+html:not(.dark) .liquid-glass .border-white\/20,
+html:not(.dark) .liquid-glass .border-white\/\[0\.06\],
+html:not(.dark) .liquid-glass .border-white\/\[0\.08\],
+html:not(.dark) .liquid-glass-interactive .border-white\/10,
+html:not(.dark) .liquid-glass-interactive .border-white\/\[0\.06\] {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+html:not(.dark) .liquid-glass .bg-zinc-900,
+html:not(.dark) .liquid-glass .bg-black,
+html:not(.dark) .liquid-glass .bg-black\/50,
+html:not(.dark) .liquid-glass .bg-black\/60,
+html:not(.dark) .liquid-glass .bg-black\/70,
+html:not(.dark) .liquid-glass .bg-black\/80 {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+html:not(.dark) .btn-primary-apple,
+html:not(.dark) .btn-liquid-glass {
+  color: #ffffff !important;
+}
+
+html:not(.dark) [data-ui="table-wrapper"] thead {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+  color: #52525b !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+html:not(.dark) [data-ui="table-wrapper"] tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+html:not(.dark) [data-ui="table-wrapper"] tbody td {
+  border-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Accessibility: Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  .antigravity-float,
+  .antigravity-float-delayed,
+  .pulse-ring-emerald {
+    animation: none !important;
+  }
+  .antigravity-glass,
+  .antigravity-glass-interactive {
+    transition: none !important;
+    transform: none !important;
+  }
 }

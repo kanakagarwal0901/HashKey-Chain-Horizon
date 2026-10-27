@@ -14,10 +14,12 @@ import {
   hederaEngine,
   zeroGService,
   aiDispatcher,
+  buyerRefundEngine,
 } from "@shunya/core";
 import crypto from "crypto";
 import { verifySepoliaUsdcPayment } from "@/lib/sepoliaPaymentVerifier";
 
+// Next.js Route: Blind Execution with Zero Plaintext & Automated Buyer Escrow Refund
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -31,7 +33,8 @@ export async function POST(request: NextRequest) {
     }
 
     const bounds = getModelTokenBounds(modelId, thinkingLevel as ThinkingLevel);
-    const listing = arkivDb.getListingById(listingId);
+    let listing = arkivDb.getListingById(listingId);
+    console.log(`[blind-execute] Looking up ${listingId}, found:`, Boolean(listing), 'all IDs:', arkivDb.getAllListings().map(l => l.id));
 
     if (!listing) {
       return NextResponse.json({ error: `Seller listing ${listingId} not found on Arkiv` }, { status: 404 });
@@ -144,12 +147,24 @@ export async function POST(request: NextRequest) {
       } catch (unwrapErr: unknown) {
         console.error("Enclave unwrap failed:", unwrapErr);
         await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
+        const reasonMsg = `Cryptographic envelope decryption failed inside Enclave: ${unwrapErr instanceof Error ? unwrapErr.message : String(unwrapErr)}`;
+        const refundRecipient = isSepoliaPayment ? (sepoliaPaymentDetails?.from || buyerAddress) : buyerAddress;
+        const refund = await buyerRefundEngine.executeRefund({
+          paymentRail: isSepoliaPayment ? "sepolia" : "hedera",
+          buyerAddress: refundRecipient,
+          refundAmountMicroUsdc: upfrontChargeMicroUsdc,
+          reason: reasonMsg,
+          originalPaymentTxId: paymentHeader,
+          modelId,
+        });
         return NextResponse.json(
           {
-            error: "Cryptographic envelope decryption failed inside Enclave",
-            detail: unwrapErr instanceof Error ? unwrapErr.message : String(unwrapErr),
+            success: false,
+            error: reasonMsg,
+            refunded: true,
+            refund,
           },
-          { status: 400 }
+          { status: 422 }
         );
       }
 
@@ -165,12 +180,24 @@ export async function POST(request: NextRequest) {
       } catch (unwrapKeyErr: any) {
         console.error("Seller key unwrap failed:", unwrapKeyErr);
         await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
+        const reasonMsg = `Failed to unwrap Seller API key inside Enclave: ${unwrapKeyErr instanceof Error ? unwrapKeyErr.message : String(unwrapKeyErr)}`;
+        const refundRecipient = isSepoliaPayment ? (sepoliaPaymentDetails?.from || buyerAddress) : buyerAddress;
+        const refund = await buyerRefundEngine.executeRefund({
+          paymentRail: isSepoliaPayment ? "sepolia" : "hedera",
+          buyerAddress: refundRecipient,
+          refundAmountMicroUsdc: upfrontChargeMicroUsdc,
+          reason: reasonMsg,
+          originalPaymentTxId: paymentHeader,
+          modelId,
+        });
         return NextResponse.json(
           {
-            error: "Failed to unwrap Seller API key inside Enclave",
-            detail: unwrapKeyErr instanceof Error ? unwrapKeyErr.message : String(unwrapKeyErr),
+            success: false,
+            error: reasonMsg,
+            refunded: true,
+            refund,
           },
-          { status: 500 }
+          { status: 422 }
         );
       }
 
@@ -179,15 +206,41 @@ export async function POST(request: NextRequest) {
       const { fullPromptText, totalFileTokens } = assembleEnclavePrompt(unwrappedPrompt, parsedFiles);
 
       // Step 4: Upstream AI Execution (Enclave isolated call bounded strictly by T_max)
-      const aiResult = await aiDispatcher.executeAiCall({
-        modelId,
-        thinkingLevel: thinkingLevel as ThinkingLevel,
-        bounds,
-        fullPromptText,
-        totalFileTokens,
-        rawApiKey: rawSellerApiKey,
-        parsedFiles,
-      });
+      let aiResult;
+      try {
+        aiResult = await aiDispatcher.executeAiCall({
+          modelId,
+          thinkingLevel: thinkingLevel as ThinkingLevel,
+          bounds,
+          fullPromptText,
+          totalFileTokens,
+          rawApiKey: rawSellerApiKey,
+          parsedFiles,
+        });
+      } catch (aiErr: unknown) {
+        console.error("[blind-execute] Upstream AI call rejected:", aiErr);
+        await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
+        const reasonMsg = aiErr instanceof Error ? aiErr.message : "Upstream AI provider rejected inference request";
+        const refundRecipient = isSepoliaPayment ? (sepoliaPaymentDetails?.from || buyerAddress) : buyerAddress;
+        const refund = await buyerRefundEngine.executeRefund({
+          paymentRail: isSepoliaPayment ? "sepolia" : "hedera",
+          buyerAddress: refundRecipient,
+          refundAmountMicroUsdc: upfrontChargeMicroUsdc,
+          reason: `AI API call rejected: ${reasonMsg}`,
+          originalPaymentTxId: paymentHeader,
+          modelId,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: `API Call Rejected by Upstream Provider: ${reasonMsg}`,
+            detail: reasonMsg,
+            refunded: true,
+            refund,
+          },
+          { status: 422 }
+        );
+      }
 
       // Step 5: Encrypt AI output using Buyer's local K_return key before leaving Enclave RAM
       const sealedOutput = encryptAiOutputWithReturnKey(
@@ -286,9 +339,33 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (execErr: unknown) {
-      // Saga Compensation: automatically refund locked tokens on unexpected failure
+      // Saga Compensation: automatically refund locked tokens & buyer payment on unexpected failure
       await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
-      throw execErr;
+      const reasonMsg = execErr instanceof Error ? execErr.message : "Unexpected execution error during inference";
+      const refundRecipient = isSepoliaPayment ? (sepoliaPaymentDetails?.from || buyerAddress) : buyerAddress;
+      let refund = null;
+      try {
+        refund = await buyerRefundEngine.executeRefund({
+          paymentRail: isSepoliaPayment ? "sepolia" : "hedera",
+          buyerAddress: refundRecipient,
+          refundAmountMicroUsdc: upfrontChargeMicroUsdc,
+          reason: `Execution failure: ${reasonMsg}`,
+          originalPaymentTxId: paymentHeader,
+          modelId,
+        });
+      } catch (refundErr) {
+        console.error("[blind-execute] Failed to execute buyer refund:", refundErr);
+      }
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Inference Execution Error: ${reasonMsg}`,
+          detail: reasonMsg,
+          refunded: Boolean(refund),
+          refund,
+        },
+        { status: 500 }
+      );
     }
   } catch (err: unknown) {
     console.error("Execution error:", err);

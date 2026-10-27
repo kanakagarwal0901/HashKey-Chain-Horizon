@@ -40,12 +40,12 @@ interface TokenOption {
 }
 
 const SUPPORTED_TARGET_TOKENS: TokenOption[] = [
-  { symbol: "USDC", name: "USD Coin", decimals: 6, iconBg: "bg-blue-500/20 text-blue-400" },
-  { symbol: "ETH", name: "Ethereum", decimals: 18, isNative: true, iconBg: "bg-purple-500/20 text-purple-400" },
-  { symbol: "HBAR", name: "Hedera HBAR", decimals: 18, isNative: true, iconBg: "bg-emerald-500/20 text-emerald-400" },
-  { symbol: "DAI", name: "Dai Stablecoin", decimals: 18, iconBg: "bg-amber-500/20 text-amber-400" },
-  { symbol: "USDT", name: "Tether USD", decimals: 6, iconBg: "bg-teal-500/20 text-teal-400" },
-  { symbol: "UNI", name: "Uniswap", decimals: 18, iconBg: "bg-pink-500/20 text-pink-400" },
+  { symbol: "USDC", name: "USD Coin", decimals: 6, iconBg: "bg-neutral-800 text-neutral-300" },
+  { symbol: "ETH", name: "Ethereum", decimals: 18, isNative: true, iconBg: "bg-neutral-800 text-neutral-300" },
+  { symbol: "HBAR", name: "Hedera HBAR", decimals: 18, isNative: true, iconBg: "bg-emerald-950 text-emerald-400" },
+  { symbol: "DAI", name: "Dai Stablecoin", decimals: 18, iconBg: "bg-neutral-800 text-neutral-300" },
+  { symbol: "USDT", name: "Tether USD", decimals: 6, iconBg: "bg-neutral-800 text-neutral-300" },
+  { symbol: "UNI", name: "Uniswap", decimals: 18, iconBg: "bg-neutral-800 text-neutral-300" },
 ];
 
 const SUPPORTED_CHAINS = [
@@ -333,22 +333,22 @@ export default function ArcBridgeDrawer({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-700/80 p-6 shadow-2xl text-slate-200 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 animate-in fade-in duration-200">
+      <div data-ui="dialog" className="relative w-full max-w-lg rounded-3xl apple-surface border border-[var(--border-subtle)] p-6 sm:p-7 shadow-2xl text-neutral-200 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          className="absolute right-4 top-4 p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-3 mb-5">
-          <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+          <div className="p-2.5 rounded-2xl bg-neutral-900 border border-[var(--border-subtle)] text-white">
             <ArrowRightLeft className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">Universal Seller Sweeper & Uniswap Bridge</h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-neutral-400">
               Sweep accumulated Hedera HTS USDC to any token on any chain directly to your connected MetaMask
             </p>
           </div>
@@ -356,16 +356,16 @@ export default function ArcBridgeDrawer({
 
         {bridgeResult ? (
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300">
+            <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-neutral-800 text-emerald-300">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <h4 className="font-semibold text-white">Sweep & Swap Executed Successfully!</h4>
+                <h4 className="font-semibold text-white">Sweep & Swap Executed Successfully</h4>
               </div>
-              <p className="text-xs text-emerald-200/90 leading-relaxed">
-                Swapped <strong className="text-white">${bridgeResult.settledAmount.toFixed(4)} USDC</strong> to{" "}
-                <strong className="text-white font-mono">{bridgeResult.swappedAmount.toFixed(6)} {bridgeResult.swappedToken}</strong>{" "}
-                via <strong className="text-cyan-300">{bridgeResult.dexRouter || "Uniswap V3"}</strong> and delivered directly to your connected MetaMask wallet (
-                <code className="text-emerald-300 font-mono">
+              <p className="text-xs text-neutral-300 leading-relaxed">
+                Swapped <strong className="text-white tabular-data">${bridgeResult.settledAmount.toFixed(4)} USDC</strong> to{" "}
+                <strong className="text-white tabular-data">{bridgeResult.swappedAmount.toFixed(6)} {bridgeResult.swappedToken}</strong>{" "}
+                via <strong className="text-white">{bridgeResult.dexRouter || "Uniswap V3"}</strong> and delivered directly to your connected MetaMask wallet (
+                <code className="text-neutral-300 font-mono">
                   {bridgeResult.recipientAddress.slice(0, 8)}...{bridgeResult.recipientAddress.slice(-6)}
                 </code>
                 ).
@@ -373,47 +373,47 @@ export default function ArcBridgeDrawer({
               </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5 text-xs font-mono">
-              <div className="flex items-center justify-between text-slate-400">
+            <div className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-2.5 text-xs">
+              <div className="flex items-center justify-between text-neutral-400">
                 <span>{bridgeResult.hashscanUrl?.includes("sepolia.etherscan.io") ? "Sepolia Etherscan Tx:" : "On-Chain EVM Tx:"}</span>
                 <a
                   href={bridgeResult.hashscanUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-cyan-400 hover:underline flex items-center gap-1 font-semibold"
+                  className="text-white hover:underline flex items-center gap-1 font-semibold"
                 >
                   {bridgeResult.txId.slice(0, 16)}... <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
 
               {bridgeResult.blockNumber && (
-                <div className="flex items-center justify-between text-slate-400">
+                <div className="flex items-center justify-between text-neutral-400">
                   <span>Confirmed Block:</span>
-                  <span className="text-slate-300">#{bridgeResult.blockNumber}</span>
+                  <span className="text-neutral-200 tabular-data">#{bridgeResult.blockNumber}</span>
                 </div>
               )}
 
               {bridgeResult.hcsSequenceNumber && (
-                <div className="flex items-center justify-between text-slate-400">
+                <div className="flex items-center justify-between text-neutral-400">
                   <span>HCS Consensus Sequence:</span>
-                  <span className="text-indigo-400 font-bold">Seq #{bridgeResult.hcsSequenceNumber}</span>
+                  <span className="text-white font-semibold tabular-data">Seq #{bridgeResult.hcsSequenceNumber}</span>
                 </div>
               )}
 
-              <div className="flex items-center justify-between text-slate-400">
+              <div className="flex items-center justify-between text-neutral-400">
                 <span>DEX Routing & Rate:</span>
-                <span className="text-amber-300">
+                <span className="text-neutral-200 tabular-data">
                   1 USDC ≈ {bridgeResult.dexRate?.toFixed(6)} {bridgeResult.swappedToken}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-slate-400">
+              <div className="flex items-center justify-between text-neutral-400">
                 <span>MetaMask Balance:</span>
                 <span className="text-emerald-400 font-semibold">Updated On-Chain</span>
               </div>
 
               {bridgeResult.hashscanUrl?.includes("sepolia.etherscan.io") && (
-                <div className="p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-[11px] text-indigo-300 font-sans">
+                <div className="p-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs text-neutral-300">
                   Delivered on <strong>Ethereum Sepolia</strong>. In MetaMask, ensure your active network is <strong>Ethereum Sepolia</strong> to see your new balance.
                 </div>
               )}
@@ -424,16 +424,16 @@ export default function ArcBridgeDrawer({
               <button
                 type="button"
                 onClick={handleAddTokenToMetaMask}
-                className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 hover:text-white transition"
+                className="flex items-center justify-center gap-1.5 p-2 rounded-full btn-secondary-apple text-xs"
               >
-                <PlusCircle className="w-3.5 h-3.5 text-indigo-400" />
+                <PlusCircle className="w-3.5 h-3.5 text-neutral-300" />
                 {addedTokenSuccess ? "Added to Wallet!" : "Add Token to MetaMask"}
               </button>
 
               <button
                 type="button"
                 onClick={handleAddHederaNetwork}
-                className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 hover:text-white transition"
+                className="flex items-center justify-center gap-1.5 p-2 rounded-full btn-secondary-apple text-xs"
               >
                 <Network className="w-3.5 h-3.5 text-emerald-400" />
                 {addedNetworkSuccess ? "Added Network!" : "Switch Hedera Network"}
@@ -446,7 +446,7 @@ export default function ArcBridgeDrawer({
                   setBridgeResult(null);
                   onClose();
                 }}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-medium text-white transition"
+                className="btn-primary-apple px-5 py-2 rounded-full text-xs font-semibold"
               >
                 Done
               </button>
@@ -458,8 +458,8 @@ export default function ArcBridgeDrawer({
             <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
               <div>
                 <span className="text-xs text-slate-400">Available Hedera USDC Balance:</span>
-                <div className="text-xl font-bold font-mono text-emerald-400">
-                  ${availableUsdcEarnings.toFixed(5)} <span className="text-xs font-normal text-slate-400">USDC</span>
+                <div className="text-xl font-bold tabular-data text-emerald-400">
+                  ${availableUsdcEarnings.toFixed(5)} <span className="text-xs font-normal text-neutral-400">USDC</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -476,7 +476,7 @@ export default function ArcBridgeDrawer({
                 <button
                   disabled={isZeroBalance}
                   onClick={() => setSweepAmount(currentAvailable > 0 ? currentAvailable.toFixed(5) : "0.00000")}
-                  className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  className="btn-secondary-apple text-xs font-semibold px-3 py-1.5 rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Sweep Max
                 </button>
@@ -486,14 +486,14 @@ export default function ArcBridgeDrawer({
             {/* Hedera Source Payout Account */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs">
-                <label className="font-medium text-slate-300">Hedera Source Payout Account</label>
-                <span className="text-[10px] font-mono text-amber-300">Manual Entry</span>
+                <label className="font-medium text-neutral-300">Hedera Source Payout Account</label>
+                <span className="text-neutral-400">Manual Entry</span>
               </div>
               <input
                 type="text"
                 value={sourceAccountId}
                 onChange={(e) => setSourceAccountId(e.target.value.trim())}
-                className="w-full rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2.5 text-xs text-white font-mono focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] px-4 py-2.5 text-xs text-white focus:border-neutral-400 focus:outline-none"
                 placeholder="0.0.xxxxx (e.g. 0.0.11145557)"
               />
             </div>
@@ -501,8 +501,8 @@ export default function ArcBridgeDrawer({
             {/* Sweep Amount Input */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs">
-                <label className="font-medium text-slate-300">Sweep Amount</label>
-                <span className="text-slate-400 font-mono">
+                <label className="font-medium text-neutral-300">Sweep Amount</label>
+                <span className="text-neutral-400 tabular-data">
                   {sourceAccountId.trim() ? `From: ${sourceAccountId.trim()}` : "From: (Enter ID above)"}
                 </span>
               </div>
@@ -512,25 +512,25 @@ export default function ArcBridgeDrawer({
                   step="0.0001"
                   value={sweepAmount}
                   onChange={(e) => setSweepAmount(e.target.value)}
-                  className={`w-full rounded-xl bg-slate-950 border px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none transition ${
+                  className={`w-full rounded-full bg-[var(--surface-2)] border px-4 py-2.5 text-sm text-white focus:outline-none transition ${
                     isExceedingBalance
                       ? "border-rose-500 text-rose-300 focus:border-rose-400"
                       : isZeroBalance
                       ? "border-amber-500/50 text-amber-300 focus:border-amber-400"
-                      : "border-slate-700 text-white focus:border-indigo-500"
+                      : "border-[var(--border-subtle)] text-white focus:border-neutral-400"
                   }`}
                   placeholder="0.00"
                 />
-                <span className="absolute right-3.5 top-2.5 text-xs font-semibold text-slate-400">USDC</span>
+                <span className="absolute right-4 top-2.5 text-xs font-semibold text-neutral-400">USDC</span>
               </div>
               {isZeroBalance && (
-                <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs flex items-center gap-2 mt-1">
+                <div className="p-2.5 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs flex items-center gap-2 mt-1">
                   <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
                   <span>Current balance is $0.00 USDC. You cannot sweep if your balance is 0.</span>
                 </div>
               )}
               {isExceedingBalance && (
-                <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2 mt-1">
+                <div className="p-2.5 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2 mt-1">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                   <span>Cannot sweep amount greater than the current balance (${currentAvailable.toFixed(5)} USDC).</span>
                 </div>
@@ -539,21 +539,21 @@ export default function ArcBridgeDrawer({
 
             {/* Destination Chain Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-300">Destination Network</label>
+              <label className="text-xs font-medium text-neutral-300">Destination Network</label>
               <div className="grid grid-cols-2 gap-2">
                 {SUPPORTED_CHAINS.map((chain) => (
                   <button
                     key={chain.id}
                     type="button"
                     onClick={() => setSelectedChain(chain.id)}
-                    className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-medium transition ${
+                    className={`flex items-center justify-between p-2.5 rounded-2xl border text-xs font-medium transition ${
                       selectedChain === chain.id
-                        ? "border-indigo-500 bg-indigo-500/10 text-white shadow-sm"
-                        : "border-slate-800 bg-slate-950/60 text-slate-400 hover:text-white"
+                        ? "border-neutral-500 bg-neutral-900 text-white font-semibold"
+                        : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-neutral-400 hover:text-white"
                     }`}
                   >
                     <span>{chain.name}</span>
-                    <span className="text-[10px] font-mono text-slate-500">{chain.chainId}</span>
+                    <span className="text-[10px] text-neutral-500 tabular-data">{chain.chainId}</span>
                   </button>
                 ))}
               </div>
@@ -561,20 +561,20 @@ export default function ArcBridgeDrawer({
 
             {/* Target Token Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-300">Target Token (Swap via Uniswap V3)</label>
+              <label className="text-xs font-medium text-neutral-300">Target Token (Swap via Uniswap V3)</label>
               <div className="grid grid-cols-3 gap-2">
                 {SUPPORTED_TARGET_TOKENS.map((token) => (
                   <button
                     key={token.symbol}
                     type="button"
                     onClick={() => setSelectedToken(token.symbol)}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-medium transition ${
+                    className={`flex items-center gap-2 p-2.5 rounded-2xl border text-xs font-medium transition ${
                       selectedToken === token.symbol
-                        ? "border-indigo-500 bg-indigo-500/10 text-white shadow-sm"
-                        : "border-slate-800 bg-slate-950/60 text-slate-400 hover:text-white"
+                        ? "border-neutral-500 bg-neutral-900 text-white font-semibold"
+                        : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-neutral-400 hover:text-white"
                     }`}
                   >
-                    <span className={`w-2.5 h-2.5 rounded-full ${token.iconBg}`} />
+                    <span className={`w-2 h-2 rounded-full ${token.iconBg}`} />
                     <span className="font-semibold">{token.symbol}</span>
                   </button>
                 ))}
@@ -582,36 +582,36 @@ export default function ArcBridgeDrawer({
             </div>
 
             {/* Live Uniswap Quote Card */}
-            <div className="p-3 rounded-xl bg-indigo-950/30 border border-indigo-500/30 flex items-center justify-between text-xs">
+            <div className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-between text-xs">
               <div className="space-y-0.5">
-                <div className="flex items-center gap-1.5 text-indigo-300 font-semibold">
+                <div className="flex items-center gap-1.5 text-white font-semibold">
                   <TrendingUp className="w-3.5 h-3.5" />
                   <span>Uniswap V3 Quote Preview</span>
                 </div>
-                <div className="text-slate-300">
+                <div className="text-neutral-300">
                   {quotePreview.loading ? (
-                    <span className="flex items-center gap-1 text-slate-400">
+                    <span className="flex items-center gap-1 text-neutral-400">
                       <Loader2 className="w-3 h-3 animate-spin" /> Fetching live rate...
                     </span>
                   ) : (
                     <span>
-                      Receive ≈ <strong className="text-white font-mono">{quotePreview.expectedOut.toFixed(6)} {selectedToken}</strong>
+                      Receive ≈ <strong className="text-white tabular-data">{quotePreview.expectedOut.toFixed(6)} {selectedToken}</strong>
                     </span>
                   )}
                 </div>
               </div>
-              <div className="text-right text-[11px] text-slate-400">
-                <div>Rate: 1 USDC ≈ {quotePreview.rate.toFixed(6)}</div>
-                <div className="text-indigo-400 font-mono">0.3% Pool Tier</div>
+              <div className="text-right text-[11px] text-neutral-400">
+                <div className="tabular-data">Rate: 1 USDC ≈ {quotePreview.rate.toFixed(6)}</div>
+                <div className="text-neutral-300">0.3% Pool Tier</div>
               </div>
             </div>
 
             {/* Connected MetaMask EVM Address */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs">
-                <label className="font-medium text-slate-300">Destination MetaMask EVM Address</label>
+                <label className="font-medium text-neutral-300">Destination MetaMask EVM Address</label>
                 {walletAddress && (
-                  <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
+                  <span className="text-xs text-emerald-400 flex items-center gap-1">
                     <Wallet className="w-3 h-3" /> Connected Wallet
                   </span>
                 )}
@@ -620,16 +620,16 @@ export default function ArcBridgeDrawer({
                 type="text"
                 value={destinationEvmAddress}
                 onChange={(e) => setDestinationEvmAddress(e.target.value)}
-                className="w-full rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2.5 text-xs text-white font-mono focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] px-4 py-2.5 text-xs text-white focus:border-neutral-400 focus:outline-none"
                 placeholder="0x..."
               />
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-neutral-400">
                 Your MetaMask balance updates automatically once the swap transaction confirms on-chain.
               </p>
             </div>
 
             {bridgeError && (
-              <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                 <span>{bridgeError}</span>
               </div>
@@ -639,7 +639,7 @@ export default function ArcBridgeDrawer({
               <button
                 disabled={isBridging || isZeroBalance || isExceedingBalance || isInvalidAmount}
                 onClick={handleSweepEarnings}
-                className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                className="w-full py-3 px-4 rounded-full btn-primary-apple disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold flex items-center justify-center gap-2"
               >
                 {isBridging ? (
                   <>

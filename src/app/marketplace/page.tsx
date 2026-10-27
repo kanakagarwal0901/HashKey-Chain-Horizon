@@ -7,28 +7,21 @@ import {
   Search,
   ExternalLink,
   ShieldCheck,
-  CheckCircle2,
-  Clock,
-  Sparkles,
-  Cpu,
   RefreshCw,
-  Coins,
+  Cpu,
   ArrowRight,
   Database,
-  Lock,
-  Zap,
   Filter,
   Shield,
-  Eye,
-  Check,
 } from "lucide-react";
+import SpatialCard from "@/components/SpatialCard";
+import AntigravityStagger from "@/components/AntigravityStagger";
 
 export default function MarketplacePage() {
   const [pools, setPools] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedProvider, setSelectedProvider] = useState<string>("all");
-  const [expandedPoolKey, setExpandedPoolKey] = useState<string | null>(null);
 
   const fetchDiscovery = async () => {
     setLoading(true);
@@ -67,92 +60,91 @@ export default function MarketplacePage() {
   }, 0);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-8 py-16 sm:py-24 space-y-16 sm:space-y-24 text-zinc-900 dark:text-zinc-100">
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl glass-panel p-6 sm:p-8 border border-slate-800/80 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 shadow-sm">
-                <Database className="w-3.5 h-3.5 text-indigo-400" />
-                Arkiv DB-Chain & Arc Studio Catalog
+      <SpatialCard maxTilt={1.5} className="p-8 sm:p-14 space-y-8">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-300 border border-white/10 flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-zinc-300" />
+                Arkiv DB-Chain Orderbook
               </span>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
+              <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Deterministic Zero-Cutoff Invariants (Q &ge; T_max)
+                Deterministic token bounds (Q &ge; T_max)
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white flex items-center gap-3">
-              <span className="p-2 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 inline-flex">
+            <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white flex items-center gap-3">
+              <span className="p-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-white inline-flex">
                 <Layers className="w-7 h-7" />
               </span>
-              AI API Token Pool Orderbook
+              Token pool orderbook
             </h1>
-            <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-              Explore live peer-to-peer AI token allocations registered as wallet-owned Arkiv entities. Each pool specifies verified thinking budgets and pre-flight T_max guarantees.
+            <p className="text-sm sm:text-base text-zinc-400 max-w-2xl leading-relaxed">
+              Explore live peer-to-peer AI token allocations registered as wallet-owned Arkiv entities. Each pool specifies verified reasoning budgets and mathematical pre-flight T_max guarantees.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 self-start lg:self-center">
+          <div className="flex items-center gap-3.5 self-start lg:self-center">
             <button
               onClick={fetchDiscovery}
               disabled={loading}
-              className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-2 text-xs font-mono shadow-sm"
+              className="btn-secondary-apple px-5 py-2.5 rounded-full flex items-center gap-2 text-xs font-medium"
               title="Refresh orderbook pools"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-cyan-400" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-white" : "text-zinc-400"}`} />
               <span>Refresh</span>
             </button>
             <Link
               href="/buyer"
-              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs font-mono transition flex items-center gap-2 shadow-lg shadow-indigo-600/30"
+              className="btn-primary-apple px-6 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2"
             >
-              <Cpu className="w-4 h-4" />
+              <Cpu className="w-3.5 h-3.5" />
               <span>Launch Studio</span>
             </Link>
           </div>
         </div>
 
         {/* Live Orderbook Network Stats Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 mt-6 border-t border-slate-800/80 text-xs font-mono">
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 shadow-sm">
-            <span className="text-slate-400 block text-[10px] uppercase font-sans">Active Supported Pools</span>
-            <span className="text-white font-bold text-base">{pools.length} Tiers</span>
+        <div data-ui="stats-grid" className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-white/[0.08] text-xs">
+          <div className="p-4 sm:p-5 rounded-2xl liquid-glass-interactive">
+            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">Supported Pools</span>
+            <span className="text-white font-bold text-lg mt-0.5 block tabular-data">{pools.length} Tiers</span>
           </div>
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 shadow-sm">
-            <span className="text-slate-400 block text-[10px] uppercase font-sans">Online Seller Nodes</span>
-            <span className="text-emerald-400 font-bold text-base flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="p-4 sm:p-5 rounded-2xl liquid-glass-interactive">
+            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">Online Seller Nodes</span>
+            <span className="text-emerald-400 font-bold text-lg mt-0.5 flex items-center gap-2 tabular-data">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block pulse-ring-emerald" />
               {totalActiveNodes} Online
             </span>
           </div>
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 shadow-sm">
-            <span className="text-slate-400 block text-[10px] uppercase font-sans">World ID Verified Humans</span>
-            <span className="text-cyan-400 font-bold text-base">{totalVerifiedHumans} Verified</span>
+          <div className="p-4 sm:p-5 rounded-2xl liquid-glass-interactive">
+            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">World ID Humans</span>
+            <span className="text-white font-bold text-lg mt-0.5 block tabular-data">{totalVerifiedHumans} Verified</span>
           </div>
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 shadow-sm">
-            <span className="text-slate-400 block text-[10px] uppercase font-sans">Settlement Asset</span>
-            <span className="text-amber-300 font-bold text-base">Hedera HTS USDC</span>
+          <div className="p-4 sm:p-5 rounded-2xl liquid-glass-interactive">
+            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">Settlement Asset</span>
+            <span className="text-zinc-200 font-bold text-lg mt-0.5 block">Hedera HTS USDC</span>
           </div>
         </div>
-      </div>
+      </SpatialCard>
 
       {/* Filter and Search Bar */}
-      <div className="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800/90 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-lg">
+      <div className="liquid-glass p-5 sm:p-6 rounded-2xl border border-white/10 flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-3 w-4 h-4 text-neutral-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search model, provider, or seller ENS..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition shadow-inner font-mono"
+            className="w-full pl-10 pr-4 py-2.5 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-400 transition"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+          <div className="flex flex-wrap items-center gap-1 p-1 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs">
             {[
               { id: "all", label: "All Providers" },
               { id: "gemini", label: "Google Gemini" },
@@ -163,10 +155,10 @@ export default function MarketplacePage() {
               <button
                 key={prov.id}
                 onClick={() => setSelectedProvider(prov.id)}
-                className={`px-3 py-1.5 rounded-lg transition font-medium ${
+                className={`px-3 py-1.5 rounded-full transition font-medium ${
                   selectedProvider === prov.id
-                    ? "bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-900/40"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-white text-black font-semibold"
+                    : "text-neutral-400 hover:text-white"
                 }`}
               >
                 {prov.label}
@@ -174,58 +166,56 @@ export default function MarketplacePage() {
             ))}
           </div>
 
-          <span className="text-xs font-mono text-slate-400 ml-auto sm:ml-2">
-            Showing <strong className="text-white">{filteredPools.length}</strong> pools ({totalActiveNodes} online)
+          <span className="text-xs text-neutral-400 ml-auto sm:ml-2">
+            Showing <strong className="text-white tabular-data">{filteredPools.length}</strong> pools (<span className="tabular-data">{totalActiveNodes}</span> online)
           </span>
         </div>
       </div>
 
       {/* Catalog Grid */}
       {loading ? (
-        <div className="p-12 text-center text-slate-400 space-y-3 animate-pulse glass-panel rounded-3xl border border-slate-800">
-          <Database className="w-8 h-8 mx-auto text-indigo-400 animate-spin" />
-          <p className="text-xs font-mono">Querying Arkiv decentralized orderbook entities...</p>
+        <div className="p-12 text-center text-neutral-400 space-y-3 apple-surface rounded-3xl border border-[var(--border-subtle)]">
+          <Database className="w-8 h-8 mx-auto text-neutral-300 animate-spin" />
+          <p className="text-xs">Querying Arkiv decentralized orderbook entities...</p>
         </div>
       ) : filteredPools.length === 0 ? (
-        <div className="p-12 text-center text-slate-400 space-y-3 glass-panel rounded-3xl border border-slate-800">
-          <Filter className="w-8 h-8 mx-auto text-slate-500" />
+        <div className="p-12 text-center text-neutral-400 space-y-3 apple-surface rounded-3xl border border-[var(--border-subtle)]">
+          <Filter className="w-8 h-8 mx-auto text-neutral-500" />
           <h3 className="text-base font-bold text-white">No Matching Token Pools Found</h3>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
+          <p className="text-xs text-neutral-400 max-w-md mx-auto">
             Try adjusting your search query or provider filter. You can also publish new seller entities in the Seller Hub.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <AntigravityStagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPools.map((pool) => {
             const hasActiveSellers = pool.availablePoolsCount > 0;
-            const isExpanded = expandedPoolKey === pool.catalogKey;
 
             return (
-              <div
+              <SpatialCard
                 key={pool.catalogKey}
-                className={`rounded-3xl glass-panel border transition flex flex-col justify-between shadow-xl space-y-5 p-6 ${
+                maxTilt={2}
+                className={`rounded-3xl border transition flex flex-col justify-between space-y-5 p-6 hover:-translate-y-1 ${
                   hasActiveSellers
-                    ? "border-emerald-500/40 bg-gradient-to-b from-slate-900/90 to-emerald-950/10"
-                    : "border-slate-800/90 hover:border-slate-700/80"
+                    ? "border-neutral-700 bg-[var(--surface-1)]"
+                    : "border-[var(--border-subtle)] opacity-85"
                 }`}
               >
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold block">
+                      <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold block">
                         {pool.provider === "gemini" ? "Google Gemini" : pool.provider}
                       </span>
                       <h3 className="font-bold text-white text-base mt-0.5">{pool.displayName}</h3>
                     </div>
                     <span
-                      className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border shrink-0 ${
+                      className={`text-[10px] px-2.5 py-0.5 rounded-full border shrink-0 ${
                         pool.thinkingLevel === "high"
-                          ? "bg-purple-500/10 text-purple-300 border-purple-500/30"
+                          ? "bg-neutral-900 text-white border-neutral-700"
                           : pool.thinkingLevel === "medium"
-                          ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
-                          : pool.thinkingLevel === "low"
-                          ? "bg-sky-500/10 text-sky-300 border-sky-500/30"
-                          : "bg-slate-500/10 text-slate-300 border-slate-500/30"
+                          ? "bg-neutral-900 text-neutral-300 border-[var(--border-subtle)]"
+                          : "bg-neutral-900 text-neutral-400 border-[var(--border-subtle)]"
                       }`}
                     >
                       Thinking: {pool.thinkingLevel}
@@ -233,128 +223,128 @@ export default function MarketplacePage() {
                   </div>
 
                   {/* Token Bounds Spec */}
-                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2 text-xs font-mono shadow-inner">
-                    <div className="flex items-center justify-between text-slate-400">
+                  <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-neutral-400">
                       <span>Min Required (T_min):</span>
-                      <span className="text-slate-200">{pool.tMin.toLocaleString()} tokens</span>
+                      <span className="text-neutral-200 tabular-data">{pool.tMin.toLocaleString()} tokens</span>
                     </div>
-                    <div className="flex items-center justify-between text-slate-400">
+                    <div className="flex items-center justify-between text-neutral-400">
                       <span>Input & File Cap:</span>
-                      <span className="text-slate-200">{pool.inputCap.toLocaleString()} tokens</span>
+                      <span className="text-neutral-200 tabular-data">{pool.inputCap.toLocaleString()} tokens</span>
                     </div>
-                    <div className="flex items-center justify-between text-slate-400">
+                    <div className="flex items-center justify-between text-neutral-400">
                       <span>Thinking Budget:</span>
-                      <span className="text-slate-200">{pool.thinkingBudget.toLocaleString()} tokens</span>
+                      <span className="text-neutral-200 tabular-data">{pool.thinkingBudget.toLocaleString()} tokens</span>
                     </div>
-                    <div className="flex items-center justify-between text-cyan-400 font-bold pt-1.5 border-t border-slate-800/80">
+                    <div className="flex items-center justify-between text-white font-semibold pt-1.5 border-t border-[var(--border-subtle)]">
                       <span>Max Guaranteed (T_max):</span>
-                      <span>{pool.tMax.toLocaleString()} tokens</span>
+                      <span className="tabular-data">{pool.tMax.toLocaleString()} tokens</span>
                     </div>
                   </div>
 
                   {/* Upfront Price */}
                   <div className="flex items-center justify-between text-xs px-1">
-                    <span className="text-slate-400">Upfront Escrow Deposit:</span>
-                    <span className="text-emerald-400 font-mono font-bold text-sm">
+                    <span className="text-neutral-400">Upfront Escrow Deposit:</span>
+                    <span className="text-white font-semibold text-sm tabular-data">
                       ${(pool.upfrontBuyerChargeMicroUsdc / 1_000_000).toFixed(6)} USDC
                     </span>
                   </div>
 
                   {/* Active Seller Nodes Section */}
                   {hasActiveSellers ? (
-                    <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-xs font-mono space-y-2.5 shadow-sm">
+                    <div className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-neutral-800 text-xs space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          {pool.availablePoolsCount} Active Node{pool.availablePoolsCount === 1 ? "" : "s"} Online
+                        <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                          <span className="tabular-data">{pool.availablePoolsCount}</span> Active Node{pool.availablePoolsCount === 1 ? "" : "s"} Online
                         </span>
-                        <span className="text-[10px] text-emerald-300 font-bold">
+                        <span className="text-[11px] text-neutral-300 font-medium tabular-data">
                           ${(pool.cheapestRatePer1kMicroUsdc / 1_000_000).toFixed(4)}/1k
                         </span>
                       </div>
 
                       {/* Listed Seller Node Badges */}
-                      <div className="space-y-1.5 pt-1.5 border-t border-emerald-900/50">
+                      <div className="space-y-1.5 pt-1.5 border-t border-[var(--border-subtle)]">
                         {pool.activeSellers.slice(0, 3).map((seller: any, sIdx: number) => (
                           <div
                             key={sIdx}
-                            className="flex items-center justify-between text-[11px] text-slate-300 bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-slate-800/80"
+                            className="flex items-center justify-between text-[11px] text-neutral-300 bg-neutral-900 px-2.5 py-1.5 rounded-xl border border-[var(--border-subtle)]"
                           >
                             <div className="flex items-center gap-1.5 truncate">
-                              <span className="text-slate-200 font-bold truncate max-w-[130px]" title={seller.ensName}>
+                              <span className="text-white font-medium truncate max-w-[130px]" title={seller.ensName}>
                                 {seller.ensName}
                               </span>
                               {seller.humanVerified && (
-                                <span className="text-[9px] text-cyan-400 bg-cyan-950/80 px-1 py-0.2 rounded border border-cyan-800/50 flex items-center gap-0.5">
-                                  <Shield className="w-2.5 h-2.5" /> ID
+                                <span className="text-[9px] text-white bg-neutral-800 px-1 py-0.2 rounded border border-neutral-700 flex items-center gap-0.5">
+                                  <Shield className="w-2.5 h-2.5 text-neutral-300" /> ID
                                 </span>
                               )}
                             </div>
-                            <span className="text-emerald-300 text-[10px] font-mono shrink-0">
+                            <span className="text-neutral-400 text-[10px] tabular-data shrink-0">
                               {seller.availableTokens.toLocaleString()} tok
                             </span>
                           </div>
                         ))}
                         {pool.activeSellers.length > 3 && (
-                          <span className="text-[10px] text-slate-400 block text-right pt-0.5">
+                          <span className="text-[10px] text-neutral-400 block text-right pt-0.5 tabular-data">
                             +{pool.activeSellers.length - 3} more verified nodes
                           </span>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/90 text-xs font-mono flex items-center justify-between text-slate-400">
+                    <div className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs flex items-center justify-between text-neutral-400">
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-slate-600" />
+                        <span className="w-2 h-2 rounded-full bg-neutral-600 inline-block" />
                         <span>0 active nodes online</span>
                       </div>
-                      <Link href="/seller" className="text-cyan-400 hover:underline text-[11px] font-bold">
+                      <Link href="/seller" className="text-white hover:underline text-[11px] font-semibold">
                         List Quota &rarr;
                       </Link>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                  <div className="text-xs text-slate-400 font-mono">
+                <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
+                  <div className="text-xs text-neutral-400">
                     {hasActiveSellers ? (
-                      <span className="text-emerald-400 font-bold">Ready to Prompt</span>
+                      <span className="text-emerald-400 font-medium">Ready to Prompt</span>
                     ) : (
-                      <span className="text-slate-500">Unfulfilled</span>
+                      <span className="text-neutral-500">Unfulfilled</span>
                     )}
                   </div>
                   <Link
                     href={`/buyer?model=${pool.modelId}&thinking=${pool.thinkingLevel}`}
-                    className={`px-4 py-2 rounded-xl text-xs font-medium text-white transition flex items-center gap-1.5 shadow-sm ${
+                    className={`px-4 py-2 rounded-full text-xs font-semibold transition flex items-center gap-1.5 ${
                       hasActiveSellers
-                        ? "bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 font-bold shadow-emerald-950/50"
-                        : "bg-slate-800 hover:bg-slate-700"
+                        ? "btn-primary-apple"
+                        : "btn-secondary-apple"
                     }`}
                   >
                     <span>Select Pool</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-cyan-200" />
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
-              </div>
+              </SpatialCard>
             );
           })}
-        </div>
+        </AntigravityStagger>
       )}
 
       {/* Arc Studio & Discovery Schema Footnote */}
-      <div className="p-4 sm:p-5 rounded-2xl glass-panel border border-slate-800/90 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 shadow-md">
+      <div className="p-4 sm:p-5 rounded-2xl apple-surface border border-[var(--border-subtle)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-400">
         <div className="flex items-center gap-2">
-          <Database className="w-4 h-4 text-indigo-400 shrink-0" />
+          <Database className="w-4 h-4 text-neutral-300 shrink-0" />
           <span>
             Discoverable by autonomous Arc Consumer Agents via{" "}
-            <code className="text-cyan-400 font-mono text-[11px]">GET /api/arc-discovery</code>
+            <code className="text-white bg-neutral-900 px-2 py-0.5 rounded border border-[var(--border-subtle)] font-mono text-[11px]">GET /api/arc-discovery</code>
           </span>
         </div>
         <a
           href={process.env.NEXT_PUBLIC_ARC_STUDIO_PROJECT_URL || "https://studio.arc.com/projects/shunyagrid-mumbai"}
           target="_blank"
           rel="noreferrer"
-          className="text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-1 font-mono font-semibold"
+          className="text-white hover:text-neutral-300 hover:underline flex items-center gap-1 font-medium"
         >
           Arc Studio Genesis Project <ExternalLink className="w-3 h-3" />
         </a>
@@ -362,3 +352,4 @@ export default function MarketplacePage() {
     </div>
   );
 }
+

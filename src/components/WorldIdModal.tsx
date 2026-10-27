@@ -38,7 +38,7 @@ export default function WorldIdModal({
   } = useAuth();
 
   // Tab: "official" (simulator.worldcoin.org) vs "local" (Embedded Semaphore Simulator)
-  const [activeTab, setActiveTab] = useState<"official" | "local">("official");
+  const [activeTab, setActiveTab] = useState<"official" | "local">("local");
 
   // Official Simulator state
   const [appId, setAppId] = useState<string>("app_9c7005e230a8dc3eced53aaa2b78a17f");
@@ -308,28 +308,25 @@ export default function WorldIdModal({
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="glass-panel w-full max-w-lg p-6 sm:p-7 rounded-3xl border border-indigo-500/40 shadow-2xl space-y-5 relative overflow-hidden">
-        {/* Ambient Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-24 bg-indigo-500/15 blur-2xl pointer-events-none rounded-full" />
-
+    <div className="fixed inset-0 z-[99999] bg-black/85 flex items-center justify-center p-4">
+      <div className="apple-surface w-full max-w-lg p-6 sm:p-7 rounded-3xl border border-[var(--border-subtle)] space-y-5 relative overflow-hidden">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+          className="absolute top-4 right-4 text-neutral-400 hover:text-white transition"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center gap-3 border-b border-slate-800 pb-3 relative z-10">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold">
-            <UserCheck className="w-6 h-6" />
+        <div className="flex items-center gap-3 border-b border-[var(--border-subtle)] pb-3">
+          <div className="w-10 h-10 rounded-full bg-neutral-900 border border-[var(--border-subtle)] flex items-center justify-center text-white font-bold">
+            <UserCheck className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-lg font-bold text-white">World ID Proof of Human</h3>
-            <p className="text-xs text-slate-400">Zero-Knowledge Sybil-Resistant Onboarding</p>
+            <p className="text-xs text-neutral-400">Zero-Knowledge Sybil-Resistant Onboarding</p>
           </div>
         </div>
 
@@ -350,9 +347,9 @@ export default function WorldIdModal({
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between px-3.5 py-1.5 rounded-xl bg-slate-950/90 border border-slate-800 text-[11px] font-mono text-slate-400 relative z-10">
+          <div className="flex items-center justify-between px-3.5 py-1.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs text-neutral-400">
             <span>Linked Web3 Identity:</span>
-            <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+            <span className="text-emerald-400 font-semibold flex items-center gap-1.5 tabular-data">
               <Check className="w-3.5 h-3.5" />
               {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
             </span>
@@ -360,112 +357,45 @@ export default function WorldIdModal({
         )}
 
         {/* Tab Switcher */}
-        <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-950 border border-slate-800 relative z-10 text-xs font-mono">
-          <button
-            type="button"
-            onClick={() => setActiveTab("official")}
-            className={`py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-2 ${
-              activeTab === "official"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            Official World App / Staging
-          </button>
+        <div className="grid grid-cols-2 p-1 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs">
           <button
             type="button"
             onClick={() => setActiveTab("local")}
-            className={`py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-2 ${
+            className={`py-2 px-3 rounded-full font-semibold transition flex items-center justify-center gap-2 ${
               activeTab === "local"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                : "text-slate-400 hover:text-white"
+                ? "bg-white text-black font-semibold"
+                : "text-neutral-400 hover:text-white"
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            ZK Proof Sandbox (Instant)
+            Instant ZK Proof (Sandbox)
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("official")}
+            className={`py-2 px-3 rounded-full font-semibold transition flex items-center justify-center gap-2 ${
+              activeTab === "official"
+                ? "bg-white text-black font-semibold"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            World App / Simulator
           </button>
         </div>
 
         {/* TAB 1: OFFICIAL WORLDCOIN SIMULATOR */}
         {activeTab === "official" && (
-          <div className="space-y-4 text-xs text-slate-300 relative z-10">
-            {/* Developer Portal Notice */}
-            <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 space-y-1.5 text-[11px]">
-              <div className="flex items-center justify-between text-indigo-300 font-bold">
-                <span className="flex items-center gap-1.5">
-                  <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
-                  Why did simulator say &quot;app is not registered&quot;?
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowAppIdSettings(!showAppIdSettings)}
-                  className="text-cyan-400 hover:underline"
-                >
-                  {showAppIdSettings ? "Hide" : "Set App ID"}
-                </button>
-              </div>
-              <p className="text-slate-300 leading-relaxed font-sans">
-                Worldcoin&apos;s cloud simulator (<code className="text-indigo-300 font-mono">simulator.worldcoin.org</code>) verifies that your App ID is created on the free{" "}
-                <a
-                  href="https://developer.world.org"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-cyan-400 font-bold hover:underline inline-flex items-center gap-0.5"
-                >
-                  World Developer Portal <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-                .
-              </p>
-
-              {showAppIdSettings && (
-                <div className="pt-2 border-t border-slate-800 space-y-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-mono text-slate-400 block uppercase">
-                        App ID:
-                      </label>
-                      <input
-                        type="text"
-                        value={appId}
-                        onChange={(e) => setAppId(e.target.value)}
-                        placeholder="app_..."
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-mono text-slate-400 block uppercase">
-                        Action Name:
-                      </label>
-                      <input
-                        type="text"
-                        value={actionName}
-                        onChange={(e) => setActionName(e.target.value)}
-                        placeholder="shunyagrid-gate"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveConfig(appId, actionName)}
-                    className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold transition"
-                  >
-                    Save &amp; Reconnect Bridge
-                  </button>
-                </div>
-              )}
-            </div>
-
+          <div className="space-y-4 text-xs text-neutral-300">
             {/* QR Code Container */}
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center justify-center space-y-2 text-center">
+            <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex flex-col items-center justify-center space-y-2 text-center">
               {isLoadingSession ? (
-                <div className="w-36 h-36 flex flex-col items-center justify-center space-y-2 text-slate-400">
-                  <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
-                  <span className="text-[10px] font-mono">Connecting to Worldcoin Bridge...</span>
+                <div className="w-36 h-36 flex flex-col items-center justify-center space-y-2 text-neutral-400">
+                  <Loader2 className="w-8 h-8 animate-spin text-white" />
+                  <span className="text-xs">Connecting to Worldcoin Bridge...</span>
                 </div>
               ) : qrDataUrl ? (
-                <div className="p-2 bg-white rounded-2xl shadow-md">
+                <div className="p-2 bg-white rounded-2xl">
                   <img
                     src={qrDataUrl}
                     alt="Live World App QR Code"
@@ -475,13 +405,13 @@ export default function WorldIdModal({
               ) : (
                 <div className="w-36 h-36 flex flex-col items-center justify-center text-red-400 text-center p-2">
                   <AlertCircle className="w-8 h-8 mb-1" />
-                  <span className="text-[10px] font-mono">{errorMessage || "Error loading session"}</span>
+                  <span className="text-xs">{errorMessage || "Error loading session"}</span>
                 </div>
               )}
 
               <div className="space-y-0.5">
-                <span className="text-[11px] font-bold text-white block">Scan with World App or Open Simulator</span>
-                <span className="text-[9px] text-slate-500 font-mono">
+                <span className="text-xs font-semibold text-white block">Scan with World App or Open Simulator</span>
+                <span className="text-[11px] text-neutral-500 font-mono">
                   App: {appId} &bull; Action: shunyagrid-gate
                 </span>
               </div>
@@ -489,22 +419,22 @@ export default function WorldIdModal({
 
             {/* Live Polling Status */}
             <div
-              className={`p-2.5 rounded-xl border text-xs font-mono transition flex items-center gap-2.5 ${
+              className={`p-2.5 rounded-2xl border text-xs transition flex items-center gap-2.5 ${
                 verifiedSuccess
-                  ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-300"
+                  ? "bg-neutral-900 border-emerald-500/50 text-emerald-300"
                   : pollStatus === "awaiting_confirmation"
-                  ? "bg-cyan-950/70 border-cyan-500/40 text-cyan-300"
-                  : "bg-slate-900/90 border-slate-800 text-slate-300"
+                  ? "bg-neutral-900 border-neutral-700 text-neutral-300"
+                  : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-neutral-300"
               }`}
             >
               {verifiedSuccess ? (
-                <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 animate-bounce" />
+                <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               ) : pollStatus === "awaiting_confirmation" ? (
-                <Loader2 className="w-4 h-4 text-cyan-400 animate-spin flex-shrink-0" />
+                <Loader2 className="w-4 h-4 text-white animate-spin flex-shrink-0" />
               ) : (
-                <Radio className="w-4 h-4 text-indigo-400 animate-pulse flex-shrink-0" />
+                <Radio className="w-4 h-4 text-neutral-400 flex-shrink-0" />
               )}
-              <span className="text-[11px] leading-snug">{statusMessage}</span>
+              <span className="text-xs leading-snug">{statusMessage}</span>
             </div>
 
             {/* Error Banner */}
@@ -535,7 +465,7 @@ export default function WorldIdModal({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={handleOpenSimulatorClick}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs font-mono shadow-md flex items-center justify-center gap-2 transition"
+                  className="w-full py-2.5 px-4 rounded-full btn-primary-apple text-xs font-semibold flex items-center justify-center gap-2"
                 >
                   <ExternalLink className="w-4 h-4" />
                   {hasOpenedSimulator ? "Return to Simulator Tab" : "Open in Worldcoin Simulator"}
@@ -543,19 +473,16 @@ export default function WorldIdModal({
               )}
 
               {hasOpenedSimulator && (
-                <div className="p-3 rounded-xl bg-indigo-950/70 border border-indigo-500/40 space-y-1.5 text-[11px] font-mono">
-                  <div className="flex items-center justify-between text-indigo-300 font-bold">
+                <div className="p-3 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-white font-semibold">
                     <span className="flex items-center gap-1.5">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
-                      </span>
-                      Simulator Active in Other Tab
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                      Simulator active in other tab
                     </span>
-                    <span className="text-cyan-400">Auto-Detecting...</span>
+                    <span className="text-neutral-400">Detecting proof...</span>
                   </div>
-                  <p className="text-slate-300 text-[10px] font-sans">
-                    Once verified in the simulator, ShunyaGrid detects your proof and unlocks automatically.
+                  <p className="text-neutral-400 text-xs">
+                    Once verified in the simulator, ShunyaGrid detects your proof and authenticates automatically.
                   </p>
                 </div>
               )}
@@ -564,87 +491,129 @@ export default function WorldIdModal({
                 <button
                   type="button"
                   onClick={copySimulatorLink}
-                  className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-center font-mono text-xs flex items-center justify-center gap-1.5 transition"
+                  className="w-full py-2 px-3 rounded-full btn-secondary-apple text-center text-xs flex items-center justify-center gap-1.5"
                 >
                   {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{isCopied ? "Link Copied to Clipboard!" : "Copy Simulator URI"}</span>
                 </button>
               )}
 
-              {/* Live Bridge Auto-Unlock Listener */}
-              <div className="pt-3 border-t border-slate-800 space-y-2">
-                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
-                    </span>
-                    <span className="text-[11px] font-mono text-slate-300">
+              {/* Live Bridge Auto-Authenticate Listener */}
+              <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2">
+                <div className="p-3 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                    <span className="text-xs text-neutral-300">
                       Live Bridge Listener Active
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/40">
-                    Auto-Unlocking
+                  <span className="text-[10px] text-emerald-400 bg-neutral-900 px-2 py-0.5 rounded border border-[var(--border-subtle)]">
+                    Auto-Authenticating
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 font-mono text-center leading-normal">
-                  Approving in the Worldcoin Simulator automatically relays the ZK-SNARK proof and unlocks the platform instantly.
+                <p className="text-xs text-neutral-400 text-center leading-normal">
+                  Approving in the Worldcoin Simulator automatically relays the ZK-SNARK proof and completes verification.
                 </p>
               </div>
+
+              {/* Optional Developer Settings Disclosure */}
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowAppIdSettings(!showAppIdSettings)}
+                  className="text-[11px] text-neutral-500 hover:text-neutral-300 transition"
+                >
+                  {showAppIdSettings ? "Hide developer configuration" : "Developer configuration (custom App ID)"}
+                </button>
+              </div>
+
+              {showAppIdSettings && (
+                <div className="p-3 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-2 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-neutral-400 block uppercase">
+                        App ID:
+                      </label>
+                      <input
+                        type="text"
+                        value={appId}
+                        onChange={(e) => setAppId(e.target.value)}
+                        placeholder="app_..."
+                        className="w-full bg-neutral-900 border border-[var(--border-subtle)] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-neutral-400 block uppercase">
+                        Action Name:
+                      </label>
+                      <input
+                        type="text"
+                        value={actionName}
+                        onChange={(e) => setActionName(e.target.value)}
+                        placeholder="shunyagrid-gate"
+                        className="w-full bg-neutral-900 border border-[var(--border-subtle)] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveConfig(appId, actionName)}
+                    className="w-full py-1.5 rounded-full btn-secondary-apple text-xs font-semibold"
+                  >
+                    Save &amp; Reconnect Bridge
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* TAB 2: BUILT-IN LOCAL SIMULATOR (ZERO EXTERNAL SETUP) */}
         {activeTab === "local" && (
-          <div className="space-y-4 text-xs text-slate-300 relative z-10">
-            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="font-mono text-xs font-bold text-white flex items-center gap-1.5">
-                  <Smartphone className="w-4 h-4 text-cyan-400" />
-                  Virtual World App Hardware Sandbox
+          <div className="space-y-4 text-xs text-neutral-300">
+            <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-3">
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-neutral-300" />
+                  Semaphore ZK-SNARK Sandbox
                 </span>
-                <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/40 font-mono text-[10px]">
+                <span className="px-2 py-0.5 rounded-full bg-neutral-900 text-emerald-400 border border-neutral-700 text-[10px] font-medium">
                   Orb Level 2 Verified
                 </span>
               </div>
 
               {/* Virtual Identity Credentials */}
-              <div className="space-y-2 font-mono text-[11px]">
-                <div className="flex justify-between text-slate-400">
-                  <span>Identity Merkle Leaf:</span>
-                  <span className="text-slate-200">0x1b9204...948201</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Target Action:</span>
-                  <span className="text-indigo-400 font-bold">shunyagrid-gate</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between text-neutral-400">
                   <span>External Signal:</span>
-                  <span className="text-cyan-400 truncate max-w-[180px]">
+                  <span className="text-white font-medium tabular-data truncate max-w-[200px]">
                     {walletAddress || "0xAnonymousUser"}
                   </span>
                 </div>
-                <div className="flex justify-between text-slate-400 border-t border-slate-800/80 pt-2">
+                <div className="flex justify-between text-neutral-400">
+                  <span>Target Action:</span>
+                  <span className="text-white font-medium">shunyagrid-gate</span>
+                </div>
+                <div className="flex justify-between text-neutral-400 border-t border-[var(--border-subtle)] pt-2">
                   <span>Zero-Knowledge Circuit:</span>
-                  <span className="text-emerald-400">Semaphore Groth16 (Poseidon)</span>
+                  <span className="text-emerald-400 font-medium">Semaphore Groth16 (Poseidon)</span>
                 </div>
               </div>
             </div>
 
             {/* Status Feedback */}
             {localStep === "computing" ? (
-              <div className="p-3 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-mono text-xs flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+              <div className="p-3 rounded-2xl bg-neutral-900 border border-neutral-700 text-neutral-300 text-xs flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
                 <span>Computing Groth16 ZK-SNARK & Poseidon Nullifier Hash...</span>
               </div>
             ) : localStep === "verified" ? (
-              <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-mono text-xs flex items-center gap-2">
+              <div className="p-3 rounded-2xl bg-neutral-900 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Human Verified! Authentic ZK Proof generated and accepted.</span>
+                <span>Human Verified. Authentic ZK Proof generated and accepted.</span>
               </div>
             ) : (
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-400 font-mono text-[11px] leading-relaxed">
+              <div className="p-3 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-neutral-400 text-xs leading-relaxed">
                 Clicking Approve runs the Semaphore Groth16 ZK-SNARK computation directly for your connected wallet, registering an Orb Level 2 nullifier hash.
               </div>
             )}
@@ -654,17 +623,17 @@ export default function WorldIdModal({
               type="button"
               disabled={isLocalSimulating || localStep === "verified"}
               onClick={handleApproveLocalSimulator}
-              className={`w-full py-3.5 px-4 rounded-xl font-bold text-xs font-mono transition flex items-center justify-center gap-2 shadow-lg ${
+              className={`w-full py-3 px-4 rounded-full text-xs font-semibold flex items-center justify-center gap-2 ${
                 isLocalSimulating || localStep === "verified"
-                  ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white shadow-emerald-600/30"
+                  ? "bg-neutral-900 text-neutral-600 border border-[var(--border-subtle)] cursor-not-allowed"
+                  : "btn-primary-apple"
               }`}
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-200" />
+              <ShieldCheck className="w-4 h-4" />
               {isLocalSimulating
                 ? "Synthesizing ZK Proof..."
                 : localStep === "verified"
-                ? "Verified! Unlocking..."
+                ? "Verified! Completing..."
                 : "Approve ZK Proof (Instant)"}
             </button>
           </div>
