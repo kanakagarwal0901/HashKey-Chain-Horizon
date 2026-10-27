@@ -44,16 +44,6 @@ export const SUPPORTED_CHAINS: Record<string, ChainMetadata> = {
     uniswapRouterAddress: "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D", // HashKey Settlement Router
     uniswapQuoterAddress: "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae", // HSP Adapter
   },
-  "hedera-testnet": {
-    id: "hedera-testnet",
-    name: "Hedera Testnet (EVM)",
-    chainId: 296,
-    chainIdHex: "0x128",
-    rpcUrl: "https://testnet.hashio.io/api",
-    explorerUrl: "https://hashscan.io/testnet",
-    nativeCurrency: { name: "HBAR", symbol: "HBAR", decimals: 18 },
-    uniswapRouterAddress: "0x0000000000000000000000000000000000a9e4c1", // HTS Token & Router Facade
-  },
   "arbitrum-sepolia": {
     id: "arbitrum-sepolia",
     name: "Arbitrum Sepolia",
@@ -94,7 +84,6 @@ export const SUPPORTED_TOKENS: Record<string, TokenMetadata> = {
     addresses: {
       "hashkey-testnet": "0x054ed45810DbBAb8B27668922D110669c9D88D0a",
       "ethereum-sepolia": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-      "hedera-testnet": "0x0000000000000000000000000000000000a9e4c1",
       "arbitrum-sepolia": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
       "base-sepolia": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
       "optimism-sepolia": "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
@@ -160,15 +149,6 @@ export const SUPPORTED_TOKENS: Record<string, TokenMetadata> = {
       "ethereum-sepolia": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
     },
   },
-  HBAR: {
-    symbol: "HBAR",
-    name: "Hedera HBAR",
-    decimals: 18,
-    isNative: true,
-    addresses: {
-      "hedera-testnet": "0x0000000000000000000000000000000000000000",
-    },
-  },
 };
 
 export interface UniswapQuote {
@@ -180,7 +160,7 @@ export interface UniswapQuote {
   feeTier: number; // 500 (0.05%), 3000 (0.3%), 10000 (1%)
   routerAddress: string;
   estimatedPriceImpact: string;
-  sourceDex: "Uniswap-V3" | "Uniswap-V2" | "Hedera-Direct";
+  sourceDex: "Uniswap-V3" | "Uniswap-V2" | "HashKey-HSP-Router";
 }
 
 export class UniswapService {
@@ -193,7 +173,6 @@ export class UniswapService {
     ETH: 2600.0,
     WETH: 2600.0,
     UNI: 8.5,
-    HBAR: 0.08,
   };
 
   /**
@@ -241,7 +220,7 @@ export class UniswapService {
       feeTier: 3000, // 0.3% pool tier standard
       routerAddress: chain.uniswapRouterAddress,
       estimatedPriceImpact: "0.05%",
-      sourceDex: chainKey.includes("hedera") ? "Hedera-Direct" : "Uniswap-V3",
+      sourceDex: chainKey.includes("hashkey") ? "HashKey-HSP-Router" : "Uniswap-V3",
     };
   }
 

@@ -18,7 +18,6 @@ export const SEPOLIA_CIRCLE_USDC_ADDRESS =
 export const SHUNYA_TREASURY_EVM_ADDRESS =
   process.env.NEXT_PUBLIC_SHUNYA_TREASURY_EVM_ADDRESS || "0x9b3b7375b0591E8A304A8f66D11186Fb07672625";
 export const CIRCLE_FAUCET_URL = "https://faucet.circle.com";
-export const HEDERA_HCS_TOPIC_ID = process.env.NEXT_PUBLIC_HEDERA_HCS_TOPIC_ID || "0.0.11134146";
 
 const SEPOLIA_PUBLIC_RPC =
   process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com";

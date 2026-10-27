@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { ethers } from "ethers";
 
-export interface AuthContextType {
+interface AuthContextType {
   walletAddress: string | null;
   walletChainId: string | null;
   isConnectingWallet: boolean;
@@ -11,16 +12,11 @@ export interface AuthContextType {
   merkleRoot: string | null;
   proofPayload: string | null;
   isAuthenticated: boolean;
-  // Real ENS Properties
   ensName: string | null;
   ensAvatar: string | null;
   isLoadingEns: boolean;
   refreshEns: () => Promise<void>;
-  // Seller Hedera Payout Account Login
-  sellerHederaAccount: string | null;
-  isConnectingHedera: boolean;
-  connectSellerHedera: (accountId: string) => Promise<{ success: boolean; error?: string }>;
-  disconnectSellerHedera: () => void;
+  sellerHederaAccount?: string | null;
   connectWallet: () => Promise<boolean>;
   disconnectWallet: () => void;
   completeWorldIdVerification: (proofData: {
@@ -45,9 +41,6 @@ const AuthContext = createContext<AuthContextType>({
   isLoadingEns: false,
   refreshEns: async () => {},
   sellerHederaAccount: null,
-  isConnectingHedera: false,
-  connectSellerHedera: async () => ({ success: false }),
-  disconnectSellerHedera: () => {},
   connectWallet: async () => false,
   disconnectWallet: () => {},
   completeWorldIdVerification: () => {},
@@ -55,7 +48,6 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 const STORAGE_KEY = "shunyagrid_auth_session_v1";
-const HEDERA_STORAGE_KEY = "shunyagrid_seller_hedera_v1";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -70,10 +62,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ensName, setEnsName] = useState<string | null>(null);
   const [ensAvatar, setEnsAvatar] = useState<string | null>(null);
   const [isLoadingEns, setIsLoadingEns] = useState<boolean>(false);
-
-  // Seller Hedera Account Login State
-  const [sellerHederaAccount, setSellerHederaAccount] = useState<string | null>(null);
-  const [isConnectingHedera, setIsConnectingHedera] = useState<boolean>(false);
 
   // Load persisted session on initial mount
   useEffect(() => {
@@ -93,93 +81,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (parsed.ensAvatar) setEnsAvatar(parsed.ensAvatar);
           }
         }
-        const savedHedera = localStorage.getItem(HEDERA_STORAGE_KEY);
-        if (savedHedera && /^0\.0\.\d+$/.test(savedHedera.trim())) {
-          setSellerHederaAccount(savedHedera.trim());
-        }
       } catch (e) {
-        console.error("Failed to parse saved auth session:", e);
+        console.warn("Failed to load auth session:", e);
       }
     }
   }, []);
 
-  // Save session when authenticated
+  // Save session to localStorage when auth state changes
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (walletAddress && worldIdVerified) {
-        const session = {
-          walletAddress,
-          walletChainId,
-          worldIdVerified: true,
-          nullifierHash,
-          merkleRoot,
-          proofPayload,
-          ensName,
-          ensAvatar,
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            walletAddress,
+            walletChainId,
+            worldIdVerified,
+            nullifierHash,
+            merkleRoot,
+            proofPayload,
+            ensName,
+            ensAvatar,
+          })
+        );
       }
     }
-  }, [walletAddress, worldIdVerified, nullifierHash, merkleRoot, proofPayload, walletChainId, ensName, ensAvatar]);
+  }, [walletAddress, walletChainId, worldIdVerified, nullifierHash, merkleRoot, proofPayload, ensName, ensAvatar]);
 
-  // Live Reverse ENS Lookup on wallet address change
-  const refreshEns = useCallback(async () => {
-    if (!walletAddress) {
-      setEnsName(null);
-      setEnsAvatar(null);
-      return;
-    }
-
+  // Reverse ENS Resolution
+  const resolveEns = async (address: string) => {
+    if (!address) return;
     setIsLoadingEns(true);
     try {
-      const res = await fetch(`/api/ens/reverse?address=${walletAddress}`);
+      const res = await fetch(`/api/ens/reverse?address=${address}`);
       const data = await res.json();
-      if (data.success) {
-        setEnsName(data.ensName || null);
-        setEnsAvatar(data.avatarUrl || null);
+      if (data.ensName) {
+        setEnsName(data.ensName);
+        if (data.avatar) setEnsAvatar(data.avatar);
+      } else {
+        setEnsName(null);
+        setEnsAvatar(null);
       }
-    } catch (err) {
-      console.warn("[AuthContext] Reverse ENS resolution error:", err);
+    } catch {
+      setEnsName(null);
+      setEnsAvatar(null);
     } finally {
       setIsLoadingEns(false);
     }
+  };
+
+  const refreshEns = async () => {
+    if (walletAddress) {
+      await resolveEns(walletAddress);
+    }
+  };
+
+  useEffect(() => {
+    if (walletAddress) {
+      resolveEns(walletAddress);
+    }
   }, [walletAddress]);
 
-  useEffect(() => {
-    refreshEns();
-  }, [refreshEns]);
-
-  // Listen to Web3 provider account changes
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).ethereum) {
-      const handleAccounts = (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-        } else {
-          logout();
-        }
-      };
-
-      const handleChain = (chainId: string) => {
-        setWalletChainId(chainId);
-      };
-
-      (window as any).ethereum.on("accountsChanged", handleAccounts);
-      (window as any).ethereum.on("chainChanged", handleChain);
-
-      return () => {
-        (window as any).ethereum.removeListener("accountsChanged", handleAccounts);
-        (window as any).ethereum.removeListener("chainChanged", handleChain);
-      };
-    }
-  }, []);
-
-  // Connect Crypto Wallet (MetaMask, Coinbase Wallet, Brave, Rainbow)
+  // Connect Web3 EVM Wallet (MetaMask)
   const connectWallet = async (): Promise<boolean> => {
     if (typeof window === "undefined" || !(window as any).ethereum) {
-      alert("No Ethereum browser wallet found. Please install MetaMask, Coinbase Wallet, or Brave Wallet.");
+      alert("No Ethereum Web3 wallet found. Please install MetaMask to use ShunyaGrid.");
       return false;
     }
 
@@ -190,21 +156,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (accounts && accounts.length > 0) {
-        const addr = accounts[0];
-        setWalletAddress(addr);
+        const address = accounts[0];
+        setWalletAddress(address);
 
-        try {
-          const chainId = await (window as any).ethereum.request({ method: "eth_chainId" });
-          setWalletChainId(chainId);
-        } catch {
-          // Non-critical
-        }
+        const chainIdHex = await (window as any).ethereum.request({
+          method: "eth_chainId",
+        });
+        setWalletChainId(chainIdHex);
+
+        (window as any).ethereum.on("accountsChanged", (newAccounts: string[]) => {
+          if (newAccounts.length > 0) {
+            setWalletAddress(newAccounts[0]);
+          } else {
+            logout();
+          }
+        });
+
+        (window as any).ethereum.on("chainChanged", (newChainId: string) => {
+          setWalletChainId(newChainId);
+        });
+
         return true;
       }
       return false;
     } catch (err: any) {
-      console.error("Wallet connection failed:", err);
-      alert(err.message || "Failed to connect crypto wallet.");
+      if (err.code === 4001) {
+        console.log("User rejected wallet connection request.");
+      } else {
+        console.error("Wallet connection error:", err);
+      }
       return false;
     } finally {
       setIsConnectingWallet(false);
@@ -212,20 +192,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const disconnectWallet = () => {
-    setWalletAddress(null);
-    setWalletChainId(null);
-    setWorldIdVerified(false);
-    setNullifierHash(null);
-    setMerkleRoot(null);
-    setProofPayload(null);
-    setEnsName(null);
-    setEnsAvatar(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    logout();
   };
 
-  // Save authentic World ID verification result from real Worldcoin Simulator / World App
   const completeWorldIdVerification = (proofData: {
     nullifierHash: string;
     merkleRoot: string;
@@ -237,44 +206,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setWorldIdVerified(true);
   };
 
-  // Seller Hedera Account Connection & Testnet Verification
-  const connectSellerHedera = async (accountId: string): Promise<{ success: boolean; error?: string }> => {
-    const cleanId = accountId.trim();
-    if (!cleanId) {
-      return { success: false, error: "Please enter a valid Hedera Account ID." };
-    }
-    const hederaRegex = /^0\.0\.\d+$/;
-    if (!hederaRegex.test(cleanId)) {
-      return { success: false, error: "Invalid format. Expected 0.0.xxxxx (e.g. 0.0.11145557)." };
-    }
-
-    setIsConnectingHedera(true);
-    try {
-      const res = await fetch(`/api/seller/hedera-balance?accountId=${cleanId}`);
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        return { success: false, error: data.error || "Failed to verify Hedera account on testnet." };
-      }
-      setSellerHederaAccount(cleanId);
-      if (typeof window !== "undefined") {
-        localStorage.setItem(HEDERA_STORAGE_KEY, cleanId);
-      }
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message || "Failed to verify Hedera account." };
-    } finally {
-      setIsConnectingHedera(false);
-    }
-  };
-
-  const disconnectSellerHedera = () => {
-    setSellerHederaAccount(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(HEDERA_STORAGE_KEY);
-    }
-  };
-
-  // Log Out: Clears wallet, World ID session, and storage
   const logout = () => {
     setWalletAddress(null);
     setWalletChainId(null);
@@ -284,10 +215,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProofPayload(null);
     setEnsName(null);
     setEnsAvatar(null);
-    setSellerHederaAccount(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(HEDERA_STORAGE_KEY);
     }
   };
 
@@ -308,10 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ensAvatar,
         isLoadingEns,
         refreshEns,
-        sellerHederaAccount,
-        isConnectingHedera,
-        connectSellerHedera,
-        disconnectSellerHedera,
+        sellerHederaAccount: null,
         connectWallet,
         disconnectWallet,
         completeWorldIdVerification,

@@ -11,7 +11,7 @@ export async function GET() {
     version: "1.0.0",
     description: "Blind, Zero-Cutoff AI API Token Exchange initialized in Arc Studio",
     arcStudioProject: "https://studio.arc.com/project/shunyagrid-mumbai-2026",
-    networkSupport: ["Arc", "Hedera Testnet", "0G Galileo", "Ethereum"],
+    networkSupport: ["Arc", "HashKey Chain Testnet", "0G Galileo", "Ethereum"],
     catalog: models.map((m) => ({
       modelId: m.modelId,
       thinkingLevel: m.thinkingLevel,
@@ -26,7 +26,7 @@ export async function GET() {
       availableTokens: l.availableTokens,
       pricePer1kUsdc: l.pricePer1kMicroUsdc / 1_000_000,
       humanVerified: l.humanVerified,
-      payoutChain: "Hedera HTS (Bridgable to Arc via CCTP)",
+      payoutChain: "HashKey Chain HSP (Bridgable via Router)",
     })),
   });
 }

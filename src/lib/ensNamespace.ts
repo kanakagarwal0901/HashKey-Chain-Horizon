@@ -10,7 +10,7 @@ export interface EnsSellerProfile {
   isRealEns?: boolean;
   avatarUrl?: string | null;
   textRecords: {
-    "com.shunyagrid.hederaAccount": string;
+    "com.shunyagrid.payoutAccount": string;
     "com.shunyagrid.models": string;
     "com.shunyagrid.enclaveKeyFingerprint": string;
     [key: string]: string;
@@ -44,7 +44,7 @@ class EnsNamespaceManager {
   public async registerSubname(params: {
     label: string;
     ownerAddress: string;
-    hederaAccountId: string;
+    payoutAccount: string;
     supportedModels: string[];
     enclavePublicKeyPem?: string;
     avatarUrl?: string | null;
@@ -74,7 +74,7 @@ class EnsNamespaceManager {
       isRealEns,
       avatarUrl: params.avatarUrl || null,
       textRecords: {
-        "com.shunyagrid.hederaAccount": params.hederaAccountId,
+        "com.shunyagrid.payoutAccount": params.payoutAccount,
         "com.shunyagrid.models": params.supportedModels.join(","),
         "com.shunyagrid.enclaveKeyFingerprint": fingerprint,
       },
@@ -104,7 +104,7 @@ class EnsNamespaceManager {
           isRealEns: true,
           avatarUrl: onChain.avatarUrl,
           textRecords: {
-            "com.shunyagrid.hederaAccount": "",
+            "com.shunyagrid.payoutAccount": "",
             "com.shunyagrid.models": "",
             "com.shunyagrid.enclaveKeyFingerprint": "",
           },
@@ -143,7 +143,7 @@ export const ensNamespace = EnsNamespaceManager.getInstance();
 export async function registerEnsSubname(params: {
   label: string;
   ownerAddress: string;
-  hederaAccountId: string;
+  payoutAccount: string;
   supportedModels: string[];
   enclavePublicKeyPem?: string;
   avatarUrl?: string | null;

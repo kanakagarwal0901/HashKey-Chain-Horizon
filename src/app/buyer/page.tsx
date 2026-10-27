@@ -47,7 +47,6 @@ import AnonRpcStatusBadge from "@/components/AnonRpcStatusBadge";
 import AntigravityStagger from "@/components/AntigravityStagger";
 import {
   CIRCLE_FAUCET_URL,
-  HEDERA_HCS_TOPIC_ID,
   switchOrAddSepoliaNetwork,
   fetchSepoliaUsdcBalance,
   switchOrAddHashKeyNetwork,
@@ -1645,22 +1644,22 @@ contract VaultLending {
                         </span>
                       </div>
                       <div className="text-xs text-zinc-400 break-all tabular-data">
-                        Tx: {executionResult.sepoliaPayment?.txHash || executionResult.hederaSettlement?.buyerSepoliaTxHash || buyerSepoliaTxHash || executionResult.hederaSettlement?.buyerX402TxId}
+                        Tx: {executionResult.sepoliaPayment?.txHash || executionResult.hashKeySettlement?.buyerSepoliaTxHash || buyerSepoliaTxHash || executionResult.hashKeySettlement?.buyerX402TxId}
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
                         <span className="text-xs text-zinc-400 tabular-data">
                           Amount: ${(executionResult.sepoliaPayment?.amountUsdc || upfrontUsdc).toFixed(6)} USDC
                         </span>
-                        {(executionResult.sepoliaPayment?.etherscanUrl || executionResult.hederaSettlement?.sepoliaEtherscanUrl || buyerSepoliaTxHash) && (
+                        {(executionResult.sepoliaPayment?.etherscanUrl || executionResult.hashKeySettlement?.sepoliaEtherscanUrl || buyerSepoliaTxHash) && (
                           <a
                             href={
                               executionResult.sepoliaPayment?.etherscanUrl ||
-                              executionResult.hederaSettlement?.sepoliaEtherscanUrl ||
+                              executionResult.hashKeySettlement?.sepoliaEtherscanUrl ||
                               (paymentChain === "arbitrum-sepolia"
                                 ? `https://sepolia.arbiscan.io/tx/${buyerSepoliaTxHash}`
                                 : paymentChain === "base-sepolia"
                                 ? `https://sepolia.basescan.org/tx/${buyerSepoliaTxHash}`
-                                : paymentChain === "hedera-testnet"
+                                : paymentChain === "hashkey-testnet"
                                 ? `https://hashscan.io/testnet/transaction/${buyerSepoliaTxHash}`
                                 : `https://sepolia.etherscan.io/tx/${buyerSepoliaTxHash}`)
                             }
@@ -1668,7 +1667,7 @@ contract VaultLending {
                             rel="noreferrer"
                             className="text-white hover:underline flex items-center gap-1 font-semibold text-xs"
                           >
-                            View on {paymentChain === "arbitrum-sepolia" ? "Arbiscan" : paymentChain === "base-sepolia" ? "Basescan" : paymentChain === "hedera-testnet" ? "HashScan" : "Etherscan"}
+                            View on {paymentChain === "arbitrum-sepolia" ? "Arbiscan" : paymentChain === "base-sepolia" ? "Basescan" : paymentChain === "hashkey-testnet" ? "Blockscout" : "Etherscan"}
                             <ExternalLink className="w-3 h-3" />
                           </a>
                         )}

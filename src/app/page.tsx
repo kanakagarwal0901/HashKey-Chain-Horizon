@@ -209,7 +209,7 @@ export default function HomePage() {
                 <div className="p-6 sm:p-7 rounded-2xl liquid-glass-interactive space-y-3">
                   <div className="font-semibold text-base text-zinc-900 dark:text-white">Instant Micro-Payouts</div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Earn Hedera HTS USDC automatically as queries resolve. Sweep directly to your EVM wallet anytime.
+                    Earn native HSK automatically on HashKey Chain as queries resolve. Sweep directly to any token on any EVM chain anytime.
                   </div>
                 </div>
               </AntigravityStagger>
@@ -277,7 +277,7 @@ export default function HomePage() {
           <SpatialCard maxTilt={3} className="p-6 sm:p-7 space-y-1.5">
             <span className="text-xs text-zinc-500 dark:text-zinc-400 block font-medium">Settlement Rail</span>
             <span className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight mt-1 block">
-              Hedera x402
+              HashKey HSP
             </span>
             <span className="text-xs text-zinc-500 dark:text-zinc-500 block pt-1">Native HTS USDC transfers</span>
           </SpatialCard>
@@ -419,7 +419,7 @@ export default function HomePage() {
                   <th className="px-7 py-5">Available Quota</th>
                   <th className="px-7 py-5">Rate / 1k Tokens</th>
                   <th className="px-7 py-5">Proof of Personhood</th>
-                  <th className="px-7 py-5">Hedera Payout</th>
+                  <th className="px-7 py-5">Seller EVM Address</th>
                   <th className="px-7 py-5 text-right">Action</th>
                 </tr>
               </thead>

@@ -7,7 +7,7 @@ export const SEPOLIA_CIRCLE_USDC_ADDRESS =
   process.env.NEXT_PUBLIC_SEPOLIA_USDC_ADDRESS ||
   "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 
-// ShunyaGrid Protocol Treasury EVM Address (derived from Hedera Operator ECDSA key)
+// ShunyaGrid Protocol Treasury EVM Address (HashKey Horizon Protocol Treasury)
 export const SHUNYA_TREASURY_EVM_ADDRESS =
   process.env.NEXT_PUBLIC_SHUNYA_TREASURY_EVM_ADDRESS ||
   "0x9b3b7375b0591E8A304A8f66D11186Fb07672625";
@@ -98,18 +98,6 @@ export const PAYMENT_CHAINS: Record<string, ChainPaymentConfig> = {
       "0x94cc0aac535ccdb3c01d6787d6413c739ae12bc4",
     ],
   },
-  "hedera-testnet": {
-    name: "Hedera Testnet (EVM)",
-    rpcUrl: "https://testnet.hashio.io/api",
-    chainId: 296,
-    explorerBaseUrl: "https://hashscan.io/testnet/transaction/",
-    usdcAddress: "0x0000000000000000000000000000000000a9e4c1",
-    nativeSymbol: "HBAR",
-    nativeUsdPrice: 0.08,
-    uniswapRouters: [
-      "0x0000000000000000000000000000000000a9e4c1",
-    ],
-  },
 };
 
 // In-Memory & On-Disk Replay Protection Store
@@ -158,7 +146,7 @@ const TRANSFER_EVENT_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a116
 
 /**
  * Universal Multi-Chain & Multi-Currency Buyer Payment Verifier.
- * Verifies on-chain transactions across Ethereum Sepolia, Arbitrum Sepolia, Base Sepolia, and Hedera Testnet.
+ * Verifies on-chain transactions across Ethereum Sepolia, Arbitrum Sepolia, Base Sepolia.
  * Accepts native ETH, native HBAR, Circle USDC, or Uniswap V3 swap routed payments.
  */
 export async function verifyUniversalBuyerPayment(params: {
@@ -191,7 +179,7 @@ export async function verifyUniversalBuyerPayment(params: {
   }
 
   if (!cleanTxHash.startsWith("0x") || cleanTxHash.length !== 66) {
-    return { verified: false, error: "Invalid Web3 transaction hash format (expected 66-character 0x... string)" };
+    return { verified: false, error: "Invalid Ethereum transaction hash format (expected 66-character 0x... string)" };
   }
 
   // 1. Replay Protection: Check if transaction has already been consumed

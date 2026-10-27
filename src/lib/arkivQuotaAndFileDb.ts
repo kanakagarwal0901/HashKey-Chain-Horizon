@@ -6,7 +6,7 @@ import { createPrivateClient, ArkivClient, ArkivEntity } from "@arkiv/sdk";
 export interface CreateSellerPoolInput {
   sellerWallet: string;
   ensName: string;
-  hederaAccountId: string;
+  payoutAccount: string;
   provider: string;
   modelId: string;
   availableTokens: number;
@@ -84,7 +84,7 @@ class ArkivQuotaAndFileDbManager {
       availableTokens: input.availableTokens,
       pricePer1kMicroUsdc: input.pricePer1kMicroUsdc,
       ensName: input.ensName,
-      hederaAccountId: input.hederaAccountId,
+      payoutAccount: input.payoutAccount,
       humanVerified: true,
       ownerWallet: input.sellerWallet,
     };

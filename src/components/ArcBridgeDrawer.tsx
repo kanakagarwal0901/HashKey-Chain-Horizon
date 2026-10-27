@@ -201,7 +201,7 @@ export default function ArcBridgeDrawer({
       }
 
       if (isZeroBalance) {
-        throw new Error("Cannot sweep: Your available Hedera USDC balance is $0.000000. You cannot sweep if your balance is 0.");
+        throw new Error("Cannot sweep: Your available HSK balance is $0.000000. You cannot sweep if your balance is 0.");
       }
 
       if (isExceedingBalance) {
@@ -247,7 +247,7 @@ export default function ArcBridgeDrawer({
       const scanUrl =
         data.hashscanUrl ||
         bridgeTx.hashscanUrl ||
-        `https://hashscan.io/testnet/transaction/${txHash}`;
+        `https://testnet-explorer.hsk.xyz/transaction/${txHash}`;
 
       setBridgeResult({
         txId: txHash,
@@ -319,11 +319,11 @@ export default function ArcBridgeDrawer({
           method: "wallet_addEthereumChain",
           params: [
             {
-              chainId: "0x128", // 296 in hex
-              chainName: "Hedera Testnet",
-              nativeCurrency: { name: "HBAR", symbol: "HBAR", decimals: 18 },
-              rpcUrls: ["https://testnet.hashio.io/api"],
-              blockExplorerUrls: ["https://hashscan.io/testnet"],
+              chainId: "0x85", // 296 in hex
+              chainName: "HashKey Chain Testnet",
+              nativeCurrency: { name: "HashKey EcoPoints", symbol: "HSK", decimals: 18 },
+              rpcUrls: ["https://testnet.hsk.xyz"],
+              blockExplorerUrls: ["https://testnet-explorer.hsk.xyz"],
             },
           ],
         });
@@ -354,7 +354,7 @@ export default function ArcBridgeDrawer({
           <div>
             <h3 className="text-lg font-semibold text-white">Universal Seller Sweeper & Uniswap Bridge</h3>
             <p className="text-xs text-neutral-400">
-              Sweep accumulated Hedera HTS USDC to any token on any chain directly to your connected MetaMask
+              Sweep accumulated HSK to any token on any chain directly to your connected MetaMask
             </p>
           </div>
         </div>
@@ -441,7 +441,7 @@ export default function ArcBridgeDrawer({
                 className="flex items-center justify-center gap-1.5 p-2 rounded-full btn-secondary-apple text-xs"
               >
                 <Network className="w-3.5 h-3.5 text-emerald-400" />
-                {addedNetworkSuccess ? "Added Network!" : "Switch Hedera Network"}
+                {addedNetworkSuccess ? "Added Network!" : "Switch to HashKey Testnet"}
               </button>
             </div>
 
@@ -462,7 +462,7 @@ export default function ArcBridgeDrawer({
             {/* Available Balance Header */}
             <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
               <div>
-                <span className="text-xs text-slate-400">Available Hedera USDC Balance:</span>
+                <span className="text-xs text-slate-400">Available HSK Balance:</span>
                 <div className="text-xl font-bold tabular-data text-emerald-400">
                   ${availableUsdcEarnings.toFixed(5)} <span className="text-xs font-normal text-neutral-400">USDC</span>
                 </div>
@@ -488,10 +488,10 @@ export default function ArcBridgeDrawer({
               </div>
             </div>
 
-            {/* Hedera Source Payout Account */}
+            {/* Seller Node Address (EVM) */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs">
-                <label className="font-medium text-neutral-300">Hedera Source Payout Account</label>
+                <label className="font-medium text-neutral-300">Seller Node Address (EVM)</label>
                 <span className="text-neutral-400">Manual Entry</span>
               </div>
               <input
@@ -499,7 +499,7 @@ export default function ArcBridgeDrawer({
                 value={sourceAccountId}
                 onChange={(e) => setSourceAccountId(e.target.value.trim())}
                 className="w-full rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] px-4 py-2.5 text-xs text-white focus:border-neutral-400 focus:outline-none"
-                placeholder="0.0.xxxxx (e.g. 0.0.11145557)"
+                placeholder="0x... (e.g. 0x70997970C51812dc3A010C7d01b50e0d17dc79C8)"
               />
             </div>
 

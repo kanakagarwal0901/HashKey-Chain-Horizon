@@ -58,20 +58,19 @@ export default function SellerHubPage() {
     merkleRoot,
     proofPayload,
     isAuthenticated,
-    sellerHederaAccount,
-    isConnectingHedera,
+    
+    
     ensName,
     ensAvatar,
-    connectSellerHedera,
-    disconnectSellerHedera,
+    
     connectWallet,
     disconnectWallet,
     logout,
   } = useAuth();
 
   // Hedera Account Gateway Input State
-  const [inputHederaAccount, setInputHederaAccount] = useState<string>("");
-  const [hederaConnectError, setHederaConnectError] = useState<string | null>(null);
+  
+  
   const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
 
   // Provider & Model
@@ -274,7 +273,7 @@ export default function SellerHubPage() {
   };
 
   // Fetch live on-chain HashKey Treasury balance & settled earnings
-  const fetchHederaBalance = async (accId?: string) => {
+  const fetchSellerBalance = async (accId?: string) => {
     const target = (accId || walletAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8").trim();
     setIsLoadingBalance(true);
     try {
@@ -296,13 +295,13 @@ export default function SellerHubPage() {
 
   useEffect(() => {
     fetchListings();
-    fetchHederaBalance(walletAddress || undefined);
+    fetchSellerBalance(walletAddress || undefined);
   }, [walletAddress]);
 
   // Real-time synchronization: listen for buyer purchase events, storage events across tabs, and window focus
   useEffect(() => {
     const handleSyncEvent = () => {
-      fetchHederaBalance(walletAddress || undefined);
+      fetchSellerBalance(walletAddress || undefined);
       fetchListings();
     };
 
@@ -328,7 +327,7 @@ export default function SellerHubPage() {
     // 5-second background interval polling to ensure fresh balance during continuous buying
     const pollInterval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
-      fetchHederaBalance(walletAddress || undefined);
+      fetchSellerBalance(walletAddress || undefined);
     }, 5000);
 
     return () => {
@@ -839,7 +838,7 @@ export default function SellerHubPage() {
               <span className="text-zinc-500 text-lg font-normal">(&asymp; ${totalEarnedUsdc.toFixed(2)} USD)</span>
             </h3>
             <button
-              onClick={() => fetchHederaBalance(walletAddress || undefined)}
+              onClick={() => fetchSellerBalance(walletAddress || undefined)}
               disabled={isLoadingBalance}
               title="Refresh live on-chain balance from HashKey Chain"
               className="p-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition"
@@ -1372,7 +1371,7 @@ export default function SellerHubPage() {
               </p>
               <p>
                 2. <strong className="text-white">Actual Token Payout:</strong> Once inference finishes, you receive an
-                instant <strong className="text-white">HTS USDC</strong> transfer directly to your Hedera account for the exact{" "}
+                instant <strong className="text-white">HSK</strong> transfer directly to your HashKey EVM wallet for the exact{" "}
                 <span className="text-emerald-400 font-semibold tabular-data">T_used</span> tokens consumed.
               </p>
               <p>
@@ -1389,7 +1388,7 @@ export default function SellerHubPage() {
             </span>
             <p className="text-zinc-400 leading-relaxed">
               You will never receive or see the Buyer&apos;s prompt text, uploaded documents, or AI output. Your node proxy log only
-              shows the Hedera consensus timestamp, tokens consumed, and the USDC payout received.
+              shows the HashKey block confirmation, tokens consumed, and the HSK payout received.
             </p>
           </SpatialCard>
         </div>
@@ -1506,10 +1505,10 @@ export default function SellerHubPage() {
         availableHskEarnings={hskBalance}
         sellerNodeAddress={walletAddress || ""}
         onSweepSuccess={() => {
-          fetchHederaBalance(walletAddress || undefined);
+          fetchSellerBalance(walletAddress || undefined);
         }}
         onRefresh={() => {
-          fetchHederaBalance(walletAddress || undefined);
+          fetchSellerBalance(walletAddress || undefined);
         }}
       />
 

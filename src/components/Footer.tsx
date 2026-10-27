@@ -36,7 +36,7 @@ export default function Footer() {
               
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full liquid-glass-pill text-[11px] text-zinc-700 dark:text-zinc-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 pulse-ring-emerald" />
-                <span>HashKey Chain 133 (HSP) &bull; Hedera 296 &bull; Sepolia 11155111</span>
+                <span>HashKey Chain 133 (HSP) &bull; Sepolia 11155111</span>
               </div>
             </div>
           </div>

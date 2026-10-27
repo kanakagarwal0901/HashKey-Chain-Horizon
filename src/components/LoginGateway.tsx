@@ -230,7 +230,7 @@ export default function LoginGateway({
                   </div>
                   <h3 className="text-base font-semibold text-zinc-950 dark:text-white">Monetize spare quota</h3>
                   <p className="text-xs text-zinc-600 dark:text-neutral-400 leading-relaxed">
-                    List unused Tier-3/4 API tokens on the Arkiv orderbook. Earn instant on-chain Hedera USDC payouts.
+                    List unused Tier-3/4 API tokens on the Arkiv orderbook. Earn instant on-chain HashKey HSK payouts.
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-950 dark:text-white pt-2 border-t border-black/[0.06] dark:border-[var(--border-subtle)]">
@@ -283,7 +283,7 @@ export default function LoginGateway({
                 <div className="space-y-1">
                   <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">Browser Crypto Wallet</h4>
                   <p className="text-xs text-zinc-600 dark:text-neutral-400 leading-relaxed">
-                    Connect via MetaMask, Coinbase Wallet, Brave, Rainbow, or any EIP-1193 compatible Ethereum or Hedera provider.
+                    Connect via MetaMask, Coinbase Wallet, Brave, Rainbow, or any EIP-1193 compatible EVM provider.
                   </p>
                 </div>
               </div>

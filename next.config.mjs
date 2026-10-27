@@ -4,7 +4,6 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: [
       "ethers",
-      "@hashgraph/sdk",
       "@0glabs/0g-ts-sdk",
     ],
   },

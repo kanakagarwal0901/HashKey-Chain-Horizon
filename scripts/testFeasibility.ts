@@ -14,7 +14,6 @@ import {
   decryptBuyerOutput,
 } from "../packages/shunya-core/src/blindCrypto";
 import { ArkivDatabaseEngine } from "../packages/shunya-core/src/arkivQuotaManager";
-import { HederaSettlementEngine } from "../packages/shunya-core/src/hederaX402Settlement";
 import { ZeroGService } from "../packages/shunya-core/src/zeroGEnclave";
 
 let passedCount = 0;
