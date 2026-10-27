@@ -284,7 +284,7 @@ export default function HomePage() {
       </section>
 
       {/* Honest Side-by-Side Architectural Comparison */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6">
+      <section id="architecture-comparison" className="max-w-5xl mx-auto px-4 sm:px-6 scroll-mt-28">
         <div className="text-center space-y-4 mb-14 sm:mb-16">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-950 dark:text-white tracking-tight">
             Engineered against proxy failure modes
@@ -350,7 +350,7 @@ export default function HomePage() {
       </section>
 
       {/* Live Orderbook / Arkiv Entities */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8">
+      <section id="orderbook" className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8 scroll-mt-28">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-2">
           <div>
             <div className="flex items-center gap-2">

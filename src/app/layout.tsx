@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Link from "next/link";
-import { Terminal, Shield, ArrowUpRight } from "lucide-react";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import Navbar from "@/components/Navbar";
@@ -44,37 +42,8 @@ export default function RootLayout({
             {/* Main Content */}
             <main className="flex-1">{children}</main>
 
-            {/* Minimalist Apple/Nike Footer */}
-            <footer className="border-t border-black/[0.06] dark:border-white/[0.08] bg-transparent py-12 text-sm text-zinc-500 dark:text-zinc-400">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold text-zinc-900 dark:text-white tracking-tight">ShunyaGrid</span>
-                  <span className="text-zinc-400 dark:text-zinc-600">&bull;</span>
-                  <span className="text-zinc-500 dark:text-zinc-400">EF CROPS Confidentiality Standard</span>
-                </div>
-
-                <div className="flex items-center gap-6 text-xs text-zinc-500 dark:text-zinc-400">
-                  <Link href="/buyer" className="hover:text-zinc-900 dark:hover:text-white transition">
-                    Buyer Studio
-                  </Link>
-                  <Link href="/seller" className="hover:text-zinc-900 dark:hover:text-white transition">
-                    Seller Hub
-                  </Link>
-                  <Link href="/payout" className="hover:text-zinc-900 dark:hover:text-white transition">
-                    Seller Payout
-                  </Link>
-                  <a
-                    href="https://github.com"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-zinc-900 dark:hover:text-white transition inline-flex items-center gap-1"
-                  >
-                    <span>Open Source</span>
-                    <ArrowUpRight className="w-3 h-3 text-zinc-400 dark:text-zinc-500" />
-                  </a>
-                </div>
-              </div>
-            </footer>
+            {/* Professional Multi-Column Liquid Glass Footer */}
+            <Footer />
           </AuthProvider>
         </ThemeProvider>
       </body>
