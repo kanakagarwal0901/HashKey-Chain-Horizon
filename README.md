@@ -25,13 +25,12 @@ However, **traditional Web3 and Web2 payment rails break down in agentic commerc
 ## 1. The Core Problems ShunyaGrid Solves
 
 ```
-       TRADITIONAL AI PROXIES                          SHUNYAGRID x HASHKEY CHAIN
-  ┌───────────────────────────────┐               ┌─────────────────────────────────┐
-  │ ❌ Seller inspects prompt     │               │ ✔️ Client-side AES-256 sealing   │
-  │ ❌ Quota runs out midway      │   ───────►    │ ✔️ Bounded T_max reservation     │
-  │ ❌ Fixed fee, no refund       │               │ ✔️ Exact-usage payout + refund  │
-  │ ❌ Manual wallet approval     │               │ ✔️ EIP-712 HSP autonomous agent │
-  └───────────────────────────────┘               └─────────────────────────────────┘
+   TRADITIONAL AI PROXIES                     SHUNYAGRID x HASHKEY CHAIN
+  ───────────────────────────────            ─────────────────────────────────
+  • Seller can inspect prompts               • Client-side AES-256 GCM sealing
+  • Quota can run out mid-thought            • Bounded T_max quota reservation
+  • Rigid fixed fees with no refunds         • Exact-usage payout + auto-refund
+  • Manual wallet popups required            • Autonomous EIP-712 HSP mandates
 ```
 
 ### 1. The "Mid-Generation Token Exhaustion" Hazard
@@ -55,14 +54,33 @@ ShunyaGrid operates on three strict architectural invariants:
 * **AI Output:** Encrypted inside the Enclave using the buyer's local return key (`K_return`) before leaving memory. Only the buyer can decrypt the response.
 
 ### Pillar II: Deterministic Token Bounding (Zero-Cutoff Gate)
-Before any request is broadcast, ShunyaGrid calculates the maximum possible tokens the model could consume:
-$$T_{\max} = T_{\text{input\_cap}} + T_{\text{thinking\_budget}} + T_{\text{output\_cap}}$$
-A prompt is **never** dispatched to a seller unless the seller's verified active quota $Q \ge T_{\max}$. If insufficient, the request routes to an eligible seller node. This mathematically guarantees that **no prompt can ever cut off midway.**
+Before any inference request is executed, ShunyaGrid calculates the maximum possible token ceiling ($T_{\max}$):
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        DETERMINISTIC TOKEN CEILING                     │
+│                                                                        │
+│   T_max = [Input & Files Cap] + [Thinking Budget] + [Output Cap]       │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+* **Pre-Flight Solvency Check:** A prompt is **never** dispatched to a seller node unless their active, verified quota meets or exceeds $T_{\max}$.
+* **Zero Mid-Way Cutoffs:** If an agent requests a reasoning model requiring up to 24,000 tokens, but a seller node only has 10,000 tokens left, the request is never routed to that node. It automatically selects a fully solvent node, guaranteeing that prompts never fail or crash midway.
 
 ### Pillar III: Conservation-of-Value Settlement
-Every job deposit satisfies an immutable conservation law:
-$$\text{Max Deposit } (T_{\max}) \equiv \text{Seller Payout } (T_{\text{used}}) + \text{Protocol Fee} + \text{Buyer Refund } (T_{\max} - T_{\text{used}})$$
-The seller is paid strictly for tokens actually consumed, and any unused reservation is **automatically refunded to the buyer agent's wallet in the same transaction.**
+Every job deposit strictly satisfies an immutable conservation law:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        CONSERVATION OF VALUE                           │
+│                                                                        │
+│   Max Upfront Deposit ≡ Seller Payout + Protocol Fee + Buyer Refund    │
+│                           (T_used)                      (T_max - T_used)│
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+* **Fair-Usage Economics:** Sellers are compensated strictly for the actual tokens consumed ($T_{\text{used}}$).
+* **Instant Auto-Refund:** Any unused tokens ($T_{\max} - T_{\text{used}}$) are **automatically returned to the buyer agent's wallet in the exact same transaction**, eliminating dispute overhead.
 
 ---
 
