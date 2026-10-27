@@ -32,6 +32,7 @@ interface TokenOption {
 }
 
 const SUPPORTED_TARGET_TOKENS: TokenOption[] = [
+  { symbol: "HSK", name: "HashKey EcoPoints", decimals: 18, isNative: true },
   { symbol: "USDC", name: "USD Coin", decimals: 6 },
   { symbol: "ETH", name: "Ethereum", decimals: 18, isNative: true },
   { symbol: "HBAR", name: "Hedera HBAR", decimals: 18, isNative: true },
@@ -41,6 +42,7 @@ const SUPPORTED_TARGET_TOKENS: TokenOption[] = [
 ];
 
 const SUPPORTED_CHAINS = [
+  { id: "hashkey-testnet", name: "HashKey Chain Testnet", chainId: 133, hexId: "0x85" },
   { id: "hedera-testnet", name: "Hedera Testnet (EVM)", chainId: 296, hexId: "0x128" },
   { id: "arc", name: "Arc Chain (Circle Native CCTP)", chainId: 1000, hexId: "0x3e8" },
   { id: "ethereum-sepolia", name: "Ethereum Sepolia", chainId: 11155111, hexId: "0xaa36a7" },

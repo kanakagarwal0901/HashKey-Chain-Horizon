@@ -23,6 +23,79 @@ export const HEDERA_HCS_TOPIC_ID = process.env.NEXT_PUBLIC_HEDERA_HCS_TOPIC_ID |
 const SEPOLIA_PUBLIC_RPC =
   process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com";
 
+export const HASHKEY_CHAIN_ID_HEX = "0x85"; // 133
+export const HASHKEY_CHAIN_ID_DEC = 133;
+export const HASHKEY_TESTNET_RPC = "https://testnet.hsk.xyz";
+export const HASHKEY_HSP_ADAPTER = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
+export const HASHKEY_ROUTER = "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D";
+
+/**
+ * Switch wallet network to HashKey Chain Testnet (0x85 / 133) or add it if not present.
+ */
+export async function switchOrAddHashKeyNetwork(): Promise<boolean> {
+  if (typeof window === "undefined" || !(window as any).ethereum) {
+    alert("No Web3 wallet (MetaMask) detected. Please install MetaMask to interact with HashKey Chain.");
+    return false;
+  }
+  const ethereum = (window as any).ethereum;
+  try {
+    await ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: HASHKEY_CHAIN_ID_HEX }],
+    });
+    return true;
+  } catch (switchError: any) {
+    if (switchError.code === 4902) {
+      try {
+        await ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: HASHKEY_CHAIN_ID_HEX,
+              chainName: "HashKey Chain Testnet",
+              nativeCurrency: { name: "HashKey EcoPoints", symbol: "HSK", decimals: 18 },
+              rpcUrls: [HASHKEY_TESTNET_RPC],
+              blockExplorerUrls: ["https://testnet-explorer.hsk.xyz"],
+            },
+          ],
+        });
+        return true;
+      } catch (addError) {
+        alert("Failed to add HashKey Chain testnet to your wallet.");
+        return false;
+      }
+    }
+    alert(switchError.message || "Failed to switch to HashKey Chain testnet.");
+    return false;
+  }
+}
+
+/**
+ * Reads native HSK balance on HashKey Chain Testnet.
+ */
+export async function fetchHashKeyHskBalance(walletAddress: string): Promise<number> {
+  if (!walletAddress) return 0;
+  try {
+    const res = await fetch(HASHKEY_TESTNET_RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_getBalance",
+        params: [walletAddress, "latest"],
+      }),
+    });
+    const data = await res.json();
+    if (data.result) {
+      return Number(BigInt(data.result)) / 1e18;
+    }
+  } catch (err) {
+    console.warn("Could not fetch HashKey HSK balance:", err);
+  }
+  return 0;
+}
+
 /**
  * Switch wallet network to Ethereum Sepolia (0xaa36a7) or add it if not present.
  */
@@ -321,7 +394,31 @@ export async function executeBuyerUniversalPayment(params: {
     };
   }
 
-  // 3. Case B: Native ETH or HBAR payment directly to Treasury
+  // 3. Case B: Native HSK, ETH or HBAR payment directly to Treasury / HSP Adapter
+  if (token === "HSK" || chainKey === "hashkey-testnet" && token === "HSK") {
+    const pricePerUnit = 0.75;
+    const unitsNeeded = (requiredUsdc / pricePerUnit) * 1.01;
+    const weiNeeded = ethers.parseEther(unitsNeeded.toFixed(6));
+    const valueHex = "0x" + weiNeeded.toString(16);
+
+    const txHash = await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [
+        {
+          from: params.buyerAddress,
+          to: "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae", // HSPAdapter
+          value: valueHex,
+        },
+      ],
+    });
+    return {
+      txHash,
+      chainKey: "hashkey-testnet",
+      tokenSymbol: "HSK",
+      amountPaidFormatted: `${unitsNeeded.toFixed(4)} HSK`,
+    };
+  }
+
   if (token === "ETH" || token === "HBAR") {
     const pricePerUnit = token === "ETH" ? 2600 : 0.08;
     const unitsNeeded = (requiredUsdc / pricePerUnit) * 1.01; // 1% buffer

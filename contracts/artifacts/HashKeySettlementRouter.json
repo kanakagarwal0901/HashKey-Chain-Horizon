@@ -1,0 +1,246 @@
+{
+  "contractName": "HashKeySettlementRouter",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address payable",
+          "name": "_hspAdapter",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_ccipRouter",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "TransferFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "Unauthorized",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAddress",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "mandateId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "buyerAgent",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sellerNode",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "modelId",
+          "type": "string"
+        }
+      ],
+      "name": "AgentPaymentRouted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint64",
+          "name": "sourceChainSelector",
+          "type": "uint64"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "mandateId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "CrossChainSettlementReceived",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "HASHKEY_CHAIN_SELECTOR",
+      "outputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ccipRouter",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "hspAdapter",
+      "outputs": [
+        {
+          "internalType": "contract HSPAdapter",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "mandateId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "sellerNode",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tMax",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "modelId",
+          "type": "string"
+        }
+      ],
+      "name": "routeAgentPaymentERC20",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "mandateId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "sellerNode",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tMax",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "modelId",
+          "type": "string"
+        }
+      ],
+      "name": "routeAgentPaymentNative",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_newRouter",
+          "type": "address"
+        }
+      ],
+      "name": "setCCIPRouter",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
+    }
+  ],
+  "bytecode": "60a0346100c957601f61075738819003918201601f19168301916001600160401b038311848410176100cd5780849260409485528339810103126100c95780516001600160a01b0391828216918290036100c957602001519182168092036100c95780156100b75760018060a01b03199033825f5416175f55608052600154161760015560405161067590816100e2823960805181818161011c01528181610164015281816101dc0152818161039701526104c60152f35b60405163d92e233d60e01b8152600490fd5b5f80fd5b634e487b7160e01b5f52604160045260245ffdfe60808060405260048036101561001e575b5050361561001c575f80fd5b005b5f91823560e01c9081630de22984146105545750806331c1e16a146104f557806351886da5146104b057806369032e8b146103565780638da5cb5b1461032f578063e5e551a2146103095763f4e88b920361001057346103055760c03660031901126103055761008c610579565b60443591906001600160a01b039081841684036103015760a43567ffffffffffffffff81116102fd576100c2903690850161058f565b929094818116156102ec576040516323b872dd60e01b8152338682015230602482015260643560448201526020816064818b8787165af19081156102b15788916102cd575b50156102bc5760405163a9059cbb60e01b81527f000000000000000000000000000000000000000000000000000000000000000083168682015260643560248201526020816044818b8688165af180156102b157610282575b50817f0000000000000000000000000000000000000000000000000000000000000000163b1561027357866040516377fe896b60e01b8152863587820152838516602482015283831660448201526064356064820152608435608482015260c060a48201528181806101d660c482018a8d610607565b038183887f0000000000000000000000000000000000000000000000000000000000000000165af180156102775761025f575b5050610259827fe9758fc1df1b83ba8b480dcfe6f69a8556d3a0bde341bafe0b760f3eaedef3f9946040519485941684526064356020850152606060408501521696339635956060840191610607565b0390a480f35b610268906105bd565b61027357865f610209565b8680fd5b6040513d84823e3d90fd5b6102a39060203d6020116102aa575b61029b81836105e5565b810190610627565b505f610160565b503d610291565b6040513d8a823e3d90fd5b6040516312171d8360e31b81528590fd5b6102e6915060203d6020116102aa5761029b81836105e5565b5f610107565b60405163d92e233d60e01b81528590fd5b8580fd5b5f80fd5b5080fd5b823461032c578060031936011261032c5760206040516769a9b0fd686d4c098152f35b80fd5b823461032c578060031936011261032c57546040516001600160a01b039091168152602090f35b50608036600319011261030557803561036d610579565b9060643567ffffffffffffffff81116104ac5761038d903690850161058f565b6001600160a01b037f00000000000000000000000000000000000000000000000000000000000000008116959194918791873b156104a85785936040519485936377fe896b60e01b85528401521696876024830152826044830152346064830152604435608483015260c060a4830152818061040d60c482018a89610607565b039134905af1801561049d57610466575b506102597fe9758fc1df1b83ba8b480dcfe6f69a8556d3a0bde341bafe0b760f3eaedef3f9916040519182915f83523460208401526060604084015233966060840191610607565b7fe9758fc1df1b83ba8b480dcfe6f69a8556d3a0bde341bafe0b760f3eaedef3f99195610495610259926105bd565b95915061041e565b6040513d88823e3d90fd5b8280fd5b8480fd5b823461032c578060031936011261032c576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b50346103055760203660031901126103055780356001600160a01b03818116929183900361055057835416330361054257506bffffffffffffffffffffffff60a01b600154161760015580f35b6040516282b42960e81b8152fd5b8380fd5b8390346103055781600319360112610305576001546001600160a01b03168152602090f35b602435906001600160a01b038216820361030157565b9181601f840112156103015782359167ffffffffffffffff8311610301576020838186019501011161030157565b67ffffffffffffffff81116105d157604052565b634e487b7160e01b5f52604160045260245ffd5b90601f8019910116810190811067ffffffffffffffff8211176105d157604052565b908060209392818452848401375f828201840152601f01601f1916010190565b9081602091031261030157518015158103610301579056fea26469706673582212204a7221cbde82ba2d097275331acf5825bd952b498e9d8582b6ce49fee9fe12fe64736f6c63430008140033"
+}

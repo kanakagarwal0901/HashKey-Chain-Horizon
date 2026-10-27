@@ -33,6 +33,17 @@ export const SUPPORTED_CHAINS: Record<string, ChainMetadata> = {
     uniswapRouterAddress: "0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E", // Uniswap V3 SwapRouter02
     uniswapQuoterAddress: "0xEd1f6473345F45b75F8179591dd5bA1888cf2FB3",
   },
+  "hashkey-testnet": {
+    id: "hashkey-testnet",
+    name: "HashKey Chain Testnet",
+    chainId: 133,
+    chainIdHex: "0x85",
+    rpcUrl: "https://testnet.hsk.xyz",
+    explorerUrl: "https://testnet-explorer.hsk.xyz",
+    nativeCurrency: { name: "HashKey EcoPoints", symbol: "HSK", decimals: 18 },
+    uniswapRouterAddress: "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D", // HashKey Settlement Router
+    uniswapQuoterAddress: "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae", // HSP Adapter
+  },
   "hedera-testnet": {
     id: "hedera-testnet",
     name: "Hedera Testnet (EVM)",
@@ -81,11 +92,21 @@ export const SUPPORTED_TOKENS: Record<string, TokenMetadata> = {
     name: "USD Coin",
     decimals: 6,
     addresses: {
+      "hashkey-testnet": "0x054ed45810DbBAb8B27668922D110669c9D88D0a",
       "ethereum-sepolia": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
       "hedera-testnet": "0x0000000000000000000000000000000000a9e4c1",
       "arbitrum-sepolia": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
       "base-sepolia": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
       "optimism-sepolia": "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
+    },
+  },
+  HSK: {
+    symbol: "HSK",
+    name: "HashKey EcoPoints",
+    decimals: 18,
+    isNative: true,
+    addresses: {
+      "hashkey-testnet": "0x0000000000000000000000000000000000000000",
     },
   },
   ETH: {
@@ -126,6 +147,7 @@ export const SUPPORTED_TOKENS: Record<string, TokenMetadata> = {
     name: "Tether USD",
     decimals: 6,
     addresses: {
+      "hashkey-testnet": "0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029",
       "ethereum-sepolia": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
       "arbitrum-sepolia": "0x6854e43f114c02c67645e5d36e768370ffea5485",
     },
@@ -167,6 +189,7 @@ export class UniswapService {
     USDC: 1.0,
     DAI: 1.0,
     USDT: 1.0,
+    HSK: 0.75,
     ETH: 2600.0,
     WETH: 2600.0,
     UNI: 8.5,

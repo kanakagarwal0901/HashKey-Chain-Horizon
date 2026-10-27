@@ -50,6 +50,8 @@ import {
   HEDERA_HCS_TOPIC_ID,
   switchOrAddSepoliaNetwork,
   fetchSepoliaUsdcBalance,
+  switchOrAddHashKeyNetwork,
+  fetchHashKeyHskBalance,
   waitForSepoliaConfirmation,
   executeBuyerUniversalPayment,
 } from "@/lib/clientSepolia";
@@ -75,15 +77,16 @@ export default function BuyerStudioPage() {
   const [refundReceipt, setRefundReceipt] = useState<any | null>(null);
   const [showRefundModal, setShowRefundModal] = useState<boolean>(false);
 
-  // On-Chain Sepolia & USDC Balance State
+  // On-Chain Balances State
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
+  const [hskBalance, setHskBalance] = useState<number | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState<boolean>(false);
   const [buyerSepoliaTxHash, setBuyerSepoliaTxHash] = useState<string | null>(null);
 
-  // Multi-Currency & Multi-Chain Payment State
-  const [paymentCurrency, setPaymentCurrency] = useState<string>("USDC");
-  const [paymentChain, setPaymentChain] = useState<string>("ethereum-sepolia");
+  // Multi-Currency & Multi-Chain Payment State (Defaults to HashKey Chain Track 2)
+  const [paymentCurrency, setPaymentCurrency] = useState<string>("HSK");
+  const [paymentChain, setPaymentChain] = useState<string>("hashkey-testnet");
   const [isFetchingQuote, setIsFetchingQuote] = useState<boolean>(false);
   const [paymentQuote, setPaymentQuote] = useState<{
     amountFormatted: string;
@@ -91,25 +94,45 @@ export default function BuyerStudioPage() {
     isSwap: boolean;
   }>({
     amountFormatted: "$0.00",
-    rateFormatted: "1 USDC = $1.00",
+    rateFormatted: "1 HSK = $0.75",
     isSwap: false,
   });
 
   const isSepoliaNetwork = walletChainId === "0xaa36a7" || walletChainId === "11155111";
+  const isHashKeyNetwork = walletChainId === "0x85" || walletChainId === "133";
 
-  const refreshUsdcBalance = async () => {
+  const refreshBalances = async () => {
     if (!walletAddress) {
       setUsdcBalance(null);
+      setHskBalance(null);
       return;
     }
     try {
       setIsLoadingBalance(true);
-      const bal = await fetchSepoliaUsdcBalance(walletAddress);
-      setUsdcBalance(bal);
+      const [usdc, hsk] = await Promise.all([
+        fetchSepoliaUsdcBalance(walletAddress),
+        fetchHashKeyHskBalance(walletAddress),
+      ]);
+      setUsdcBalance(usdc);
+      setHskBalance(hsk);
     } catch (err) {
-      console.warn("Could not query Sepolia USDC balance:", err);
+      console.warn("Could not query on-chain balances:", err);
     } finally {
       setIsLoadingBalance(false);
+    }
+  };
+
+  const refreshUsdcBalance = refreshBalances;
+
+  const switchToHashKey = async () => {
+    setIsSwitchingNetwork(true);
+    try {
+      const ok = await switchOrAddHashKeyNetwork();
+      if (ok) {
+        setTimeout(refreshBalances, 1000);
+      }
+    } finally {
+      setIsSwitchingNetwork(false);
     }
   };
 
@@ -682,8 +705,46 @@ contract VaultLending {
           {/* EF Anon-RPC Transport Badge */}
           <AnonRpcStatusBadge />
 
-          {/* Sepolia Network Badge */}
+          {/* HashKey Chain Network Badge */}
           {walletAddress && (
+            isHashKeyNetwork ? (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-950/40 border border-emerald-600/40 text-xs text-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-ring-emerald" />
+                <span className="font-semibold">HashKey Testnet (133)</span>
+              </div>
+            ) : (
+              <button
+                onClick={switchToHashKey}
+                disabled={isSwitchingNetwork}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-600/40 text-xs text-emerald-300 transition"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>{isSwitchingNetwork ? "Switching..." : "Switch to HashKey (HSK)"}</span>
+              </button>
+            )
+          )}
+
+          {/* HashKey Native HSK Balance */}
+          {walletAddress && hskBalance !== null && (
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-full liquid-glass-pill text-xs">
+              <Coins className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-white font-semibold tabular-data">
+                {hskBalance.toFixed(3)} HSK
+              </span>
+              <a
+                href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+                target="_blank"
+                rel="noreferrer"
+                title="View HSP Adapter on Blockscout"
+                className="text-[11px] text-zinc-400 hover:text-white underline flex items-center gap-0.5 ml-1"
+              >
+                HSP <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
+          )}
+
+          {/* Sepolia Network Badge */}
+          {walletAddress && !isHashKeyNetwork && (
             isSepoliaNetwork ? (
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-xs text-zinc-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -1251,18 +1312,24 @@ contract VaultLending {
               </div>
 
               {/* Currency Selector Buttons */}
-              <div className="grid grid-cols-5 gap-2.5">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {[
+                  { symbol: "HSK", name: "HashKey", badge: "Track 2 HSP" },
                   { symbol: "USDC", name: "USD Coin", badge: "Direct" },
                   { symbol: "ETH", name: "Ethereum", badge: "Native" },
                   { symbol: "DAI", name: "Dai", badge: "Uniswap" },
-                  { symbol: "USDT", name: "Tether", badge: "Uniswap" },
+                  { symbol: "USDT", name: "Tether", badge: "Direct/Swap" },
                   { symbol: "UNI", name: "Uniswap", badge: "Uniswap" },
                 ].map((token) => (
                   <button
                     key={token.symbol}
                     type="button"
-                    onClick={() => setPaymentCurrency(token.symbol)}
+                    onClick={() => {
+                      setPaymentCurrency(token.symbol);
+                      if (token.symbol === "HSK") {
+                        setPaymentChain("hashkey-testnet");
+                      }
+                    }}
                     className={`p-3 rounded-xl border text-xs font-medium text-center transition ${
                       paymentCurrency === token.symbol
                         ? "bg-white text-black font-semibold border-white"
@@ -1279,6 +1346,7 @@ contract VaultLending {
               <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
                 <span className="text-[11px] text-zinc-400">Payment Chain:</span>
                 {[
+                  { id: "hashkey-testnet", name: "HashKey Testnet (133)" },
                   { id: "ethereum-sepolia", name: "Ethereum Sepolia" },
                   { id: "arbitrum-sepolia", name: "Arbitrum Sepolia" },
                   { id: "base-sepolia", name: "Base Sepolia" },
@@ -1286,10 +1354,15 @@ contract VaultLending {
                   <button
                     key={chain.id}
                     type="button"
-                    onClick={() => setPaymentChain(chain.id)}
+                    onClick={() => {
+                      setPaymentChain(chain.id);
+                      if (chain.id === "hashkey-testnet" && paymentCurrency !== "USDC" && paymentCurrency !== "USDT") {
+                        setPaymentCurrency("HSK");
+                      }
+                    }}
                     className={`px-3.5 py-1.5 rounded-full border text-[11px] transition ${
                       paymentChain === chain.id
-                        ? "bg-zinc-800 text-white font-semibold border-white/20"
+                        ? "bg-emerald-950/60 text-emerald-300 font-semibold border-emerald-500/30"
                         : "bg-black/60 border-white/[0.06] text-zinc-400 hover:text-white"
                     }`}
                   >
@@ -1636,6 +1709,55 @@ contract VaultLending {
                         </a>
                       </div>
                     </div>
+
+                    {/* 3. HashKey Chain HSP Settlement Receipt */}
+                    {executionResult.hashKeySettlement && (
+                      <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 flex flex-col justify-between gap-2.5 md:col-span-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-emerald-300 flex items-center gap-1.5">
+                            <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                            HashKey Chain Horizon • Track 2 HSP Settlement (Chain ID 133)
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Status: {executionResult.hashKeySettlement.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-zinc-300 pt-1">
+                          <div>
+                            <span className="text-zinc-500 block text-[10px]">HSP Adapter</span>
+                            <span className="font-mono text-[11px] truncate block text-emerald-400" title={executionResult.hashKeySettlement.hspAdapterAddress}>
+                              {executionResult.hashKeySettlement.hspAdapterAddress.slice(0, 10)}...{executionResult.hashKeySettlement.hspAdapterAddress.slice(-8)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block text-[10px]">Settlement Routing</span>
+                            <span className="text-zinc-200 text-[11px]">Seller: {executionResult.hashKeySettlement.sellerPayoutHsk} HSK</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block text-[10px]">Conservation of Value</span>
+                            <span className="text-emerald-400 text-[11px]">Enforced On-Chain</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-emerald-500/20">
+                          <span className="text-xs text-zinc-400 tabular-data">
+                            Attestation: {executionResult.hashKeySettlement.attestationHash?.slice(0, 14)}...
+                          </span>
+                          <a
+                            href={
+                              executionResult.hashKeySettlement.paymentTxHash?.startsWith("0x")
+                                ? `https://testnet-explorer.hsk.xyz/tx/${executionResult.hashKeySettlement.paymentTxHash}`
+                                : `https://testnet-explorer.hsk.xyz/address/${executionResult.hashKeySettlement.hspAdapterAddress}`
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-emerald-300 hover:text-white hover:underline flex items-center gap-1 font-semibold text-xs"
+                          >
+                            Verify on HashKey Blockscout
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* 3. 0G Enclave Attestation Receipt */}

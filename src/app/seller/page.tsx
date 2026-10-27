@@ -1347,14 +1347,18 @@ export default function SellerHubPage() {
               </div>
             </div>
 
-            {/* Step 8: Hedera Payout Account */}
+            {/* Step 8: Hedera & HashKey Payout Account */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
-                  <span>8. Hedera Payout Account ID (Receives HTS USDC):</span>
-                  {sellerHederaAccount ? (
+                  <span>8. Payout Target (HashKey Chain EVM & Hedera):</span>
+                  {walletAddress ? (
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1 font-medium">
-                      <Check className="w-3 h-3" /> Connected & Verified
+                      <Check className="w-3 h-3" /> HashKey EVM: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                    </span>
+                  ) : sellerHederaAccount ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1 font-medium">
+                      <Check className="w-3 h-3" /> Hedera: {sellerHederaAccount}
                     </span>
                   ) : (
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-zinc-800 text-zinc-400">
@@ -1362,14 +1366,14 @@ export default function SellerHubPage() {
                     </span>
                   )}
                 </label>
-                {sellerHederaAccount && (
+                {walletAddress && (
                   <a
-                    href={`https://hashscan.io/testnet/account/${sellerHederaAccount}`}
+                    href={`https://testnet-explorer.hsk.xyz/address/${walletAddress}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-zinc-400 hover:text-white underline flex items-center gap-1 tabular-data font-semibold"
+                    className="text-xs text-emerald-400 hover:text-emerald-300 underline flex items-center gap-1 tabular-data font-semibold"
                   >
-                    View on HashScan <ExternalLink className="w-3 h-3" />
+                    View on HashKey Blockscout <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
               </div>

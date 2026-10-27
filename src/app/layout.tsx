@@ -7,9 +7,9 @@ import Footer from "@/components/Footer";
 import LiquidGlassFilters from "@/components/LiquidGlassFilters";
 
 export const metadata: Metadata = {
-  title: "ShunyaGrid | Zero-Cutoff Confidential AI Exchange",
+  title: "ShunyaGrid • HashKey Chain Horizon | Track 2: Agent Payments & A2A Settlement",
   description:
-    "Privacy-first decentralized marketplace for frontier AI reasoning tokens. Mathematical zero-cutoff guarantees with total data blindness.",
+    "Autonomous agent payment and A2A settlement network powered by HashKey Settlement Protocol (HSP) and confidential hardware enclaves with mathematical zero-cutoff guarantees.",
 };
 
 export default function RootLayout({

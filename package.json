@@ -27,6 +27,7 @@
     "test:refund": "tsx scripts/testBuyerAutomaticRefund.ts",
     "test:e2e": "tsx scripts/runE2EDemo.ts",
     "agent:openclaw": "tsx apps/buyer-cli-agent/openclaw-agent.ts",
+    "agent:hsk": "tsx apps/agent/openclaw-hsk-agent.ts",
     "contracts:compile": "tsx scripts/compileContracts.ts",
     "contracts:deploy": "tsx scripts/deployContracts.ts",
     "orderbook:clear": "tsx scripts/clearOrderbook.ts"

@@ -18,6 +18,8 @@ export function compileContracts(): Record<string, CompileResult> {
   }
 
   const filesToCompile = [
+    "HSPAdapter.sol",
+    "HashKeySettlementRouter.sol",
     "VaultLending.sol",
     "SecureVault.sol",
     "ShunyaGridEscrow.sol",
@@ -39,6 +41,7 @@ export function compileContracts(): Record<string, CompileResult> {
         enabled: true,
         runs: 200,
       },
+      viaIR: true,
       outputSelection: {
         "*": {
           "*": ["abi", "evm.bytecode.object"],
@@ -47,7 +50,7 @@ export function compileContracts(): Record<string, CompileResult> {
     },
   };
 
-  console.log("⚙ Compiling smart contracts with solc 0.8.20...");
+  console.log("⚙ Compiling smart contracts with solc 0.8.20 (viaIR: true) for HashKey Chain...");
   const output = JSON.parse(solc.compile(JSON.stringify(input)));
 
   if (output.errors) {

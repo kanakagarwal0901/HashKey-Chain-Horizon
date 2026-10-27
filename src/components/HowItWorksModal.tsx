@@ -14,7 +14,7 @@ import {
 interface HowItWorksModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: "buyer" | "seller" | "technology";
+  initialTab?: "buyer" | "seller" | "technology" | "hashkey";
 }
 
 export default function HowItWorksModal({
@@ -22,7 +22,7 @@ export default function HowItWorksModal({
   onClose,
   initialTab = "buyer",
 }: HowItWorksModalProps) {
-  const [activeTab, setActiveTab] = useState<"buyer" | "seller" | "technology">(initialTab);
+  const [activeTab, setActiveTab] = useState<"buyer" | "seller" | "technology" | "hashkey">(initialTab);
   const [mounted, setMounted] = useState<boolean>(false);
 
   useEffect(() => {
@@ -90,39 +90,50 @@ export default function HowItWorksModal({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 p-1 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] my-4 sm:my-5 shrink-0 min-w-0 w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] my-3 sm:my-4 shrink-0 min-w-0 w-full">
           <button
             onClick={() => setActiveTab("buyer")}
-            className={`w-full py-2 px-3 rounded-full text-xs font-semibold transition flex items-center justify-center gap-2 min-w-0 ${
+            className={`w-full py-2 px-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 min-w-0 ${
               activeTab === "buyer"
                 ? "bg-white text-black font-semibold"
                 : "text-neutral-400 hover:text-white"
             }`}
           >
-            <Cpu className="w-4 h-4 shrink-0" />
-            <span className="truncate sm:whitespace-normal">For Buyers (Use AI)</span>
+            <Cpu className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">For Buyers</span>
           </button>
           <button
             onClick={() => setActiveTab("seller")}
-            className={`w-full py-2 px-3 rounded-full text-xs font-semibold transition flex items-center justify-center gap-2 min-w-0 ${
+            className={`w-full py-2 px-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 min-w-0 ${
               activeTab === "seller"
                 ? "bg-white text-black font-semibold"
                 : "text-neutral-400 hover:text-white"
             }`}
           >
-            <Coins className="w-4 h-4 shrink-0" />
-            <span className="truncate sm:whitespace-normal">For Sellers (Earn USDC)</span>
+            <Coins className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">For Sellers</span>
           </button>
           <button
             onClick={() => setActiveTab("technology")}
-            className={`w-full py-2 px-3 rounded-full text-xs font-semibold transition flex items-center justify-center gap-2 min-w-0 ${
+            className={`w-full py-2 px-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 min-w-0 ${
               activeTab === "technology"
                 ? "bg-white text-black font-semibold"
                 : "text-neutral-400 hover:text-white"
             }`}
           >
-            <Shield className="w-4 h-4 shrink-0" />
-            <span className="truncate sm:whitespace-normal">Zero-Cutoff Design</span>
+            <Shield className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Zero-Cutoff</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("hashkey")}
+            className={`w-full py-2 px-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 min-w-0 ${
+              activeTab === "hashkey"
+                ? "bg-emerald-500 text-black font-semibold"
+                : "text-emerald-400 hover:text-emerald-300"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shrink-0" />
+            <span className="truncate">HashKey & HSP</span>
           </button>
         </div>
 
@@ -223,12 +234,55 @@ export default function HowItWorksModal({
               </div>
             </div>
           )}
+
+          {/* Content Tab 4: HashKey Chain & HSP (Track 2) */}
+          {activeTab === "hashkey" && (
+            <div className="space-y-3 min-w-0">
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-emerald-500/20 space-y-1.5 min-w-0 break-words">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">Track 2: Agent Payments & A2A Settlement</span>
+                </div>
+                <h3 className="text-white font-semibold text-sm">
+                  HashKey Settlement Protocol (HSP) on HashKey Chain
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
+                  Autonomous agents exchange reasoning compute using cryptographically signed EIP-712 mandates on HashKey Chain. Funds are locked upfront according to exact mathematical token bounds (T_max) into <strong>HSPAdapter.sol</strong>, ensuring the buyer never experiences mid-generation cutoffs.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
+                  Mathematical Conservation of Value
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
+                  Post-inference settlement strictly enforces on-chain: <br/>
+                  <code className="text-emerald-400 text-[11px]">sellerPayout + protocolFee + buyerRefund == maxDeposit</code>. <br/>
+                  Sellers receive payment solely for actual compute consumed (T_used), and any unused quota deposit is refunded back to the buyer agent wallet with zero human mediation.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
+                <h3 className="text-white font-semibold text-sm">
+                  Live HashKey Testnet Deployment & Chainlink CCIP
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed break-words">
+                  Contracts are live on HashKey Chain Testnet (Chain ID 133):
+                </p>
+                <div className="text-[11px] font-mono text-zinc-300 space-y-1 pt-1 break-all">
+                  <div>• HSPAdapter: <a href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae" target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae</a></div>
+                  <div>• Router: <a href="https://testnet-explorer.hsk.xyz/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D" target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D</a></div>
+                  <div>• CCIP Selector: <span className="text-zinc-400">7613811247471741961 (ethereum-mainnet-hashkey-1)</span></div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Pinned Action Footer */}
         <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3 shrink-0">
           <div className="text-xs text-neutral-500 hidden sm:block">
-            ShunyaGrid Protocol &bull; Zero-Cutoff Guaranteed
+            HashKey Chain Horizon &bull; Track 2 HSP Verified
           </div>
           <div className="flex items-center gap-2.5 ml-auto">
             <button
@@ -237,6 +291,17 @@ export default function HowItWorksModal({
             >
               Close
             </button>
+            {activeTab === "hashkey" && (
+              <a
+                href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary-apple px-4 sm:px-5 py-2 rounded-full font-semibold text-xs flex items-center gap-2"
+              >
+                <span>View On Blockscout</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            )}
             {activeTab === "buyer" && (
               <Link
                 href="/buyer"
