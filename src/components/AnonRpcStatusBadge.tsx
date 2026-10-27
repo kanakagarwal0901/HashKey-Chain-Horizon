@@ -41,9 +41,9 @@ export default function AnonRpcStatusBadge({
       {isOpen && (
         <div
           data-ui="dropdown-menu"
-          className={`absolute ${
+          className={`!absolute ${
             placement === "top" ? "bottom-full mb-3" : "top-full mt-2"
-          } left-0 sm:left-auto sm:right-0 w-80 sm:w-96 rounded-2xl liquid-glass p-4 z-50 text-zinc-900 dark:text-zinc-200`}
+          } left-0 sm:left-auto sm:right-0 w-[calc(100vw-2rem)] sm:w-96 max-w-sm max-h-[80vh] overflow-y-auto rounded-2xl liquid-glass p-4 z-50 text-zinc-900 dark:text-zinc-200 shadow-2xl`}
         >
           <div className="flex items-center justify-between pb-3 border-b border-black/[0.06] dark:border-white/[0.08]">
             <div className="flex items-center gap-2">

@@ -169,7 +169,10 @@ export default function Navbar() {
 
                 {/* Profile Dropdown Menu */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-72 rounded-2xl liquid-glass p-4 space-y-3 z-50 text-zinc-900 dark:text-zinc-100" data-ui="dropdown-menu">
+                  <div
+                    data-ui="dropdown-menu"
+                    className="!absolute -right-12 sm:right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain rounded-2xl liquid-glass p-4 space-y-3 z-50 text-zinc-900 dark:text-zinc-100 shadow-2xl"
+                  >
                     <div className="border-b border-black/[0.06] dark:border-white/[0.08] pb-3 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium block">
@@ -193,14 +196,14 @@ export default function Navbar() {
                           {ensName}
                         </div>
                       )}
-                      <div className="flex items-center justify-between gap-2 pt-0.5">
-                        <span className="text-xs text-zinc-700 dark:text-zinc-300 truncate tabular-data" title={walletAddress || ""}>
-                          {walletAddress}
+                      <div className="flex items-center justify-between gap-2 pt-0.5 min-w-0">
+                        <span className="text-xs text-zinc-700 dark:text-zinc-300 truncate tabular-data min-w-0" title={walletAddress || ""}>
+                          {walletAddress ? `${walletAddress.slice(0, 10)}...${walletAddress.slice(-8)}` : ""}
                         </span>
                         <button
                           onClick={copyAddress}
                           className="p-1 rounded hover:bg-black/[0.05] dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition flex-shrink-0"
-                          title="Copy address"
+                          title="Copy full address"
                         >
                           {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                         </button>
@@ -216,8 +219,8 @@ export default function Navbar() {
                         </span>
                       </div>
                       {nullifierHash && (
-                        <div className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate" title={nullifierHash}>
-                          Nullifier: {nullifierHash.slice(0, 16)}...
+                        <div className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate min-w-0" title={nullifierHash}>
+                          Nullifier: {nullifierHash.slice(0, 14)}...{nullifierHash.slice(-6)}
                         </div>
                       )}
                     </div>
@@ -226,8 +229,8 @@ export default function Navbar() {
                     {sellerHederaAccount && (
                       <div className="p-3 rounded-xl bg-black/[0.03] dark:bg-black/50 border border-black/[0.06] dark:border-white/[0.06] text-xs space-y-1">
                         <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-300">
-                          <span>Hedera Payout Account:</span>
-                          <span className="text-zinc-900 dark:text-white font-semibold tabular-data">{sellerHederaAccount}</span>
+                          <span>Hedera Payout:</span>
+                          <span className="text-zinc-900 dark:text-white font-semibold tabular-data truncate max-w-[140px]">{sellerHederaAccount}</span>
                         </div>
                       </div>
                     )}

@@ -260,6 +260,7 @@ contract VaultLending {
   console.log("\n" + "=".repeat(75));
   console.log("   ALL 7 SPONSOR INTEGRATION TRACKS VERIFIED COMPLIANT AND OPERATIONAL!");
   console.log("=".repeat(75) + "\n");
+  process.exit(0);
 }
 
 runE2EDemo().catch((err) => {
