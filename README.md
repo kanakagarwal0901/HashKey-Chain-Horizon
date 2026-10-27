@@ -1,51 +1,44 @@
 # ShunyaGrid: Autonomous Agent Payments & A2A Settlement Protocol on HashKey Chain
 
-[![Hackathon](https://img.shields.io/badge/HashKey_Chain-Horizon_Edition-00C087.svg)](https://dorahacks.io/hackathon/hskchainindia/detail)
-[![Track](https://img.shields.io/badge/Track-Agent_Payments_%26_A2A_Settlement-emerald.svg)](https://dorahacks.io/hackathon/hskchainindia/detail)
-[![HSP Protocol](https://img.shields.io/badge/Protocol-HSP_Mandate_Compliant-cyan.svg)](https://docs.hskchain.net)
-[![Chain](https://img.shields.io/badge/HashKey_Chain_Testnet-Chain_ID_133-10B981.svg)](https://testnet-explorer.hsk.xyz)
-[![Cutoff Failures](https://img.shields.io/badge/Mid--Generation_Cutoffs-0.00%25_Guaranteed-green.svg)](#3-deterministic-token-bounds--zero-cutoff-guarantee)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+**HashKey Chain Horizon** • **Track: Agent Payments & A2A Settlement** • **Chain ID: 133 (Testnet)**
 
-> **HashKey Chain Horizon Hackathon Submission**  
-> **Target Track:** Agent Payments & A2A Settlement  
-> **Mandatory HSP Compliance:** Powered by **HashKey Settlement Protocol (HSP)** with EIP-712 Payment Mandates & On-Chain Settlement.  
-> **Live HashKey Testnet Explorer:** [`0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae`](https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae)  
-> **Autonomous Agent CLI:** `npm run agent:hsk` (settles end-to-end live on HashKey Chain in seconds)  
+ShunyaGrid is an autonomous agent-to-agent (A2A) payment and token settlement network native to **HashKey Chain**. Powered by the **HashKey Settlement Protocol (HSP)**, it enables AI agents to securely buy, sell, and settle inference and compute quotas without data surveillance or mid-generation failures.
+
+* **Live Contract (`HSPAdapter`):** [`0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae`](https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae)
+* **Settlement Router:** [`0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D`](https://testnet-explorer.hsk.xyz/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D)
+* **Autonomous Agent CLI:** `npm run agent:hsk`
 
 ---
 
-## 1. Problem Statement: The Agent-to-Agent (A2A) Settlement Crisis
+## 1. Problem Statement: The A2A Settlement Crisis
 
-As autonomous AI agents evolve from conversational assistants into economic actors that trade data, financial models, and code audits, **agent-to-agent (A2A) commerce breaks down on traditional payment rails**:
+As autonomous AI agents evolve into economic actors trading data, code audits, and financial analysis, existing payment rails fail:
 
-1. **The Mid-Generation Token Exhaustion Hazard:**  
-   Modern reasoning models (e.g., Claude 3.7 Sonnet, OpenAI o3-mini, Gemini 2.0 Flash Thinking) consume variable chains of hidden reasoning tokens before outputting their final answer. If an inference provider runs out of quota mid-thought, the model abruptly halts. **The buyer agent's funds are lost, the seller's quota is burned, and no valid cryptographic output is delivered.**
-
-2. **Escrow Dispute Overhead & Lack of Conservation of Value:**  
-   Traditional escrows require human arbiters or rigid pricing that cannot handle variable token compute. If a buyer agent locks 100,000 tokens worth of funds upfront, but the model finishes in only 12,840 tokens, conventional contracts cannot mathematically prove and refund the exact difference without trust assumptions.
-
-3. **Privacy and Code Surveillance Risk in Agent Commerce:**  
-   When financial trading agents or smart contract auditing agents purchase inference, routing raw prompts or proprietary code through untrusted third-party API proxies creates immense surveillance risk. Both buyer prompts and seller API keys must remain strictly confidential.
+1. **Mid-Generation Token Exhaustion:**  
+   Reasoning models (Claude 3.7 Sonnet, OpenAI o3-mini, Gemini 2.0 Thinking) consume thousands of hidden reasoning tokens. If a seller runs out of quota midway, the generation crashes, tokens burn, and the buyer receives nothing.
+2. **Inflexible Pricing & Escrow Overhead:**  
+   Standard escrows charge flat fees. If a buyer reserves 50,000 tokens but the model only needs 12,000, conventional smart contracts cannot automatically prove usage and refund the unused difference.
+3. **Data & Prompt Surveillance Risk:**  
+   Sending proprietary codebases or confidential financial models through third-party API proxies exposes sensitive intellectual property to sellers.
 
 ---
 
 ## 2. The Solution: ShunyaGrid + HashKey Settlement Protocol (HSP)
 
-**ShunyaGrid** is an autonomous A2A payment and zero-cutoff token settlement network native to **HashKey Chain**. It pairs hardware-sealed execution with the **HashKey Settlement Protocol (HSP)** to achieve:
+ShunyaGrid pairs isolated hardware execution with the **HashKey Settlement Protocol (HSP)**:
 
-* **EIP-712 HSP Payment Mandates:** Buyer agents construct and sign typed payment mandates (`HSPPaymentMandate`) authorizing an exact upfront reservation ($T_{\max}$) in native `HSK` or HashKey `USDC`.
-* **On-Chain Mandate Locking:** Funds are locked in `HSPAdapter.sol` on HashKey Chain before compute starts, verifying seller solvency and eliminating payment default risk.
-* **Confidential Enclave Execution:** Prompts and proprietary attachments (e.g., Solidity contracts, financial CSVs) are sealed in agent RAM with AES-256-GCM. Seller compute nodes execute the inference inside isolated enclaves with **zero surveillance access**.
-* **Mathematical Conservation of Value:** Post-inference, `HSPAdapter.sol` executes atomic settlement enforcing:
+* **EIP-712 Payment Mandates:** Buyer agents sign typed, gasless payment mandates authorizing an exact upfront reservation for the maximum possible compute budget ($T_{\max}$).
+* **On-Chain Mandate Locking:** Funds are locked in `HSPAdapter.sol` on HashKey Chain before compute starts, verifying seller solvency and eliminating default risk.
+* **Confidential Enclave Execution:** Prompts and attached files are encrypted client-side with AES-256-GCM. Seller nodes execute the request inside isolated memory with **zero access to cleartext prompts or outputs**.
+* **Conservation of Value Settlement:** Once the model finishes, `HSPAdapter.sol` executes atomic settlement:
   $$\text{sellerPayout} + \text{protocolFee} + \text{buyerRefund} \equiv \text{maxDeposit}$$
-  Sellers are compensated strictly for actual compute consumed ($T_{\text{used}}$), protocol routing fees are retained, and all unused funds are **instantly refunded to the buyer agent wallet**.
+  Sellers are paid strictly for actual tokens consumed ($T_{\text{used}}$), the protocol takes a routing fee, and all unused funds are **instantly refunded to the buyer agent**.
 
 ---
 
 ## 3. Live Deployed Contracts on HashKey Chain Testnet
 
-All smart contracts are compiled with Solidity `0.8.20`, optimized with `viaIR: true`, and deployed live on **HashKey Chain Testnet (Chain ID 133)**:
+All contracts are compiled with Solidity `0.8.20`, optimized with `viaIR: true`, and deployed live on **HashKey Chain Testnet (Chain ID 133)**:
 
 | Contract | Address | Network | Blockscout Explorer Link |
 | :--- | :--- | :--- | :--- |
@@ -53,7 +46,7 @@ All smart contracts are compiled with Solidity `0.8.20`, optimized with `viaIR: 
 | **`HashKeySettlementRouter`** | `0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D` | HashKey Chain Testnet (133) | [View on HashKey Blockscout](https://testnet-explorer.hsk.xyz/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D) |
 | **`Deployer / Operator`** | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` | HashKey Chain Testnet (133) | [View on HashKey Blockscout](https://testnet-explorer.hsk.xyz/address/0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266) |
 
-### Supported HashKey Chain Tokens & Infrastructure
+### Supported HashKey Chain Tokens
 * **Native HSK:** `address(0)` (Native gas and settlement currency)
 * **HashKey USDC:** `0x054ed45810DbBAb8B27668922D110669c9D88D0a`
 * **HashKey USDT:** `0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029`
@@ -62,7 +55,7 @@ All smart contracts are compiled with Solidity `0.8.20`, optimized with `viaIR: 
 
 ---
 
-## 4. Architecture & A2A Workflow Diagram
+## 4. Architecture & Workflow Diagram
 
 ```
 +----------------------------------------------------------------------------------------------------+
@@ -72,10 +65,10 @@ All smart contracts are compiled with Solidity `0.8.20`, optimized with `viaIR: 
  [ Buyer AI Agent ]                     [ HSPAdapter.sol ]                   [ Seller Compute Node ]
 (e.g. OpenClaw CLI)                   (HashKey Chain 133)                     (Confidential Enclave)
         |                                       |                                       |
-        | 1. Model Discovery & T_max Bounds     |                                       |
+        | 1. Model Discovery & Token Bounds     |                                       |
         |------------------------------------------------------------------------------>|
         |                                       |                                       |
-        | 2. Sign EIP-712 HSP Mandate          |                                       |
+        | 2. Sign EIP-712 HSP Mandate           |                                       |
         |    (v, r, s, mandateId, maxDeposit)   |                                       |
         |                                       |                                       |
         | 3. lockHSPMandateWithSignature()      |                                       |
@@ -107,46 +100,41 @@ All smart contracts are compiled with Solidity `0.8.20`, optimized with `viaIR: 
 
 ---
 
-## 5. Deterministic Token Bounds & Zero-Cutoff Guarantee
+## 5. Token Limits & Zero-Cutoff Guarantee
 
-Before any inference request is executed, ShunyaGrid computes deterministic upper bounds:
+Modern reasoning models consume variable amounts of hidden "thinking" tokens. If a seller runs out of quota during execution, the prompt fails midway and funds are lost.
 
-$$T_{\max}(m, \tau) = T_{\text{input\_cap}}(m) + T_{\text{thinking\_budget}}(m, \tau) + T_{\text{output\_cap}}(m, \tau)$$
+**How ShunyaGrid solves this:**  
+Before any prompt is executed, ShunyaGrid determines the maximum possible token requirement ($T_{\max}$) based on the model and selected thinking level. The network checks the seller's verified balance to guarantee they have enough quota before any call is made.
 
-| Model ID | Thinking Level ($\tau$) | Min Required ($T_{\min}$) | Input Cap ($T_{\text{input}}$) | Thinking Budget ($T_{\text{thinking}}$) | Output Cap ($T_{\text{output}}$) | Total Ceiling ($T_{\max}$) | HSK Benchmark Rate |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `claude-3-7-sonnet` | `medium` | 5,000 | 10,000 | 8,192 | 6,000 | **24,192** | 0.015 HSK |
-| `claude-3-7-sonnet` | `high` | 10,000 | 16,000 | 32,000 | 8,000 | **56,000** | 0.035 HSK |
-| `o3-mini` | `medium` | 4,000 | 8,000 | 8,000 | 6,000 | **22,000** | 0.012 HSK |
-| `gemini-2.0-flash` | `thinking` | 3,000 | 8,000 | 8,000 | 4,000 | **20,000** | 0.010 HSK |
+| Model | Thinking Level | Max Token Budget ($T_{\max}$) | Benchmark Rate |
+| :--- | :--- | :--- | :--- |
+| **Claude 3.7 Sonnet** | Medium | 24,192 tokens | 0.015 HSK |
+| **Claude 3.7 Sonnet** | High | 56,000 tokens | 0.035 HSK |
+| **OpenAI o3-mini** | Medium | 22,000 tokens | 0.012 HSK |
+| **Gemini 2.0 Flash** | Thinking | 20,000 tokens | 0.010 HSK |
 
-**The Invariant:** A prompt is never initiated unless the seller node's verified available quota $Q \ge T_{\max}$. **Mid-generation cutoffs are mathematically prevented.**
-
----
-
-## 6. How HSP Solves Agent Payments & Compliance
-
-The **HashKey Settlement Protocol (HSP)** specification provides standard rails for verifiable settlement. In ShunyaGrid, HSP is extended for Autonomous Agent Economies:
-
-1. **EIP-712 Off-Chain Mandate Signing:**  
-   Buyer agents do not need manual wallet popups for every sub-step. The autonomous agent signs typed structured data including `mandateId`, `buyerAgent`, `sellerNode`, `maxDeposit`, `tMax`, `nonce`, and `deadline`.
-2. **Standard HSP Event Logging:**  
-   Every transaction emits standard `HSPMessageEmitted` events, compatible with HashKey indexers:
-   ```solidity
-   event HSPMessageEmitted(bytes32 indexed topicId, uint8 indexed messageType, bytes payload);
-   ```
-3. **Multi-Asset Compatibility:**  
-   Supports both native `HSK` payments and ERC-20 tokens (HashKey `USDC`, `USDT`, `WHSK`).
-4. **Non-Custodial Conservation of Value:**  
-   The smart contract guarantees funds can only transition from `LOCKED` to `SETTLED` or `REFUNDED`. It is mathematically impossible for either party to lock or steal funds indefinitely.
+**The Zero-Cutoff Invariant:**  
+A prompt is **never** dispatched to a seller unless their active token quota is $\ge T_{\max}$. If a seller has insufficient tokens, the request is routed to an eligible node. This mathematically guarantees that **no prompt will ever fail or abort midway**.
 
 ---
 
-## 7. Quickstart & Live Verification
+## 6. How HSP Solves Agent Payments
+
+The **HashKey Settlement Protocol (HSP)** provides a reliable foundation for automated Web3 payments:
+
+1. **EIP-712 Mandates:** Agents sign off-chain payment authorizations. No manual popup is needed for every execution step.
+2. **On-Chain Audit Trail:** Every transaction emits standard `HSPMessageEmitted` events, providing full transparency on HashKey Blockscout.
+3. **Multi-Asset Rails:** Seamlessly supports native `HSK` and HashKey tokens (`USDC`, `USDT`, `WHSK`).
+4. **Zero-Custody Escrow:** Funds transition directly between Buyer, Seller, and Treasury with zero middleman custody.
+
+---
+
+## 7. Quickstart & Verification
 
 ### Prerequisites
 * Node.js v18+ & npm
-* A Web3 wallet (MetaMask) or CLI private key
+* Web3 Wallet (MetaMask) or private key
 
 ### Installation
 ```bash
@@ -156,19 +144,19 @@ npm install --legacy-peer-deps
 ```
 
 ### 1. Run the Autonomous HashKey Agent CLI
-Demonstrates full automated A2A model discovery, EIP-712 mandate signing, on-chain deposit locking, and post-inference settlement on HashKey Chain:
+Demonstrates autonomous model discovery, EIP-712 mandate signing, on-chain lock, and settlement live on HashKey Chain:
 ```bash
 npm run agent:hsk
 ```
 
-### 2. Run the Interactive dApp (Frontend)
+### 2. Run the Interactive Web Application
 ```bash
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser:
 * Connect MetaMask to **HashKey Chain Testnet** (Chain ID `133`).
-* Use the **Buyer Studio** to run confidential inference with thinking models.
-* Use the **Seller Hub** to monetize idle AI quotas.
+* Use the **Buyer Studio** to run confidential inference with reasoning models.
+* Use the **Seller Hub** to list and monetize idle AI quotas.
 
 ---
 
