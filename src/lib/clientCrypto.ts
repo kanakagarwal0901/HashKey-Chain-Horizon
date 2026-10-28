@@ -1,8 +1,25 @@
 // Pure Client-Side Web Crypto for EF CROPS Compliance
 // Runs strictly in the browser: Zero Node.js dependencies, Zero Key Leakage
 
+function cleanApiKey(key: string): string {
+  if (!key || typeof key !== "string") return "";
+  let cleaned = key.trim();
+  while (
+    (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+    (cleaned.startsWith("'") && cleaned.endsWith("'"))
+  ) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+  if (cleaned.toLowerCase().startsWith("bearer ")) {
+    cleaned = cleaned.slice(7).trim();
+  }
+  return cleaned;
+}
+
 function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const b64 = pem.replace(/-----[^\n]+-----/g, "").replace(/\s+/g, "");
+  const b64 = pem
+    .replace(/-----BEGIN [^-]+-----|-----END [^-]+-----/g, "")
+    .replace(/\s+/g, "");
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -44,12 +61,13 @@ export async function sealSellerApiKeyInBrowser(
   rawApiKey: string,
   enclavePublicKeyPem: string
 ): Promise<string> {
-  if (!rawApiKey) return "";
+  const cleaned = cleanApiKey(rawApiKey);
+  if (!cleaned) return "";
 
   // If window.crypto.subtle is unavailable (e.g. non-HTTPS local network IP),
   // return an explicit ENCLAVE_SEALED envelope so the backend unwrap handles it reliably
   if (typeof window === "undefined" || !window.crypto?.subtle) {
-    return `ENCLAVE_SEALED:${rawApiKey}`;
+    return `ENCLAVE_SEALED:${cleaned}`;
   }
 
   try {
@@ -62,17 +80,45 @@ export async function sealSellerApiKeyInBrowser(
       ["encrypt"]
     );
 
-    const encoded = new TextEncoder().encode(rawApiKey);
-    const encrypted = await window.crypto.subtle.encrypt(
+    const encoded = new TextEncoder().encode(cleaned);
+
+    // 1. Direct RSA-OAEP for keys within standard OAEP bounds (<= 180 bytes)
+    if (encoded.byteLength <= 180) {
+      const encrypted = await window.crypto.subtle.encrypt(
+        { name: "RSA-OAEP" },
+        pubKey,
+        encoded as unknown as BufferSource
+      );
+      return bufToBase64(new Uint8Array(encrypted));
+    }
+
+    // 2. Hybrid AES-256-GCM + RSA-OAEP key wrapping for longer keys (> 180 bytes)
+    const aesKey = await window.crypto.subtle.generateKey(
+      { name: "AES-GCM", length: 256 },
+      true,
+      ["encrypt", "decrypt"]
+    );
+    const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
+    const wrappedAesKey = await window.crypto.subtle.encrypt(
       { name: "RSA-OAEP" },
       pubKey,
-      encoded as unknown as BufferSource
+      rawAesKey
     );
-
-    return bufToBase64(new Uint8Array(encrypted));
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const encryptedData = await window.crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      aesKey,
+      encoded
+    );
+    const payload = {
+      w: bufToBase64(new Uint8Array(wrappedAesKey)),
+      iv: bufToHex(iv),
+      c: bufToBase64(new Uint8Array(encryptedData)),
+    };
+    return `ENCLAVE_HYBRID:${JSON.stringify(payload)}`;
   } catch (err) {
     console.warn("[ClientCrypto] WebCrypto RSA-OAEP sealing fallback:", err);
-    return `ENCLAVE_SEALED:${rawApiKey}`;
+    return `ENCLAVE_SEALED:${cleaned}`;
   }
 }
 

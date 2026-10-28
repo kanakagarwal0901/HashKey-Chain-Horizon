@@ -472,7 +472,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          provider,
+          provider: currentModelMeta?.provider || provider,
           model,
           apiKey: rawApiKey.trim(),
         }),
@@ -571,21 +571,19 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         }
       }
 
-      // Ensure sealedApiKey is fully computed
-      let finalSealedKey = sealedKeyCiphertext;
-      if (!finalSealedKey || finalSealedKey.length < 10) {
-        try {
-          const pkRes = await fetch("/api/enclave-pubkey");
-          const pkData = await pkRes.json();
-          if (pkData.publicKeyPem) {
-            finalSealedKey = await sealSellerApiKeyInBrowser(rawApiKey.trim(), pkData.publicKeyPem);
-          }
-        } catch {
-          // fallback handled below
+      // Ensure sealedApiKey is freshly and correctly sealed
+      let finalSealedKey = "";
+      try {
+        const pkRes = await fetch("/api/enclave-pubkey");
+        const pkData = await pkRes.json();
+        if (pkData.publicKeyPem) {
+          finalSealedKey = await sealSellerApiKeyInBrowser(rawApiKey.trim(), pkData.publicKeyPem);
         }
+      } catch (sealErr) {
+        console.warn("[SellerPage] Failed to fetch enclave pubkey for sealing:", sealErr);
       }
       if (!finalSealedKey) {
-        finalSealedKey = `ENCLAVE_SEALED:${rawApiKey.trim()}`;
+        finalSealedKey = sealedKeyCiphertext || `ENCLAVE_SEALED:${rawApiKey.trim()}`;
       }
 
       const effectiveEns = ensMode === "real" ? customRealEns.trim().toLowerCase() : ensLabel;
@@ -605,7 +603,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           ownerAddress: walletAddress,
           ensLabel: effectiveEns,
           model,
-          provider,
+          provider: currentModelMeta?.provider || provider,
           availableTokens: Number(tokenQuota),
           pricePer1kMicroUsdc: Math.round(Number(pricePer1kUsdc) * 1_000_000),
           sealedApiKey: finalSealedKey,

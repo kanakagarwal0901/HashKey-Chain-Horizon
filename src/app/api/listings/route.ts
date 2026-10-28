@@ -10,6 +10,8 @@ import {
   unwrapSellerApiKey,
   getMinimumListingQuotaForModel,
   verifyApiKeyWithProvider,
+  getModelMetadata,
+  cleanApiKey,
 } from "@shunya/core";
 
 function sanitizeListings(listings: any[]) {
@@ -190,7 +192,7 @@ export async function POST(request: NextRequest) {
     let rawKey = "";
     try {
       const { privateKey } = getOrCreateEnclaveKeyPair();
-      rawKey = unwrapSellerApiKey(sealedApiKey, privateKey);
+      rawKey = cleanApiKey(unwrapSellerApiKey(sealedApiKey, privateKey));
       if (!rawKey) {
         throw new Error("Unwrapped key is empty");
       }
@@ -202,9 +204,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Determine the exact provider corresponding to this model
+    const effectiveProvider = getModelMetadata(model)?.provider || provider || "";
+    console.log(`[Listings API] Live key verification: model=${model}, provider=${effectiveProvider}, keyPrefix=${rawKey.slice(0, 8)}..., len=${rawKey.length}`);
+
     // Perform live test call to the provider API to verify model access & remaining tokens
-    const keyVerdict = await verifyApiKeyWithProvider(provider || "", model, rawKey);
+    const keyVerdict = await verifyApiKeyWithProvider(effectiveProvider, model, rawKey);
     if (!keyVerdict.valid) {
+      console.warn(`[Listings API] Upstream key rejection:`, keyVerdict.error);
       return NextResponse.json(
         {
           error: `API Key Verification Failed: ${keyVerdict.error || "The provider rejected this API key for the selected model."}`,

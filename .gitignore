@@ -12,9 +12,6 @@ out/
 build/
 dist/
 
-# Enclave private state
-.enclave_keypair.json
-
 # Environment variables
 .env
 .env*.local

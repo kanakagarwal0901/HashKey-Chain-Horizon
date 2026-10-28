@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { getOrCreateEnclaveKeyPair, unwrapSellerApiKey as unwrapCoreSellerKey, cleanApiKey } from "@shunya/core";
 
 export interface BlindBuyerEnvelope {
   wrappedKeysBase64: string;
@@ -60,35 +61,10 @@ class EnclaveVaultSingleton {
   private bootEnclave(): void {
     this.bootedAtIso = new Date().toISOString();
 
-    // Check for cached RSA keypair on disk
-    const keyPath = path.join(process.cwd(), ".enclave_keypair.json");
-    if (fs.existsSync(keyPath)) {
-      try {
-        const fileContent = fs.readFileSync(keyPath, "utf8");
-        const json = JSON.parse(fileContent);
-        if (json.publicKey && json.privateKey) {
-          this.rsaPublicKeyPem = json.publicKey;
-          this.rsaPrivateKeyPem = json.privateKey;
-        }
-      } catch (err) {
-        console.warn("[EnclaveVault] Could not parse .enclave_keypair.json, generating new pair.");
-      }
-    }
-
-    if (!this.rsaPublicKeyPem || !this.rsaPrivateKeyPem) {
-      const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
-        modulusLength: 2048,
-        publicKeyEncoding: { type: "spki", format: "pem" },
-        privateKeyEncoding: { type: "pkcs8", format: "pem" },
-      });
-      this.rsaPublicKeyPem = publicKey;
-      this.rsaPrivateKeyPem = privateKey;
-      try {
-        fs.writeFileSync(keyPath, JSON.stringify({ publicKey, privateKey }, null, 2));
-      } catch {
-        // Disk write fallback
-      }
-    }
+    // Synchronize with core enclave keypair across all serverless instances
+    const { publicKey, privateKey } = getOrCreateEnclaveKeyPair();
+    this.rsaPublicKeyPem = publicKey;
+    this.rsaPrivateKeyPem = privateKey;
 
     // ECDSA P-256 Attestation Signing Keypair
     const { publicKey: signPub, privateKey: signPriv } = crypto.generateKeyPairSync("ec", {
@@ -117,71 +93,7 @@ class EnclaveVaultSingleton {
   }
 
   public unwrapSellerApiKey(sealedApiKeyBase64: string): string {
-    if (!sealedApiKeyBase64 || typeof sealedApiKeyBase64 !== "string") {
-      throw new Error("Missing or invalid sealed API key payload");
-    }
-
-    if (sealedApiKeyBase64.startsWith("ENCLAVE_SEALED:")) {
-      const raw = sealedApiKeyBase64.replace("ENCLAVE_SEALED:", "").trim();
-      if (
-        raw.startsWith("sk-") ||
-        raw.startsWith("gsk_") ||
-        raw.startsWith("AIza") ||
-        raw.startsWith("xai-")
-      ) {
-        return raw;
-      }
-      try {
-        const decoded = Buffer.from(raw, "base64").toString("utf8");
-        if (
-          decoded.startsWith("sk-") ||
-          decoded.startsWith("gsk_") ||
-          decoded.startsWith("AIza") ||
-          decoded.startsWith("xai-")
-        ) {
-          return decoded;
-        }
-      } catch {}
-      return raw;
-    }
-
-    const trimmed = sealedApiKeyBase64.trim();
-    if (
-      trimmed.startsWith("sk-") ||
-      trimmed.startsWith("gsk_") ||
-      trimmed.startsWith("AIza") ||
-      trimmed.startsWith("xai-")
-    ) {
-      return trimmed;
-    }
-
-    try {
-      const buffer = Buffer.from(trimmed, "base64");
-      const decrypted = crypto.privateDecrypt(
-        {
-          key: this.rsaPrivateKeyPem,
-          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: "sha256",
-        },
-        buffer
-      );
-      return decrypted.toString("utf8");
-    } catch (err: any) {
-      // In local development or direct unsealed scenarios, check if base64 decodes directly as plaintext
-      try {
-        const plain = Buffer.from(trimmed, "base64").toString("utf8");
-        if (
-          plain.startsWith("sk-") ||
-          plain.startsWith("gsk_") ||
-          plain.startsWith("AIza") ||
-          plain.startsWith("xai-") ||
-          plain.length >= 15
-        ) {
-          return plain;
-        }
-      } catch {}
-      throw new Error(`Enclave RSA-OAEP unwrap failure: ${err.message}`);
-    }
+    return unwrapCoreSellerKey(sealedApiKeyBase64, this.rsaPrivateKeyPem);
   }
 
   public unwrapBuyerEnvelope(envelope: BlindBuyerEnvelope): {

@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
+import { getOrCreateEnclaveKeyPair } from "@shunya/core";
 import { getEnclaveAttestationReport } from "@/lib/enclaveKeyVault";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const { publicKey } = getOrCreateEnclaveKeyPair();
   const report = getEnclaveAttestationReport();
   return NextResponse.json({
     enclaveId: "0g-sealed-tee-node-mumbai-01",
-    publicKeyPem: report.enclavePublicKeyPem,
-    publicKey: report.enclavePublicKeyPem,
+    publicKeyPem: publicKey,
+    publicKey: publicKey,
     signingPublicKeyPem: report.signingPublicKeyPem,
     measurementHash: report.measurementHash,
     teeProvider: report.teeProvider,
