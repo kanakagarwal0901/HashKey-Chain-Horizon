@@ -45,7 +45,6 @@ const SUPPORTED_CHAINS = [
   { id: "ethereum-sepolia", name: "Ethereum Sepolia", chainId: 11155111, hexId: "0xaa36a7" },
   { id: "arbitrum-sepolia", name: "Arbitrum Sepolia", chainId: 421614, hexId: "0x66eee" },
   { id: "base-sepolia", name: "Base Sepolia", chainId: 84532, hexId: "0x14a34" },
-  { id: "arc", name: "Arc Chain (Circle Native CCTP)", chainId: 1000, hexId: "0x3e8" },
 ];
 
 export default function SellerPayoutPage() {
@@ -402,7 +401,7 @@ export default function SellerPayoutPage() {
             className="btn-secondary-apple px-5 py-2.5 text-xs font-semibold flex items-center gap-2"
           >
             <Database className="w-4 h-4 text-zinc-400" />
-            <span>Arkiv Orderbook</span>
+            <span>Model Orderbook</span>
           </Link>
           <a
             href={`${HSK_TESTNET_EXPLORER}/address/${HSP_ADAPTER_CONTRACT}`}
@@ -830,7 +829,7 @@ export default function SellerPayoutPage() {
               Universal Multi-Chain Liquidity
             </span>
             <p className="text-zinc-400 leading-relaxed">
-              Earnings can be retained as native HSK, or swept into USDC, USDT, ETH, or DAI across Sepolia, Arbitrum, Base, or Arc Chain with instant routing.
+              Earnings can be retained as native HSK, or swept into USDC, USDT, ETH, or DAI across Sepolia, Arbitrum, or Base with instant routing.
             </p>
           </SpatialCard>
 

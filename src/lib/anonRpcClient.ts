@@ -127,7 +127,7 @@ export class AnonRpcRouter {
     const startTime = Date.now();
     const routedVia = isUserSpecificRead ? "ANON_RPC_SANDBOX_WORKER" : "DIRECT_PUBLIC_RPC";
     const reason = isUserSpecificRead
-      ? "User-specific query (Arkiv/ENS/Balance) -> IP stripped via Anon-RPC"
+      ? "User-specific query (Orderbook/ENS/Balance) -> IP stripped via Anon-RPC"
       : "Global block header -> direct RPC for low latency";
 
     try {

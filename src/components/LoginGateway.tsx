@@ -370,7 +370,7 @@ export default function LoginGateway({
                   <UserCheck className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">World ID Verification</h4>
+                  <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">Human Identity Verification</h4>
                   <p className="text-xs text-zinc-600 dark:text-neutral-400 leading-relaxed">
                     Verify instantly with one click or scan a QR code with the World App.
                   </p>
@@ -460,7 +460,7 @@ export default function LoginGateway({
                 You are verified and ready
               </h2>
               <p className="text-xs sm:text-sm text-zinc-600 dark:text-neutral-400 leading-relaxed max-w-lg">
-                Your Web3 identity is authenticated with World ID. You can now access confidential AI inference or monetize your spare API quotas.
+                Your Web3 identity is verified as an authentic human. You can now access confidential AI inference or monetize your spare API quotas.
               </p>
             </div>
 

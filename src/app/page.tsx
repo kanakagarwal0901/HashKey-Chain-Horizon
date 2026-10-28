@@ -243,7 +243,7 @@ export default function HomePage() {
                     </span>
                     <span className="text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-500/20 dark:border-emerald-800/40 flex items-center gap-1 font-medium">
                       <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
-                      World ID Verified
+                      Human Verified
                     </span>
                   </div>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -369,7 +369,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Live Orderbook / Arkiv Entities */}
+      {/* Live Orderbook Entities */}
       <section id="orderbook" className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8 scroll-mt-28">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-2">
           <div>
@@ -492,14 +492,14 @@ export default function HomePage() {
                         {listing.humanVerified ? (
                           <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-500/20 dark:border-emerald-800/40 text-xs font-medium">
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            World ID Verified
+                            Human Verified
                           </span>
                         ) : (
                           <span className="text-zinc-400 dark:text-zinc-500">Unverified</span>
                         )}
                       </td>
                       <td className="px-7 py-5 text-zinc-500 dark:text-zinc-400 tabular-data text-xs whitespace-nowrap">
-                        {listing.payoutAddress || listing.hedaraPayoutAccount || listing.ownerAddress || "—"}
+                        {listing.payoutAddress || listing.ownerAddress || "—"}
                       </td>
                       <td className="px-7 py-5 text-right whitespace-nowrap">
                         <Link

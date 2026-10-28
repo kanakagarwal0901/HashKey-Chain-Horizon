@@ -213,7 +213,7 @@ export default function Navbar() {
                     {/* World ID Proof Details */}
                     <div className="p-3 rounded-xl bg-black/[0.03] dark:bg-black/50 border border-black/[0.06] dark:border-white/[0.06] text-xs space-y-1.5">
                       <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-300">
-                        <span>World ID Status:</span>
+                        <span>Human Status:</span>
                         <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                           <Check className="w-3 h-3" /> Verified Human
                         </span>

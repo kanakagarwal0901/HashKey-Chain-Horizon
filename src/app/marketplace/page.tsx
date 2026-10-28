@@ -120,7 +120,7 @@ export default function MarketplacePage() {
             </span>
           </div>
           <div className="p-4 sm:p-5 rounded-2xl liquid-glass-interactive">
-            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">World ID Humans</span>
+            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">Verified Humans</span>
             <span className="text-white font-bold text-lg mt-0.5 block tabular-data">{totalVerifiedHumans} Verified</span>
           </div>
           <div className="p-4 sm:p-5 rounded-2xl liquid-glass-interactive">
@@ -176,7 +176,7 @@ export default function MarketplacePage() {
       {loading ? (
         <div className="p-12 text-center text-neutral-400 space-y-3 apple-surface rounded-3xl border border-[var(--border-subtle)]">
           <Database className="w-8 h-8 mx-auto text-neutral-300 animate-spin" />
-          <p className="text-xs">Querying Arkiv decentralized orderbook entities...</p>
+          <p className="text-xs">Querying decentralized orderbook entities...</p>
         </div>
       ) : filteredPools.length === 0 ? (
         <div className="p-12 text-center text-neutral-400 space-y-3 apple-surface rounded-3xl border border-[var(--border-subtle)]">
@@ -336,7 +336,7 @@ export default function MarketplacePage() {
         <div className="flex items-center gap-2">
           <Database className="w-4 h-4 text-neutral-300 shrink-0" />
           <span>
-            Discoverable by autonomous Arc Consumer Agents via{" "}
+            Discoverable by autonomous AI agents via{" "}
             <code className="text-white bg-neutral-900 px-2 py-0.5 rounded border border-[var(--border-subtle)] font-mono text-[11px]">GET /api/arc-discovery</code>
           </span>
         </div>

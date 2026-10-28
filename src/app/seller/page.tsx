@@ -277,14 +277,14 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
       .catch(console.error);
   };
 
-  // Clear all listings from Arkiv orderbook
+  // Clear all listings from orderbook
   const handleClearOrderbook = async () => {
-    if (!confirm("Are you sure you want to clear all entities from the Arkiv orderbook?")) return;
+    if (!confirm("Are you sure you want to clear all entities from the orderbook?")) return;
     try {
       const res = await fetch("/api/listings", { method: "DELETE" });
       if (res.ok) {
         setListings([]);
-        alert("Arkiv orderbook cleared successfully.");
+        alert("Orderbook cleared successfully.");
       }
     } catch (err: any) {
       alert("Failed to clear orderbook: " + err.message);
@@ -431,7 +431,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
     };
   }, [walletAddress]);
 
-  // Seal raw API key to 0G Enclave Public Key on input change
+  // Seal raw API key to Enclave Public Key on input change
   const handleSealApiKey = async () => {
     if (!rawApiKey || rawApiKey.trim().length < 15) {
       setSealedKeyCiphertext("");
@@ -501,7 +501,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
     }
   };
 
-  // Submit new listing to Arkiv
+  // Submit new listing to orderbook
   const handleSubmitListing = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -513,7 +513,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
 
     // 2. World ID Guard
     if (!worldIdVerified || !nullifierHash) {
-      alert("World ID Proof Required: Please complete World ID Proof of Human verification to prove uniqueness and prevent orderbook spam.");
+      alert("Human Verification Required: Please complete Proof of Human verification to prove uniqueness and prevent orderbook spam.");
       return;
     }
 
@@ -625,7 +625,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         throw new Error(err.error || "Failed to create listing");
       }
 
-      alert("Success! Your authentic Seller Node has been published to Arkiv with 1-hour block expiration.");
+      alert("Success! Your authentic Seller Node has been published to the orderbook with 1-hour block expiration.");
       setRawApiKey("");
       setSealedKeyCiphertext("");
       fetchListings();
@@ -668,7 +668,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           </span>
           <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-300 border border-white/10 flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            0G Blind Encryption
+            Hardware Blind Encryption
           </span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
@@ -838,7 +838,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                 className="btn-secondary-apple w-full py-2.5 px-3.5 text-xs font-semibold flex items-center justify-center gap-1.5"
               >
                 <Shield className="w-3.5 h-3.5" />
-                <span>Verify Human with World ID</span>
+                <span>Verify You're Human</span>
               </button>
             )}
           </div>
@@ -1341,7 +1341,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                     <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-800/40 text-emerald-400 flex items-center justify-between text-xs">
                       <span className="flex items-center gap-1.5 font-semibold">
                         <Check className="w-4 h-4 text-emerald-400" />
-                        World ID Verified
+                        Human Verified
                       </span>
                       <span className="text-xs text-emerald-500 truncate max-w-[120px] tabular-data" title={nullifierHash || undefined}>
                         {nullifierHash ? `${nullifierHash.slice(0, 14)}...` : "Verified"}
@@ -1354,7 +1354,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                       className="btn-secondary-apple w-full py-3.5 px-4 text-xs font-semibold flex items-center justify-center gap-2"
                     >
                       <UserCheck className="w-4 h-4" />
-                      Verify with World ID
+                      Verify Human Identity
                     </button>
                   )}
                 </div>
@@ -1539,7 +1539,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                 : !walletAddress
                 ? "Connect MetaMask Wallet to Publish"
                 : !worldIdVerified
-                ? "Verify World ID to Publish"
+                ? "Verify Humanity to Publish"
                 : !rawApiKey
                 ? "Enter API Key to Publish"
                 : "Publish AI Listing"}
@@ -1605,7 +1605,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <Database className="w-8 h-8 mx-auto text-zinc-600" />
             <h4 className="text-sm font-semibold text-zinc-300">Orderbook is currently empty</h4>
             <p className="text-xs text-zinc-500 max-w-md mx-auto">
-              No mock sellers exist. Connect your wallet above, verify your World ID, and list your authentic API key to create the first active seller entity.
+              No mock sellers exist. Connect your wallet above, verify you're human, and list your authentic API key to create the first active seller entity.
             </p>
           </div>
         ) : (
@@ -1618,7 +1618,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                     <th className="px-6 py-4">Model</th>
                     <th className="px-6 py-4">Available Quota</th>
                     <th className="px-6 py-4">Price / 1k</th>
-                    <th className="px-6 py-4">World ID</th>
+                    <th className="px-6 py-4">Human Verified</th>
                     <th className="px-6 py-4">Payout Address</th>
                     <th className="px-6 py-4">Status</th>
                   </tr>

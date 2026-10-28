@@ -222,7 +222,7 @@ export async function sendSepoliaUsdcPayment(
   const requiredUsdc = amountMicroUsdc / 1_000_000;
   if (balance < requiredUsdc) {
     throw new Error(
-      `Insufficient Circle Sepolia USDC balance. Available: $${balance.toFixed(6)} USDC, Required: $${requiredUsdc.toFixed(6)} USDC. Claim free Sepolia USDC at faucet.circle.com`
+      `Insufficient Sepolia USDC balance. Available: $${balance.toFixed(6)} USDC, Required: $${requiredUsdc.toFixed(6)} USDC. Claim free Sepolia USDC at faucet.circle.com`
     );
   }
 

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     console.log(`[blind-execute] Looking up ${listingId}, found:`, Boolean(listing));
 
     if (!listing) {
-      return NextResponse.json({ error: `Seller listing ${listingId} not found on Arkiv` }, { status: 404 });
+      return NextResponse.json({ error: `Seller listing ${listingId} not found on orderbook` }, { status: 404 });
     }
 
     // Invariant Check (FT-01): Seller must have availableTokens >= T_max

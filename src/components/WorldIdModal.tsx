@@ -37,7 +37,7 @@ export default function WorldIdModal({
     completeWorldIdVerification,
   } = useAuth();
 
-  // Tab: "official" (simulator.worldcoin.org) vs "local" (Embedded Semaphore Simulator)
+  // Tab: "official" (simulator) vs "local" (Embedded Semaphore Simulator)
   const [activeTab, setActiveTab] = useState<"official" | "local">("local");
 
   // Official Simulator state
@@ -56,7 +56,7 @@ export default function WorldIdModal({
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [pollStatus, setPollStatus] = useState<string>("waiting_for_connection");
   const [statusMessage, setStatusMessage] = useState<string>(
-    "Awaiting connection in Worldcoin Simulator or World App..."
+    "Awaiting connection in simulator or mobile app..."
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState<boolean>(false);
@@ -125,13 +125,13 @@ export default function WorldIdModal({
           setQrDataUrl(data.qrDataUrl);
           setIsLoadingSession(false);
         } else {
-          setErrorMessage(data.error || "Failed to initialize Worldcoin session");
+          setErrorMessage(data.error || "Failed to initialize verification session");
           setIsLoadingSession(false);
         }
       })
       .catch((err) => {
         console.error("Session init error:", err);
-        setErrorMessage("Network error initializing Worldcoin session");
+        setErrorMessage("Network error initializing verification session");
         setIsLoadingSession(false);
       });
   };
@@ -207,7 +207,7 @@ export default function WorldIdModal({
     setHasOpenedSimulator(true);
     hasOpenedSimulatorRef.current = true;
     setErrorMessage(null);
-    setStatusMessage("Worldcoin Simulator opened. Please approve or reject in simulator tab...");
+    setStatusMessage("Simulator opened. Please approve or reject in simulator tab...");
   };
 
   // Sequential Polling loop for official simulator
@@ -240,7 +240,7 @@ export default function WorldIdModal({
           setVerifiedSuccess(true);
           verifiedSuccessRef.current = true;
           setErrorMessage(null);
-          setStatusMessage("Human Verified! ZK-SNARK Proof confirmed from Worldcoin Simulator.");
+          setStatusMessage("Human Verified! ZK-SNARK Proof confirmed.");
 
           completeWorldIdVerification({
             nullifierHash: data.nullifier_hash,
@@ -261,7 +261,7 @@ export default function WorldIdModal({
         } else if (data.status === "waiting_for_connection") {
           setPollStatus("waiting_for_connection");
           if (!hasOpenedSimulatorRef.current) {
-            setStatusMessage("Step 1: Open the Worldcoin Simulator above, or scan with World App...");
+            setStatusMessage("Step 1: Open the verification simulator above, or scan with mobile app...");
           } else {
             setStatusMessage("Waiting for simulator to connect...");
           }
@@ -335,7 +335,7 @@ export default function WorldIdModal({
           <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs relative z-10">
             <div className="flex items-center gap-2 text-amber-300">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Connect crypto wallet first to link your World ID.</span>
+              <span>Connect crypto wallet first to complete verification.</span>
             </div>
             <button
               type="button"
@@ -380,11 +380,11 @@ export default function WorldIdModal({
             }`}
           >
             <Globe className="w-3.5 h-3.5" />
-            World App QR Code
+            Mobile QR Code
           </button>
         </div>
 
-        {/* TAB 1: OFFICIAL WORLDCOIN SIMULATOR */}
+        {/* TAB 1: OFFICIAL VERIFICATION SIMULATOR */}
         {activeTab === "official" && (
           <div className="space-y-4 text-xs text-neutral-300">
             {/* QR Code Container */}
@@ -392,13 +392,13 @@ export default function WorldIdModal({
               {isLoadingSession ? (
                 <div className="w-36 h-36 flex flex-col items-center justify-center space-y-2 text-neutral-400">
                   <Loader2 className="w-8 h-8 animate-spin text-white" />
-                  <span className="text-xs">Connecting to Worldcoin Bridge...</span>
+                  <span className="text-xs">Connecting to Verification Bridge...</span>
                 </div>
               ) : qrDataUrl ? (
                 <div className="p-2 bg-white rounded-2xl">
                   <img
                     src={qrDataUrl}
-                    alt="Live World App QR Code"
+                    alt="Live Mobile QR Code"
                     className="w-32 h-32 rounded-xl object-contain block"
                   />
                 </div>
@@ -410,7 +410,7 @@ export default function WorldIdModal({
               )}
 
               <div className="space-y-0.5">
-                <span className="text-xs font-semibold text-white block">Scan with World App or Open Simulator</span>
+                <span className="text-xs font-semibold text-white block">Scan with Mobile App or Open Simulator</span>
                 <span className="text-[11px] text-neutral-500 font-mono">
                   App: {appId} • Action: shunyagrid-gate
                 </span>
@@ -468,7 +468,7 @@ export default function WorldIdModal({
                   className="w-full py-2.5 px-4 rounded-full btn-primary-apple text-xs font-semibold flex items-center justify-center gap-2"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  {hasOpenedSimulator ? "Return to Simulator Tab" : "Open in Worldcoin Simulator"}
+                  {hasOpenedSimulator ? "Return to Simulator Tab" : "Open in Verification Simulator"}
                 </a>
               )}
 
@@ -512,7 +512,7 @@ export default function WorldIdModal({
                   </span>
                 </div>
                 <p className="text-xs text-neutral-400 text-center leading-normal">
-                  Approving in the Worldcoin Simulator automatically relays the ZK-SNARK proof and completes verification.
+                  Approving in the simulator automatically relays the ZK-SNARK proof and completes verification.
                 </p>
               </div>
 

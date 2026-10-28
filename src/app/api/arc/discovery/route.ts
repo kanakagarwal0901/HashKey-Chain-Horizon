@@ -11,7 +11,7 @@ export async function GET() {
     version: "1.0.0",
     description: "Blind, Zero-Cutoff AI API Token Exchange initialized in Arc Studio",
     arcStudioProject: "https://github.com/kanakagarwal0901/HashKey-Chain-Horizon",
-    networkSupport: ["Arc", "HashKey Chain Testnet", "0G Galileo", "Ethereum"],
+    networkSupport: ["HashKey Chain Testnet", "Ethereum Sepolia", "Arbitrum Sepolia", "Base Sepolia"],
     catalog: models.map((m) => ({
       modelId: m.modelId,
       thinkingLevel: m.thinkingLevel,

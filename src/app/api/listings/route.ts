@@ -122,7 +122,7 @@ export async function DELETE(request: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    message: "Arkiv orderbook cleared successfully",
+    message: "Orderbook cleared successfully",
     count: 0,
     listings: [],
   });
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
     // 4. Verify World ID Proof (Mandatory for Seller Onboarding)
     if (!worldIdProof || !worldIdProof.nullifier_hash) {
       return NextResponse.json(
-        { error: "World ID verification required: You must verify your human identity with World ID to list on Arkiv." },
+        { error: "Human verification required: You must verify your human identity to list on the orderbook." },
         { status: 403 }
       );
     }
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Arkiv Entity created successfully with 1-hour block expiration",
+      message: "Listing entity created successfully with 1-hour block expiration",
       listing,
     });
   } catch (err: unknown) {

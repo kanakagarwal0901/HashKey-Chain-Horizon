@@ -297,7 +297,7 @@ export async function verifyUniversalBuyerPayment(params: {
   if (!transferLogFound) {
     return {
       verified: false,
-      error: `No valid Circle USDC or equivalent settlement transfer to ShunyaGrid Treasury (${SHUNYA_TREASURY_EVM_ADDRESS}) found in transaction logs.`,
+      error: `No valid USDC or equivalent settlement transfer to ShunyaGrid Treasury (${SHUNYA_TREASURY_EVM_ADDRESS}) found in transaction logs.`,
     };
   }
 

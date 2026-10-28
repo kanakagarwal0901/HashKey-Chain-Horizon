@@ -167,7 +167,7 @@ export async function GET(req: NextRequest) {
             if (data.status === "initialized") {
               return NextResponse.json({
                 status: "waiting_for_connection",
-                message: "Waiting for you to connect in the Worldcoin Simulator or scan with World App...",
+                message: "Waiting for you to connect in the simulator or scan with mobile app...",
               });
             }
 
@@ -286,7 +286,7 @@ export async function GET(req: NextRequest) {
                 nullifier_hash,
                 merkle_root,
                 proof,
-                message: "Successfully verified Proof of Human via Worldcoin Simulator!",
+                message: "Successfully verified Proof of Human!",
               };
               session.cachedResult = successResult;
               console.log(`[World ID Direct] SUCCESS — Session: ${sessionId}`);
@@ -308,7 +308,7 @@ export async function GET(req: NextRequest) {
         if (poll.type === "waiting_for_connection") {
           return NextResponse.json({
             status: "waiting_for_connection",
-            message: "Waiting for you to connect in the Worldcoin Simulator or scan with World App...",
+            message: "Waiting for you to connect in the simulator or scan with mobile app...",
           });
         }
 
@@ -392,7 +392,7 @@ export async function GET(req: NextRequest) {
             nullifier_hash,
             merkle_root,
             proof,
-            message: "Successfully verified Proof of Human via Worldcoin Simulator!",
+            message: "Successfully verified Proof of Human!",
           };
           session.cachedResult = successResult;
           return NextResponse.json(successResult);

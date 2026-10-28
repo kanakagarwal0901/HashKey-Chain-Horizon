@@ -61,7 +61,7 @@ export default function NotFound() {
               <Database className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
               Orderbook
             </div>
-            <span className="text-xs text-zinc-600 dark:text-zinc-400">Arkiv time-scoped listings</span>
+            <span className="text-xs text-zinc-600 dark:text-zinc-400">Live time-scoped listings</span>
           </Link>
         </div>
 

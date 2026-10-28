@@ -27,7 +27,7 @@ export default function Footer() {
             </div>
 
             <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-sm leading-relaxed">
-              Decentralized marketplace for frontier reasoning models. Solves mid-stream cutoffs via deterministic token bounds while guaranteeing total data blindness with 0G enclaves and RSA-OAEP sealing.
+              Decentralized marketplace for frontier reasoning models. Solves mid-stream cutoffs via deterministic token bounds while guaranteeing total data blindness with confidential hardware enclaves and RSA-OAEP sealing.
             </p>
 
             {/* Real-Time Security & Privacy Telemetry Badge */}
@@ -100,11 +100,11 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>World ID ZK Verification</span>
+                <span>ZK Proof of Human</span>
               </li>
               <li className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>Arkiv DB-Chain Scoping</span>
+                <span>Decentralized Orderbook Scoping</span>
               </li>
             </ul>
           </div>

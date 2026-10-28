@@ -218,7 +218,7 @@ export default function HowItWorksModal({
                   Human Verification (Anti-Bot Protection)
                 </h3>
                 <p className="text-xs text-neutral-400 leading-relaxed break-words">
-                  We use World ID to ensure all users and providers are authentic real humans without collecting any private personal data. This keeps the marketplace safe from spam bots, fake listings, and fraud.
+                  We use zero-knowledge proof of humanity to ensure all users and providers are authentic real humans without collecting any private personal data. This keeps the marketplace safe from spam bots, fake listings, and fraud.
                 </p>
               </div>
             </div>

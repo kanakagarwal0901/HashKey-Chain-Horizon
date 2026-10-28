@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       success: true,
       verified: true,
       nullifier_hash: result.nullifier_hash,
-      message: "World ID Proof of Human verified and registered successfully",
+      message: "Proof of Human verified and registered successfully",
     });
   } catch (err: any) {
     console.error("World ID manual register error:", err);

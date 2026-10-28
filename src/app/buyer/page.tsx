@@ -361,7 +361,7 @@ contract VaultLending {
         setLoadingSellers(false);
       })
       .catch((err) => {
-        console.error("Failed to query Arkiv:", err);
+        console.error("Failed to query orderbook:", err);
         setLoadingSellers(false);
       });
 
@@ -590,7 +590,7 @@ contract VaultLending {
       refreshUsdcBalance();
 
       // Phase 3: Sealed Enclave Execution
-      setExecutionStep("0G Sealed Enclave executing inference with zero seller visibility...");
+      setExecutionStep("Confidential Hardware Enclave executing inference with zero seller visibility...");
       const executeRes = await fetch("/api/blind-execute", {
         method: "POST",
         headers: {
@@ -752,47 +752,6 @@ contract VaultLending {
             </div>
           )}
 
-          {/* Sepolia Network Badge */}
-          {walletAddress && !isHashKeyNetwork && (
-            isSepoliaNetwork ? (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-xs text-zinc-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>Ethereum Sepolia</span>
-              </div>
-            ) : (
-              <button
-                onClick={switchToSepolia}
-                disabled={isSwitchingNetwork}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-950/50 hover:bg-amber-900/60 border border-amber-600/40 text-xs text-amber-300 transition"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                <span>{isSwitchingNetwork ? "Switching..." : "Switch to Sepolia"}</span>
-              </button>
-            )
-          )}
-
-          {/* Sepolia Circle USDC Balance */}
-          {walletAddress && (
-            <div className="flex items-center gap-2.5 px-4 py-2 rounded-full liquid-glass-pill text-xs">
-              <Coins className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="text-white font-semibold tabular-data">
-                {isLoadingBalance
-                  ? "..."
-                  : usdcBalance !== null
-                  ? `$${usdcBalance.toFixed(2)} USDC`
-                  : "0.00 USDC"}
-              </span>
-              <a
-                href={CIRCLE_FAUCET_URL}
-                target="_blank"
-                rel="noreferrer"
-                title="Claim free Circle testnet USDC"
-                className="text-[11px] text-zinc-400 hover:text-white underline flex items-center gap-0.5 ml-1"
-              >
-                Faucet <ExternalLink className="w-2.5 h-2.5" />
-              </a>
-            </div>
-          )}
 
           {/* World ID Verification Status */}
           {isAuthenticated ? (
@@ -801,7 +760,7 @@ contract VaultLending {
               <span className="text-zinc-200 font-semibold tabular-data">
                 {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "Connected"}
               </span>
-              <span className="text-emerald-400 font-medium">• World ID Verified</span>
+              <span className="text-emerald-400 font-medium">• Human Verified</span>
             </div>
           ) : (
             <button
@@ -815,7 +774,7 @@ contract VaultLending {
               className="btn-primary-apple px-5 py-2 text-xs font-semibold flex items-center gap-1.5"
             >
               <Shield className="w-3.5 h-3.5" />
-              <span>{!walletAddress ? "Connect Wallet" : "Verify World ID"}</span>
+              <span>{!walletAddress ? "Connect Wallet" : "Verify Human"}</span>
             </button>
           )}
 
@@ -988,7 +947,7 @@ contract VaultLending {
         </div>
       </SpatialCard>
 
-      {/* STEP 2: VERIFIED ARKIV NODES TABLE */}
+      {/* STEP 2: VERIFIED PROVIDER NODES TABLE */}
       <SpatialCard maxTilt={1.5} className="p-8 sm:p-14 space-y-10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
           <div>
@@ -1016,7 +975,7 @@ contract VaultLending {
         {loadingSellers && (
           <div className="p-12 text-center text-zinc-400 space-y-3">
             <Loader2 className="w-7 h-7 mx-auto animate-spin text-zinc-300" />
-            <p className="text-xs">Querying verified Arkiv nodes...</p>
+            <p className="text-xs">Querying verified provider nodes...</p>
           </div>
         )}
 
@@ -1095,7 +1054,7 @@ contract VaultLending {
                           )}
                           {seller.humanVerified && (
                             <span className="text-[10px] text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-800/40 font-medium">
-                              World ID
+                              Human Verified
                             </span>
                           )}
                         </div>
@@ -1399,12 +1358,12 @@ contract VaultLending {
               </div>
             </div>
 
-            {/* Sepolia Network & Circle USDC Balance Warning Banners */}
+            {/* Sepolia Network & USDC Balance Warning Banners */}
             {paymentCurrency === "USDC" && paymentChain === "ethereum-sepolia" && walletAddress && !isSepoliaNetwork && (
               <div className="p-5 rounded-2xl bg-amber-950/30 border border-amber-600/30 text-xs text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Wallet is not connected to Ethereum Sepolia. Switch to pay with Circle testnet USDC.</span>
+                  <span>Wallet is not connected to Ethereum Sepolia. Switch to pay with testnet USDC.</span>
                 </div>
                 <button
                   onClick={switchToSepolia}
@@ -1430,7 +1389,7 @@ contract VaultLending {
                   rel="noreferrer"
                   className="btn-secondary-apple px-4 py-2 text-xs font-medium inline-flex items-center gap-1.5"
                 >
-                  Get Free USDC from Circle <ExternalLink className="w-3.5 h-3.5" />
+                  Get Free Testnet USDC <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
             )}
@@ -1474,7 +1433,7 @@ contract VaultLending {
                   : !walletAddress
                   ? `Connect Wallet & Lock (${paymentQuote.amountFormatted})`
                   : !worldIdVerified
-                  ? `Verify World ID & Lock (${paymentQuote.amountFormatted})`
+                  ? `Verify Human & Lock (${paymentQuote.amountFormatted})`
                   : `Run AI Query (${paymentQuote.amountFormatted})`}
               </button>
             </div>
@@ -1660,7 +1619,7 @@ contract VaultLending {
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-white flex items-center gap-1.5">
                           <Coins className="w-3.5 h-3.5 text-zinc-400" />
-                          Ethereum Sepolia (Circle USDC)
+                          Ethereum Sepolia (USDC)
                         </span>
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-800 text-zinc-200">
                           Buyer Payment
@@ -1782,18 +1741,18 @@ contract VaultLending {
                     )}
                   </div>
 
-                  {/* 3. 0G Enclave Attestation Receipt */}
+                  {/* 3. Hardware Enclave Attestation Receipt */}
                   {executionResult.zeroGVerification && (
                     <div className="p-4 rounded-2xl bg-black/60 border border-white/[0.08] text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <Shield className="w-4 h-4 text-emerald-400" />
-                        <span className="text-zinc-400">0G Hardware Enclave Attestation:</span>
+                        <span className="text-zinc-400">Hardware Enclave Attestation:</span>
                         <span className="text-zinc-200 tabular-data font-semibold">
                           {executionResult.zeroGVerification.attestationHash?.slice(0, 18)}...
                         </span>
                       </div>
                       <span className="text-zinc-500 text-[11px]">
-                        Enclave: {executionResult.zeroGVerification.enclaveId || "0G-TEE-IntelSGX-V2"}
+                        Enclave: {executionResult.zeroGVerification.enclaveId?.replace(/^0g-/i, "TEE-") || "TEE-IntelSGX-V2"}
                       </span>
                     </div>
                   )}
