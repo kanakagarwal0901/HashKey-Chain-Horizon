@@ -24,7 +24,6 @@ import SpatialCard from "@/components/SpatialCard";
 
 const HSK_TESTNET_EXPLORER = "https://testnet-explorer.hskchain.net";
 const HSP_ADAPTER_CONTRACT = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
-const DEFAULT_SELLER_NODE = "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
 
 interface TokenOption {
   symbol: string;
@@ -52,14 +51,12 @@ const SUPPORTED_CHAINS = [
 export default function SellerPayoutPage() {
   const { walletAddress, connectWallet } = useAuth();
 
-  // Effective seller node address
-  const activeSellerAddress = walletAddress || DEFAULT_SELLER_NODE;
-
   // Custom node address input when overriding
   const [customAddress, setCustomAddress] = useState<string>("");
   const [activeAddressOverride, setActiveAddressOverride] = useState<string | null>(null);
 
-  const currentSellerNode = activeAddressOverride || activeSellerAddress;
+  // Effective seller node address strictly tracks the connected MetaMask wallet or explicit override
+  const currentSellerNode = activeAddressOverride || walletAddress || "";
 
   // Live Balance State
   const [hskBalance, setHskBalance] = useState<number>(0);
@@ -71,9 +68,7 @@ export default function SellerPayoutPage() {
   const [destinationChain, setDestinationChain] = useState<string>("hashkey-testnet");
   const [selectedToken, setSelectedToken] = useState<string>("HSK");
   const [sweepAmount, setSweepAmount] = useState<string>("0.5");
-  const [recipientAddress, setRecipientAddress] = useState<string>(
-    walletAddress || "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444"
-  );
+  const [recipientAddress, setRecipientAddress] = useState<string>(walletAddress || "");
   const [isSweeping, setIsSweeping] = useState<boolean>(false);
   const [sweepError, setSweepError] = useState<string | null>(null);
   const [sweepResult, setSweepResult] = useState<any | null>(null);
@@ -110,7 +105,14 @@ export default function SellerPayoutPage() {
   };
 
   const fetchHashKeyBalance = async (address: string) => {
-    if (!address) return;
+    if (!address || !address.startsWith("0x")) {
+      setHskBalance(0);
+      setTotalEarnedUsdc(0);
+      setBalanceDetails(null);
+      setRecentSettlements([]);
+      setIsLoadingBalance(false);
+      return;
+    }
     setIsLoadingBalance(true);
     try {
       // 1. Direct on-chain HashKey RPC query for instant real-time wallet balance
@@ -199,7 +201,7 @@ export default function SellerPayoutPage() {
   }, [currentSellerNode]);
 
   useEffect(() => {
-    if (walletAddress && (!recipientAddress || recipientAddress.startsWith("0x8fDE"))) {
+    if (walletAddress) {
       setRecipientAddress(walletAddress);
     }
   }, [walletAddress]);
@@ -418,17 +420,21 @@ export default function SellerPayoutPage() {
           <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
             <span className="text-zinc-500 text-[11px] block">Active Payout Node Address</span>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <a
-                href={`${HSK_TESTNET_EXPLORER}/address/${currentSellerNode}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-white font-semibold hover:underline flex items-center gap-1 text-sm tabular-data truncate"
-                title={currentSellerNode}
-              >
-                {currentSellerNode.slice(0, 10)}...{currentSellerNode.slice(-8)}
-                <ExternalLink className="w-3 h-3 text-zinc-500 shrink-0" />
-              </a>
+              <span className={`w-2 h-2 rounded-full ${currentSellerNode ? "bg-emerald-400" : "bg-zinc-600"}`} />
+              {currentSellerNode ? (
+                <a
+                  href={`${HSK_TESTNET_EXPLORER}/address/${currentSellerNode}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-white font-semibold hover:underline flex items-center gap-1 text-sm tabular-data truncate"
+                  title={currentSellerNode}
+                >
+                  {currentSellerNode.slice(0, 10)}...{currentSellerNode.slice(-8)}
+                  <ExternalLink className="w-3 h-3 text-zinc-500 shrink-0" />
+                </a>
+              ) : (
+                <span className="text-zinc-500 text-xs italic">Wallet Not Connected</span>
+              )}
             </div>
             <span className="text-xs text-zinc-400 block pt-0.5 tabular-data">
               Network: <strong className="text-white">HashKey Testnet (ID 133)</strong>
@@ -496,7 +502,7 @@ export default function SellerPayoutPage() {
               onClick={() => {
                 setActiveAddressOverride(null);
                 setCustomAddress("");
-                fetchHashKeyBalance(activeSellerAddress);
+                fetchHashKeyBalance(walletAddress || "");
               }}
               className="text-xs text-zinc-400 hover:text-white underline"
             >

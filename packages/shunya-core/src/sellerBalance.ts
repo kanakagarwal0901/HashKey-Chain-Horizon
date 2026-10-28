@@ -27,7 +27,33 @@ export interface SellerBalanceResult {
 }
 
 export async function calculateSellerBalance(rawAddress?: string | null): Promise<SellerBalanceResult> {
-  const sellerAddress = (rawAddress || "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21").trim();
+  const sellerAddress = (rawAddress || "").trim();
+  if (!sellerAddress || !sellerAddress.startsWith("0x")) {
+    return {
+      success: false,
+      accountId: "",
+      sellerAddress: "",
+      hskBalance: 0,
+      currentBalanceHsk: 0,
+      currentBalanceUsdc: 0,
+      displayBalance: 0,
+      availableBalance: 0,
+      htsUsdcBalance: 0,
+      rawHtsUsdcBalance: 0,
+      lifetimeSettledHsk: 0,
+      lifetimeSettledUsdc: 0,
+      totalSweptHsk: 0,
+      totalSweptUsdc: 0,
+      hspAdapterAddress: "",
+      blockscoutAccountUrl: "",
+      blockscoutTokenUrl: "",
+      recentSettlements: [],
+      recentSweeps: [],
+      timestamp: new Date().toISOString(),
+      isLive: false,
+      error: "Wallet not connected",
+    };
+  }
 
   const balance = hashKeyTreasury.getSellerBalance(sellerAddress);
 

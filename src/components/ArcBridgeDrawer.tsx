@@ -68,11 +68,11 @@ export default function ArcBridgeDrawer({
   const [selectedToken, setSelectedToken] = useState<string>("HSK");
   const [selectedChain, setSelectedChain] = useState<string>("hashkey-testnet");
   const [sourceAccountId, setSourceAccountId] = useState<string>(
-    sellerNodeAddress || walletAddress || "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21"
+    sellerNodeAddress || walletAddress || ""
   );
   const [sweepAmount, setSweepAmount] = useState<string>(availableUsdcEarnings.toFixed(5));
   const [destinationEvmAddress, setDestinationEvmAddress] = useState<string>(
-    walletAddress || "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444"
+    walletAddress || ""
   );
   const [isBridging, setIsBridging] = useState<boolean>(false);
   const [addedTokenSuccess, setAddedTokenSuccess] = useState<boolean>(false);
@@ -217,8 +217,12 @@ export default function ArcBridgeDrawer({
         sourceAccountId ||
         sellerNodeAddress ||
         walletAddress ||
-        "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+        ""
       ).trim();
+
+      if (!cleanSourceAccount || !cleanSourceAccount.startsWith("0x")) {
+        throw new Error("Missing connected seller wallet address. Please connect your MetaMask.");
+      }
 
       const res = await fetch("/api/bridge/cctp", {
         method: "POST",
@@ -486,7 +490,7 @@ export default function ArcBridgeDrawer({
                 value={sourceAccountId}
                 onChange={(e) => setSourceAccountId(e.target.value.trim())}
                 className="w-full rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] px-4 py-2.5 text-xs text-white focus:border-neutral-400 focus:outline-none"
-                placeholder="0x... (e.g. 0x70997970C51812dc3A010C7d01b50e0d17dc79C8)"
+                placeholder="0x... (Connected Seller Address)"
               />
             </div>
 

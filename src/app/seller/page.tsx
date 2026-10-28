@@ -882,14 +882,18 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-400 pt-1">
             <span>
               Payout Node:{" "}
-              <a
-                href={`https://testnet-explorer.hskchain.net/address/${walletAddress || "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21"}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-white hover:underline font-semibold tabular-data"
-              >
-                {(walletAddress || "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21").slice(0, 10)}... <ExternalLink className="w-2.5 h-2.5 inline" />
-              </a>
+              {walletAddress ? (
+                <a
+                  href={`https://testnet-explorer.hskchain.net/address/${walletAddress}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-white hover:underline font-semibold tabular-data"
+                >
+                  {walletAddress.slice(0, 10)}... <ExternalLink className="w-2.5 h-2.5 inline" />
+                </a>
+              ) : (
+                <span className="text-zinc-500 italic">Not connected</span>
+              )}
             </span>
             <span>&bull;</span>
             <span>
@@ -1484,7 +1488,14 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                   {listings.map((l) => (
                     <tr key={l.id} className="hover:bg-white/[0.03] transition">
                       <td className="px-6 py-5 font-semibold text-white">
-                        {l.ensName}
+                        <div className="flex items-center gap-2">
+                          <span>{l.ensName}</span>
+                          {(l.payoutAddress || l.ownerAddress)?.toLowerCase() === walletAddress?.toLowerCase() && (
+                            <span className="text-[10px] text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-800/40 font-semibold">
+                              Connected Wallet Node
+                            </span>
+                          )}
+                        </div>
                         <span className="text-xs text-zinc-500 block font-normal tabular-data">
                           {l.ownerAddress ? `${l.ownerAddress.slice(0, 6)}...${l.ownerAddress.slice(-4)}` : ""}
                         </span>

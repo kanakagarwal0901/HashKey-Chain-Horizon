@@ -124,9 +124,10 @@ export class ArcBridgeService {
     targetToken?: string;
     availableBalance?: number;
   }): Promise<ArcBridgeTransaction> {
-    const sellerAddress = params.sourceAccount && params.sourceAccount.trim().startsWith("0x")
-      ? params.sourceAccount.trim()
-      : "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
+    const sellerAddress = (params.sourceAccount || "").trim();
+    if (!sellerAddress || !sellerAddress.startsWith("0x")) {
+      throw new Error("Missing connected seller wallet address for sweep");
+    }
     const destinationChain = params.destinationChain || "hashkey-testnet";
     const targetToken = params.targetToken || params.targetCurrency || "HSK";
 

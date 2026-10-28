@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { hashKeyTreasury } from "@shunya/core";
 
 export async function GET(request: NextRequest) {
-  const sellerAddress = request.nextUrl.searchParams.get("seller") || "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
+  const sellerAddress = (request.nextUrl.searchParams.get("seller") || request.nextUrl.searchParams.get("address") || "").trim();
+  if (!sellerAddress || !sellerAddress.startsWith("0x")) {
+    return NextResponse.json({
+      success: true,
+      history: [],
+    });
+  }
   const sellerBalance = hashKeyTreasury.getSellerBalance(sellerAddress);
   return NextResponse.json({
     success: true,
@@ -28,8 +34,15 @@ export async function POST(request: NextRequest) {
     const sellerAddress = (
       body.sourceAccount ||
       body.sellerAddress ||
-      "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21"
+      ""
     ).trim();
+
+    if (!sellerAddress || !sellerAddress.startsWith("0x")) {
+      return NextResponse.json(
+        { error: "Missing or invalid connected seller wallet address. Please connect your MetaMask." },
+        { status: 400 }
+      );
+    }
 
     const sweepRecord = await hashKeyTreasury.executeUniversalSweep({
       sellerAddress,

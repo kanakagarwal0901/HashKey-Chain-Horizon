@@ -6,10 +6,14 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const rawAddress = searchParams.get("address") || searchParams.get("accountId") || searchParams.get("seller");
-    const sellerAddress = (rawAddress && rawAddress.startsWith("0x"))
-      ? rawAddress
-      : "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
+    const rawAddress = (searchParams.get("address") || searchParams.get("accountId") || searchParams.get("seller") || "").trim();
+    if (!rawAddress || !rawAddress.startsWith("0x")) {
+      return NextResponse.json(
+        { error: "Missing or invalid seller address. Please provide a connected EVM wallet address." },
+        { status: 400 }
+      );
+    }
+    const sellerAddress = rawAddress;
 
     const balance = await hashKeyTreasury.getSellerLiveBalance(sellerAddress);
 

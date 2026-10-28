@@ -2,10 +2,17 @@ import { ethers } from "ethers";
 import { sealBuyerPromptAndFiles } from "../packages/shunya-core/src/blindCrypto";
 
 async function main() {
-  const sellerAddress = "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
+  // Dynamically fetch the listing from the orderbook to test against its actual seller
+  const listingsRes = await fetch("http://localhost:3000/api/listings");
+  const { listings } = await listingsRes.json();
+  const listing = listings?.find((l: any) => l.id === "arkiv_entity_417b28836c14") || listings?.[0];
+  if (!listing) throw new Error("No active listing found on Arkiv orderbook");
+
+  const sellerAddress = (listing.payoutAddress || listing.ownerAddress).trim();
   console.log(`\n=======================================================================`);
   console.log(`   TESTING END-TO-END HTTP /api/blind-execute & ON-CHAIN HSK PAYOUT`);
-  console.log(`   Target Seller: ${sellerAddress}`);
+  console.log(`   Target Listing: ${listing.id} (${listing.ensName})`);
+  console.log(`   Connected Listing Owner / Payout Address: ${sellerAddress}`);
   console.log(`=======================================================================\n`);
 
   // 1. Check initial seller balance from live API

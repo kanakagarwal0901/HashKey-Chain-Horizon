@@ -354,6 +354,9 @@ contract VaultLending {
         setEligibleSellers(unique);
         if (selectedSeller && !unique.find((s: any) => s.id === selectedSeller.id)) {
           setSelectedSeller(null);
+        } else if (!selectedSeller && unique.length > 0) {
+          const myNode = walletAddress ? unique.find((s: any) => (s.payoutAddress || s.ownerAddress)?.toLowerCase() === walletAddress.toLowerCase()) : null;
+          setSelectedSeller(myNode || unique[0]);
         }
         setLoadingSellers(false);
       })
@@ -1084,6 +1087,11 @@ contract VaultLending {
                         <div className="flex items-center gap-2.5">
                           <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
                           <span className="font-semibold text-white">{seller.ensName}</span>
+                          {(seller.payoutAddress || seller.ownerAddress)?.toLowerCase() === walletAddress?.toLowerCase() && (
+                            <span className="text-[10px] text-sky-400 bg-sky-950/40 px-2 py-0.5 rounded-full border border-sky-800/40 font-semibold">
+                              Your Node
+                            </span>
+                          )}
                           {seller.humanVerified && (
                             <span className="text-[10px] text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-800/40 font-medium">
                               World ID

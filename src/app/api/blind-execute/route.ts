@@ -275,12 +275,20 @@ export async function POST(request: NextRequest) {
 
       const buyerRefundMicroUsdc = split.unusedTokensReturnedToSellerQuota > 0 ? Math.floor(((bounds.totalMaxTokens - aiResult.actualTokensUsed) / 1000) * pricePer1k) : 0;
 
-      // Settle Seller Payout in HSK on HashKey Chain
-      const targetSellerAddress =
+      // Settle Seller Payout in HSK on HashKey Chain to the Listing's actual seller wallet
+      const targetSellerAddress = (
         (listing as any).payoutAddress ||
         (listing as any).hedaraPayoutAccount ||
         listing.ownerAddress ||
-        "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
+        ""
+      ).trim();
+
+      if (!targetSellerAddress || !ethers.isAddress(targetSellerAddress)) {
+        return NextResponse.json(
+          { error: `Selected listing (${listing.id}) has no valid connected seller EVM payout address` },
+          { status: 422 }
+        );
+      }
 
       const hspRecord = await hashKeyTreasury.settleSellerPayoutOnHashKey({
         mandateId: body.mandateId || ethers.hexlify(ethers.randomBytes(32)),

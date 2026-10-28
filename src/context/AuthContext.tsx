@@ -61,17 +61,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ensAvatar, setEnsAvatar] = useState<string | null>(null);
   const [isLoadingEns, setIsLoadingEns] = useState<boolean>(false);
 
-  // Load persisted session on initial mount
+  // Load persisted session on initial mount & bind MetaMask live events
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed.walletAddress && parsed.worldIdVerified) {
+          if (parsed.walletAddress) {
             setWalletAddress(parsed.walletAddress);
             setWalletChainId(parsed.walletChainId || null);
-            setWorldIdVerified(true);
+            setWorldIdVerified(Boolean(parsed.worldIdVerified));
             setNullifierHash(parsed.nullifierHash || null);
             setMerkleRoot(parsed.merkleRoot || null);
             setProofPayload(parsed.proofPayload || null);
@@ -81,6 +81,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (e) {
         console.warn("Failed to load auth session:", e);
+      }
+
+      // Detect active connected MetaMask account on mount
+      if ((window as any).ethereum) {
+        const eth = (window as any).ethereum;
+        eth
+          .request({ method: "eth_accounts" })
+          .then((accounts: string[]) => {
+            if (accounts && accounts.length > 0) {
+              setWalletAddress(accounts[0]);
+            }
+          })
+          .catch(() => {});
+
+        eth
+          .request({ method: "eth_chainId" })
+          .then((chainIdHex: string) => {
+            if (chainIdHex) setWalletChainId(chainIdHex);
+          })
+          .catch(() => {});
+
+        const handleAccountsChanged = (newAccounts: string[]) => {
+          if (newAccounts && newAccounts.length > 0) {
+            setWalletAddress(newAccounts[0]);
+          } else {
+            logout();
+          }
+        };
+
+        const handleChainChanged = (newChainId: string) => {
+          setWalletChainId(newChainId);
+        };
+
+        eth.on("accountsChanged", handleAccountsChanged);
+        eth.on("chainChanged", handleChainChanged);
+
+        return () => {
+          if (eth.removeListener) {
+            eth.removeListener("accountsChanged", handleAccountsChanged);
+            eth.removeListener("chainChanged", handleChainChanged);
+          }
+        };
       }
     }
   }, []);
