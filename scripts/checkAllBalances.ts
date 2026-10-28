@@ -12,7 +12,7 @@ envContent.split("\n").forEach((line) => {
   }
 });
 
-let pk = env.SHUNYA_TREASURY_PRIVATE_KEY || env.HEDERA_OPERATOR_KEY || "";
+let pk = env.SHUNYA_TREASURY_PRIVATE_KEY || env.OPERATOR_PRIVATE_KEY || "";
 if (!pk.startsWith("0x")) pk = "0x" + pk;
 const w = new ethers.Wallet(pk);
 console.log("Treasury Address:", w.address);
@@ -41,11 +41,7 @@ async function checkBalances() {
       chainId: 84532,
       usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     },
-    "hedera-testnet": {
-      rpc: "https://testnet.hashio.io/api",
-      chainId: 296,
-      usdc: "0x0000000000000000000000000000000000a9e4c1",
-    },
+    "hashkey-testnet": {`r`n      rpc: "https://testnet.hsk.xyz",`r`n      chainId: 133,`r`n      usdc: "0x054ed45810DbBAb8B27668922D110669c9D88D0a",`r`n    },
   };
 
   const erc20Abi = [

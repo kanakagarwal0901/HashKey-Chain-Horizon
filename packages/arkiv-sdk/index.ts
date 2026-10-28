@@ -8,7 +8,7 @@ export interface ArkivEntityAttributes {
   availableTokens?: number;
   pricePer1kMicroUsdc?: number;
   ensName?: string;
-  hederaAccountId?: string;
+  sellerAddress?: string;
   humanVerified?: boolean;
   byteLength?: number;
   [key: string]: any;

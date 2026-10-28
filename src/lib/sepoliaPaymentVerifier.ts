@@ -147,7 +147,7 @@ const TRANSFER_EVENT_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a116
 /**
  * Universal Multi-Chain & Multi-Currency Buyer Payment Verifier.
  * Verifies on-chain transactions across Ethereum Sepolia, Arbitrum Sepolia, Base Sepolia.
- * Accepts native ETH, native HBAR, Circle USDC, or Uniswap V3 swap routed payments.
+ * Accepts native HSK, native ETH, Circle USDC, or Uniswap V3 swap routed payments.
  */
 export async function verifyUniversalBuyerPayment(params: {
   txHash: string;
@@ -262,7 +262,7 @@ export async function verifyUniversalBuyerPayment(params: {
     }
   }
 
-  // 5. Direct Native ETH/HBAR Payment to Treasury check (if no ERC-20 log)
+  // 5. Direct Native HSK / ETH Payment to Treasury check (if no ERC-20 log)
   if (!transferLogFound && (isDirectTreasury || targetTo === "")) {
     try {
       const tx = await provider.getTransaction(cleanTxHash);

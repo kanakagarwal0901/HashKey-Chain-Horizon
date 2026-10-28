@@ -1,38 +1,28 @@
 {
-  "network": "Hedera Testnet (EVM)",
-  "chainId": 296,
-  "rpcUrl": "https://testnet.hashio.io/api",
+  "network": "HashKey Chain Testnet",
+  "chainId": 133,
+  "rpcUrl": "https://testnet.hsk.xyz",
   "contracts": {
-    "VaultLending": {
-      "contractName": "VaultLending",
-      "address": "0xd30c57fAB49FFB50D3A291d26eA08044D55e11EA",
-      "transactionHash": "0x30a3735e5f8eada6d43bae71f916325e3814d677c2a07081a81532f211ec5dbb",
-      "blockNumber": 42121482,
+    "HSPAdapter": {
+      "contractName": "HSPAdapter",
+      "address": "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae",
+      "transactionHash": "0xca3ccb9e1d5f2bbe16c2349c18a986f9484d610501cc19866215ba0ec5eed614",
+      "blockNumber": 34979852,
       "deployer": "0x9b3b7375b0591E8A304A8f66D11186Fb07672625",
-      "explorerUrl": "https://hashscan.io/testnet/transaction/0x30a3735e5f8eada6d43bae71f916325e3814d677c2a07081a81532f211ec5dbb",
+      "explorerUrl": "https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae",
       "verified": true,
-      "deployedAt": "2026-10-22T21:17:10.691Z"
+      "description": "HashKey Settlement Protocol (HSP) Adapter for EIP-712 Mandates, Zero-Cutoff Token Escrows, and Payout Settlements"
     },
-    "SecureVault": {
-      "contractName": "SecureVault",
-      "address": "0x5BC453836485a2E4c80a2F171ed69438fbEa8C37",
-      "transactionHash": "0x2296d9cf3e7a51189c9308fddb9a0ef604632e04f08eb6c596eef71b98cf1a9d",
-      "blockNumber": 42121482,
+    "HashKeySettlementRouter": {
+      "contractName": "HashKeySettlementRouter",
+      "address": "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D",
+      "transactionHash": "0x0c7d3aca815f3c38520edd9b8ec843510771ce8117595f7d9f74540c8da50125",
+      "blockNumber": 34979852,
       "deployer": "0x9b3b7375b0591E8A304A8f66D11186Fb07672625",
-      "explorerUrl": "https://hashscan.io/testnet/transaction/0x2296d9cf3e7a51189c9308fddb9a0ef604632e04f08eb6c596eef71b98cf1a9d",
+      "explorerUrl": "https://testnet-explorer.hsk.xyz/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D",
       "verified": true,
-      "deployedAt": "2026-10-22T21:17:19.448Z"
-    },
-    "ShunyaGridEscrow": {
-      "contractName": "ShunyaGridEscrow",
-      "address": "0x710fDB3AC31551dB14ea3226d0995a65B82463A2",
-      "transactionHash": "0xcf79ecfc0d5a136423d1a45e52f08539bfa136eb126cfdc9debea52b03c2f5f5",
-      "blockNumber": 42121482,
-      "deployer": "0x9b3b7375b0591E8A304A8f66D11186Fb07672625",
-      "explorerUrl": "https://hashscan.io/testnet/transaction/0xcf79ecfc0d5a136423d1a45e52f08539bfa136eb126cfdc9debea52b03c2f5f5",
-      "verified": true,
-      "deployedAt": "2026-10-22T21:17:28.699Z"
+      "description": "Multi-Chain Settlement & DEX Sweeper Router connecting HashKey Chain with Ethereum Sepolia, Arbitrum, and Base"
     }
   },
-  "updatedAt": "2026-10-22T21:17:28.699Z"
+  "updatedAt": "2026-10-28T05:45:00.000Z"
 }

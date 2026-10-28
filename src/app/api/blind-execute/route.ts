@@ -273,12 +273,11 @@ export async function POST(request: NextRequest) {
         pricePer1k
       );
 
-      // Record on-chain HSP settlement in HashKey Treasury
-      const hashKeyTxHash = paymentHeader.startsWith("0x") ? paymentHeader : ethers.hexlify(ethers.randomBytes(32));
-      const hspRecord = hashKeyTreasury.recordHSPSettlement({
+      const buyerRefundMicroUsdc = split.unusedTokensReturnedToSellerQuota > 0 ? Math.floor(((bounds.totalMaxTokens - aiResult.actualTokensUsed) / 1000) * pricePer1k) : 0;
+
+      // Settle Seller Payout in HSK on HashKey Chain
+      const hspRecord = await hashKeyTreasury.settleSellerPayoutOnHashKey({
         mandateId: body.mandateId || ethers.hexlify(ethers.randomBytes(32)),
-        txHash: hashKeyTxHash,
-        blockNumber: evmPaymentDetails?.blockNumber || 34975850,
         sellerAddress: listing.ownerAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
         buyerAddress: buyerAddress || evmPaymentDetails?.from || "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
         modelId,
@@ -286,9 +285,26 @@ export async function POST(request: NextRequest) {
         tMax: bounds.totalMaxTokens,
         sellerPayoutMicroUsdc: split.sellerPayoutMicroUsdc,
         protocolFeeMicroUsdc: split.webAppCommissionMicroUsdc,
-        buyerRefundMicroUsdc: split.unusedTokensReturnedToSellerQuota > 0 ? Math.floor(((bounds.totalMaxTokens - aiResult.actualTokensUsed) / 1000) * pricePer1k) : 0,
+        buyerRefundMicroUsdc,
         attestationHashHex: zeroGProof.attestationHash,
       });
+
+      // Issue automatic on-chain refund to buyer for unused deposit
+      let buyerRefundResult = null;
+      if (buyerRefundMicroUsdc > 0 && (evmPaymentDetails?.from || buyerAddress)) {
+        try {
+          buyerRefundResult = await buyerRefundEngine.executeRefund({
+            paymentRail: evmPaymentDetails?.chainKey || "hashkey",
+            buyerAddress: evmPaymentDetails?.from || buyerAddress,
+            refundAmountMicroUsdc: buyerRefundMicroUsdc,
+            reason: `Automatic refund for unused quota (${bounds.totalMaxTokens - aiResult.actualTokensUsed} tokens)`,
+            originalPaymentTxId: paymentHeader,
+            modelId,
+          });
+        } catch (rfErr) {
+          console.warn("[blind-execute] Buyer refund notice:", rfErr);
+        }
+      }
 
       // Step 8: Reconcile Seller's Quota on Arkiv (return unused tokens)
       const updatedListing = await arkivDb.reconcilePostExecutionAsync(
@@ -333,6 +349,7 @@ export async function POST(request: NextRequest) {
           sellerPayoutUsdc: hspRecord.sellerPayoutUsdc.toFixed(4),
           protocolFeeHsk: hspRecord.protocolFeeHsk.toFixed(4),
           buyerRefundHsk: hspRecord.buyerRefundHsk.toFixed(4),
+          buyerRefundTx: buyerRefundResult,
           tokensConsumed: aiResult.actualTokensUsed,
           tMaxTokens: bounds.totalMaxTokens,
           attestationHash: zeroGProof.attestationHash,

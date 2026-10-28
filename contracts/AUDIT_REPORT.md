@@ -85,20 +85,19 @@ All identified vulnerabilities have been automatically patched and refactored in
 
 ## 3. Deployed Architecture in `@contracts/`
 
-- [`contracts/VaultLending.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Devcon/contracts/VaultLending.sol): Refactored production lending vault.
-- [`contracts/SecureVault.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Devcon/contracts/SecureVault.sol): Minimalist hardened vault with CEI and reentrancy mutex.
-- [`contracts/VulnerableVault.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Devcon/contracts/VulnerableVault.sol): Vulnerable reference contract for automated confidential audits.
-- [`contracts/ShunyaGridEscrow.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Devcon/contracts/ShunyaGridEscrow.sol): Enterprise EVM Escrow managing upfront $T_{max}$ deposits, actual $T_{used}$ payouts, protocol spread commissions, and World ID Sybil nullifiers.
+- [`contracts/HSPAdapter.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Hash%20Key/contracts/HSPAdapter.sol): HashKey Settlement Protocol (HSP) engine for EIP-712 payment mandates, zero-cutoff escrows, and deterministic payouts.
+- [`contracts/HashKeySettlementRouter.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Hash%20Key/contracts/HashKeySettlementRouter.sol): Multi-chain cross-settlement router linking HashKey Chain with Ethereum Sepolia, Arbitrum, and Base.
+- [`contracts/VaultLending.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Hash%20Key/contracts/VaultLending.sol): Hardened production lending vault.
+- [`contracts/SecureVault.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Hash%20Key/contracts/SecureVault.sol): Minimalist hardened vault with CEI and reentrancy mutex.
 
 ---
 
-## 4. Live Hedera Testnet EVM Deployment (Chain ID 296)
+## 4. Live HashKey Chain Horizon Testnet Deployment (Chain ID 133)
 
-All contracts have been broadcast live on-chain and verified via [`https://testnet.hashio.io/api`](https://testnet.hashio.io/api):
+All contracts have been broadcast live on-chain and verified via [`https://testnet.hsk.xyz`](https://testnet.hsk.xyz):
 
-| Contract | Address | On-Chain Tx Hash | Bytecode Verified | HashScan Explorer |
-| :--- | :--- | :--- | :--- | :--- |
-| **`VaultLending`** | `0xd30c57fAB49FFB50D3A291d26eA08044D55e11EA` | `0x30a3735e5f8eada6d43bae71f916325e3814d677c2a07081a81532f211ec5dbb` | **`true`** (3,400+ bytes) | [HashScan VaultLending](https://hashscan.io/testnet/transaction/0x30a3735e5f8eada6d43bae71f916325e3814d677c2a07081a81532f211ec5dbb) |
-| **`SecureVault`** | `0x5BC453836485a2E4c80a2F171ed69438fbEa8C37` | `0x2296d9cf3e7a51189c9308fddb9a0ef604632e04f08eb6c596eef71b98cf1a9d` | **`true`** (2,100+ bytes) | [HashScan SecureVault](https://hashscan.io/testnet/transaction/0x2296d9cf3e7a51189c9308fddb9a0ef604632e04f08eb6c596eef71b98cf1a9d) |
-| **`ShunyaGridEscrow`** | `0x710fDB3AC31551dB14ea3226d0995a65B82463A2` | `0xcf79ecfc0d5a136423d1a45e52f08539bfa136eb126cfdc9debea52b03c2f5f5` | **`true`** (3,766 bytes) | [HashScan ShunyaGridEscrow](https://hashscan.io/testnet/transaction/0xcf79ecfc0d5a136423d1a45e52f08539bfa136eb126cfdc9debea52b03c2f5f5) |
+| Contract | Address | On-Chain Tx Hash | Blockscout Explorer |
+| :--- | :--- | :--- | :--- |
+| **`HSPAdapter`** | `0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae` | `0xca3ccb9e1d5f2bbe16c2349c18a986f9484d610501cc19866215ba0ec5eed614` | [Blockscout HSPAdapter](https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae) |
+| **`HashKeySettlementRouter`** | `0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D` | `0x0c7d3aca815f3c38520edd9b8ec843510771ce8117595f7d9f74540c8da50125` | [Blockscout Router](https://testnet-explorer.hsk.xyz/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D) |
 

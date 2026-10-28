@@ -25,7 +25,6 @@ interface ArcBridgeDrawerProps {
   onClose: () => void;
   availableUsdcEarnings?: number;
   availableHskEarnings?: number;
-  sellerHederaAccountId?: string;
   sellerNodeAddress?: string;
   onSweepSuccess?: () => void;
   onRefresh?: () => void;
@@ -61,7 +60,6 @@ export default function ArcBridgeDrawer({
   onClose,
   availableUsdcEarnings = 1.0,
   availableHskEarnings = 0.5,
-  sellerHederaAccountId = "",
   sellerNodeAddress = "",
   onSweepSuccess,
   onRefresh,
@@ -70,7 +68,7 @@ export default function ArcBridgeDrawer({
   const [selectedToken, setSelectedToken] = useState<string>("HSK");
   const [selectedChain, setSelectedChain] = useState<string>("hashkey-testnet");
   const [sourceAccountId, setSourceAccountId] = useState<string>(
-    sellerNodeAddress || sellerHederaAccountId || walletAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+    sellerNodeAddress || walletAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   );
   const [sweepAmount, setSweepAmount] = useState<string>(availableUsdcEarnings.toFixed(5));
   const [destinationEvmAddress, setDestinationEvmAddress] = useState<string>(
@@ -93,10 +91,12 @@ export default function ArcBridgeDrawer({
   const isInvalidAmount = isNaN(parsedAmount) || parsedAmount <= 0;
 
   useEffect(() => {
-    if (sellerHederaAccountId) {
-      setSourceAccountId(sellerHederaAccountId);
+    if (sellerNodeAddress) {
+      setSourceAccountId(sellerNodeAddress);
+    } else if (walletAddress) {
+      setSourceAccountId(walletAddress);
     }
-  }, [sellerHederaAccountId]);
+  }, [sellerNodeAddress, walletAddress]);
 
   // When drawer opens, immediately fetch latest balance
   useEffect(() => {
@@ -173,7 +173,7 @@ export default function ArcBridgeDrawer({
 
   const [bridgeResult, setBridgeResult] = useState<{
     txId: string;
-    hashscanUrl: string;
+    explorerUrl: string;
     settledAmount: number;
     currency: string;
     swappedToken: string;
@@ -182,8 +182,6 @@ export default function ArcBridgeDrawer({
     dexRate?: number;
     recipientAddress: string;
     blockNumber?: number;
-    gasSentHbar?: number;
-    hcsSequenceNumber?: number;
   } | null>(null);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
 
@@ -218,7 +216,6 @@ export default function ArcBridgeDrawer({
       const cleanSourceAccount = (
         sourceAccountId ||
         sellerNodeAddress ||
-        sellerHederaAccountId ||
         walletAddress ||
         "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
       ).trim();
@@ -245,13 +242,13 @@ export default function ArcBridgeDrawer({
       const bridgeTx = data.bridgeTx || {};
       const txHash = data.sourceBurnTxId || bridgeTx.evmTxHash || bridgeTx.txHash;
       const scanUrl =
-        data.hashscanUrl ||
-        bridgeTx.hashscanUrl ||
-        `https://testnet-explorer.hsk.xyz/transaction/${txHash}`;
+        data.explorerUrl ||
+        bridgeTx.explorerUrl ||
+        `https://testnet-explorer.hsk.xyz/tx/${txHash}`;
 
       setBridgeResult({
         txId: txHash,
-        hashscanUrl: scanUrl,
+        explorerUrl: scanUrl,
         settledAmount: parsedAmount,
         currency: "USDC",
         swappedToken: data.swappedToken || selectedToken,
@@ -260,8 +257,6 @@ export default function ArcBridgeDrawer({
         dexRate: data.dexRate || quotePreview.rate,
         recipientAddress: destinationEvmAddress.trim(),
         blockNumber: data.blockNumber || bridgeTx.blockNumber,
-        gasSentHbar: data.gasSentHbar || bridgeTx.gasSentHbar,
-        hcsSequenceNumber: data.hcsSequenceNumber || bridgeTx.hcsSequenceNumber,
       });
 
       // Immediately calculate optimistic remaining balance for the drawer
@@ -276,7 +271,7 @@ export default function ArcBridgeDrawer({
         } catch {}
       }
 
-      // Notify parent to refresh balance from Mirror Node and Sweep Ledger
+      // Notify parent to refresh balance from HashKey Chain and Sweep Ledger
       if (onSweepSuccess) {
         onSweepSuccess();
       }
@@ -312,14 +307,14 @@ export default function ArcBridgeDrawer({
     }
   };
 
-  const handleAddHederaNetwork = async () => {
+  const handleAddHashKeyNetwork = async () => {
     if (typeof window !== "undefined" && (window as any).ethereum) {
       try {
         await (window as any).ethereum.request({
           method: "wallet_addEthereumChain",
           params: [
             {
-              chainId: "0x85", // 296 in hex
+              chainId: "0x85", // 133 in hex
               chainName: "HashKey Chain Testnet",
               nativeCurrency: { name: "HashKey EcoPoints", symbol: "HSK", decimals: 18 },
               rpcUrls: ["https://testnet.hsk.xyz"],
@@ -330,7 +325,7 @@ export default function ArcBridgeDrawer({
         setAddedNetworkSuccess(true);
         setTimeout(() => setAddedNetworkSuccess(false), 4000);
       } catch (err) {
-        console.warn("Failed to add Hedera chain:", err);
+        console.warn("Failed to add HashKey chain:", err);
       }
     } else {
       alert("No MetaMask extension detected in this browser window.");
@@ -367,22 +362,21 @@ export default function ArcBridgeDrawer({
                 <h4 className="font-semibold text-white">Sweep & Swap Executed Successfully</h4>
               </div>
               <p className="text-xs text-neutral-300 leading-relaxed">
-                Swapped <strong className="text-white tabular-data">${bridgeResult.settledAmount.toFixed(4)} USDC</strong> to{" "}
+                Swapped <strong className="text-white tabular-data">${bridgeResult.settledAmount.toFixed(4)} USD</strong> worth of HSK to{" "}
                 <strong className="text-white tabular-data">{bridgeResult.swappedAmount.toFixed(6)} {bridgeResult.swappedToken}</strong>{" "}
                 via <strong className="text-white">{bridgeResult.dexRouter || "Uniswap V3"}</strong> and delivered directly to your connected MetaMask wallet (
                 <code className="text-neutral-300 font-mono">
                   {bridgeResult.recipientAddress.slice(0, 8)}...{bridgeResult.recipientAddress.slice(-6)}
                 </code>
                 ).
-                {bridgeResult.gasSentHbar ? ` Included +${bridgeResult.gasSentHbar} HBAR gas!` : ""}
               </p>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-2.5 text-xs">
               <div className="flex items-center justify-between text-neutral-400">
-                <span>{bridgeResult.hashscanUrl?.includes("sepolia.etherscan.io") ? "Sepolia Etherscan Tx:" : "On-Chain EVM Tx:"}</span>
+                <span>{bridgeResult.explorerUrl?.includes("sepolia.etherscan.io") ? "Sepolia Etherscan Tx:" : "On-Chain Explorer Tx:"}</span>
                 <a
-                  href={bridgeResult.hashscanUrl}
+                  href={bridgeResult.explorerUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="text-white hover:underline flex items-center gap-1 font-semibold"
@@ -398,13 +392,6 @@ export default function ArcBridgeDrawer({
                 </div>
               )}
 
-              {bridgeResult.hcsSequenceNumber && (
-                <div className="flex items-center justify-between text-neutral-400">
-                  <span>HCS Consensus Sequence:</span>
-                  <span className="text-white font-semibold tabular-data">Seq #{bridgeResult.hcsSequenceNumber}</span>
-                </div>
-              )}
-
               <div className="flex items-center justify-between text-neutral-400">
                 <span>DEX Routing & Rate:</span>
                 <span className="text-neutral-200 tabular-data">
@@ -417,7 +404,7 @@ export default function ArcBridgeDrawer({
                 <span className="text-emerald-400 font-semibold">Updated On-Chain</span>
               </div>
 
-              {bridgeResult.hashscanUrl?.includes("sepolia.etherscan.io") && (
+              {bridgeResult.explorerUrl?.includes("sepolia.etherscan.io") && (
                 <div className="p-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs text-neutral-300">
                   Delivered on <strong>Ethereum Sepolia</strong>. In MetaMask, ensure your active network is <strong>Ethereum Sepolia</strong> to see your new balance.
                 </div>
@@ -437,7 +424,7 @@ export default function ArcBridgeDrawer({
 
               <button
                 type="button"
-                onClick={handleAddHederaNetwork}
+                onClick={handleAddHashKeyNetwork}
                 className="flex items-center justify-center gap-1.5 p-2 rounded-full btn-secondary-apple text-xs"
               >
                 <Network className="w-3.5 h-3.5 text-emerald-400" />
@@ -472,7 +459,7 @@ export default function ArcBridgeDrawer({
                   <button
                     type="button"
                     onClick={onRefresh}
-                    title="Refresh live on-chain balance from Mirror Node"
+                    title="Refresh live on-chain balance from HashKey Chain"
                     className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />

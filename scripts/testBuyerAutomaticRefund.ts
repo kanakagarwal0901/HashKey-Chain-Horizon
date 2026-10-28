@@ -90,28 +90,28 @@ async function runAutomaticRefundTests() {
   }
 
   // --------------------------------------------------------------------------
-  // TEST 2: Direct Unit Test on BuyerRefundEngine (Hedera rail)
+  // TEST 2: Direct Unit Test on BuyerRefundEngine (HashKey Chain rail)
   // --------------------------------------------------------------------------
-  console.log("\n\x1b[36m[TEST 2] Testing BuyerRefundEngine Execution for Hedera Rail...\x1b[0m");
+  console.log("\n\x1b[36m[TEST 2] Testing BuyerRefundEngine Execution for HashKey Chain Rail...\x1b[0m");
   {
-    const buyerHederaAccount = "0.0.11145557";
-    const paymentTxId = `0.0.11073932@${Math.floor(Date.now() / 1000)}.123456`;
+    const buyerHashKeyAccount = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+    const paymentTxId = `0x${crypto.randomBytes(32).toString("hex")}`;
     const refundAmountMicroUsdc = 150_000; // $0.15 USDC
 
     const refund = await buyerRefundEngine.executeRefund({
-      paymentRail: "hedera",
-      buyerAddress: buyerHederaAccount,
+      paymentRail: "hashkey",
+      buyerAddress: buyerHashKeyAccount,
       refundAmountMicroUsdc,
       reason: "OpenAI quota limit reached on seller key: HTTP 429 Rate Limited",
       originalPaymentTxId: paymentTxId,
       modelId: "o3-mini",
     });
 
-    assert(refund.success, "REFUND-02.1", "Hedera refund executed with success = true");
+    assert(refund.success, "REFUND-02.1", "HashKey refund executed with success = true");
     assert(
-      refund.recipientAccount === buyerHederaAccount,
+      refund.recipientAccount === buyerHashKeyAccount,
       "REFUND-02.2",
-      `Refund dispatched back to buyer Hedera account: ${refund.recipientAccount}`
+      `Refund dispatched back to buyer HashKey account: ${refund.recipientAccount}`
     );
     assert(
       refund.refundAmountUsdc === 0.15,
@@ -119,9 +119,9 @@ async function runAutomaticRefundTests() {
       `Refund amount equals $${refund.refundAmountUsdc.toFixed(6)} USDC`
     );
     assert(
-      refund.explorerUrl.includes("hashscan.io"),
+      refund.explorerUrl.includes("testnet-explorer.hsk.xyz"),
       "REFUND-02.4",
-      `Explorer URL points to HashScan: ${refund.explorerUrl}`
+      `Explorer URL points to HashKey Explorer: ${refund.explorerUrl}`
     );
   }
 

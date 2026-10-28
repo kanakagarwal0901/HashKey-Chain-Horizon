@@ -11,15 +11,13 @@ export interface SellerBalanceResult {
   availableBalance: number;
   htsUsdcBalance: number;
   rawHtsUsdcBalance: number;
-  hbarBalance: number;
   lifetimeSettledHsk: number;
   lifetimeSettledUsdc: number;
   totalSweptHsk: number;
   totalSweptUsdc: number;
   hspAdapterAddress: string;
   blockscoutAccountUrl: string;
-  hashscanAccountUrl: string;
-  hashscanTokenUrl: string;
+  blockscoutTokenUrl: string;
   recentSettlements: any[];
   recentSweeps: any[];
   timestamp: string;
@@ -44,15 +42,13 @@ export async function calculateSellerBalance(rawAddress?: string | null): Promis
     availableBalance: balance.currentBalanceUsdc,
     htsUsdcBalance: balance.currentBalanceUsdc,
     rawHtsUsdcBalance: Math.round(balance.currentBalanceUsdc * 1_000_000),
-    hbarBalance: balance.currentBalanceHsk,
     lifetimeSettledHsk: balance.lifetimeSettledHsk,
     lifetimeSettledUsdc: balance.lifetimeSettledUsdc,
     totalSweptHsk: balance.totalSweptHsk,
     totalSweptUsdc: balance.totalSweptUsdc,
     hspAdapterAddress: balance.hspAdapterAddress,
     blockscoutAccountUrl: balance.blockscoutAccountUrl,
-    hashscanAccountUrl: balance.blockscoutAccountUrl,
-    hashscanTokenUrl: `https://testnet-explorer.hsk.xyz/token/0x054ed45810DbBAb8B27668922D110669c9D88D0a`,
+    blockscoutTokenUrl: `https://testnet-explorer.hsk.xyz/token/0x054ed45810DbBAb8B27668922D110669c9D88D0a`,
     recentSettlements: balance.recentSettlements,
     recentSweeps: balance.recentSweeps,
     timestamp: new Date().toISOString(),

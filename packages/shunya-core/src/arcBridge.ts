@@ -18,7 +18,7 @@ export interface ArcBridgeTransaction {
   txHash: string;
   timestamp: string;
   evmTxHash?: string;
-  hashscanUrl?: string;
+  explorerUrl?: string;
   blockNumber?: number;
   tokenContract?: string;
   swappedToken?: string;
@@ -26,8 +26,6 @@ export interface ArcBridgeTransaction {
   dexRouter?: string;
   dexRate?: number | string;
   onChainDebited?: boolean;
-  hcsSequenceNumber?: number;
-  gasSentHbar?: number;
 }
 
 export class ArcBridgeService {
@@ -103,7 +101,7 @@ export class ArcBridgeService {
       status: "minted_on_destination",
       txHash,
       timestamp: new Date().toISOString(),
-      hashscanUrl: `https://testnet-explorer.hsk.xyz/tx/${txHash}`,
+      explorerUrl: `https://testnet-explorer.hsk.xyz/tx/${txHash}`,
     };
 
     this.transactions.unshift(bridgeTx);
@@ -126,10 +124,8 @@ export class ArcBridgeService {
     const sellerAddress = params.sourceAccount && params.sourceAccount.trim().startsWith("0x")
       ? params.sourceAccount.trim()
       : "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
-    let destinationChain = params.destinationChain || "hashkey-testnet";
-    if (destinationChain === "hedera-testnet") destinationChain = "hashkey-testnet";
-    let targetToken = params.targetToken || params.targetCurrency || "HSK";
-    if (targetToken === "HBAR") targetToken = "HSK";
+    const destinationChain = params.destinationChain || "hashkey-testnet";
+    const targetToken = params.targetToken || params.targetCurrency || "HSK";
 
     const sweepRecord: UniversalSweepRecord = await hashKeyTreasury.executeUniversalSweep({
       sellerAddress,
@@ -152,7 +148,7 @@ export class ArcBridgeService {
       txHash: sweepRecord.txHash,
       evmTxHash: sweepRecord.txHash,
       timestamp: sweepRecord.timestamp,
-      hashscanUrl: sweepRecord.explorerUrl,
+      explorerUrl: sweepRecord.explorerUrl,
       swappedToken: sweepRecord.targetToken,
       swappedAmount: sweepRecord.swappedAmount,
       dexRouter: "HashKey-HSP-Router",

@@ -463,7 +463,7 @@ function withdraw() external nonReentrant {
     } else if (lowerPrompt.includes("financial") || lowerPrompt.includes("csv") || lowerPrompt.includes("ledger") || lowerPrompt.includes("churn")) {
       aiOutputText = `## Financial Data & Churn Cohort Analysis
 **Analyzed Confidential Data:** ${hasFiles ? fileNames : "Confidential Tabular Data"}
-**Execution Integrity:** 0G Verified Enclave & Hedera HCS Audited
+**Execution Integrity:** 0G Verified Enclave & HashKey Chain Horizon Audited
 
 ### Executive Summary
 1. **Q3 Realized Revenue vs Forecast:** Baseline cohort retention achieved 88.6%. Identified high-value segment expansion (+14.2% YoY).

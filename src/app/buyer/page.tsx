@@ -1660,7 +1660,7 @@ contract VaultLending {
                                 : paymentChain === "base-sepolia"
                                 ? `https://sepolia.basescan.org/tx/${buyerSepoliaTxHash}`
                                 : paymentChain === "hashkey-testnet"
-                                ? `https://hashscan.io/testnet/transaction/${buyerSepoliaTxHash}`
+                                ? `https://testnet-explorer.hsk.xyz/tx/${buyerSepoliaTxHash}`
                                 : `https://sepolia.etherscan.io/tx/${buyerSepoliaTxHash}`)
                             }
                             target="_blank"

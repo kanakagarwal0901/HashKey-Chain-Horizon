@@ -16,7 +16,6 @@ interface AuthContextType {
   ensAvatar: string | null;
   isLoadingEns: boolean;
   refreshEns: () => Promise<void>;
-  sellerHederaAccount?: string | null;
   connectWallet: () => Promise<boolean>;
   disconnectWallet: () => void;
   completeWorldIdVerification: (proofData: {
@@ -40,7 +39,6 @@ const AuthContext = createContext<AuthContextType>({
   ensAvatar: null,
   isLoadingEns: false,
   refreshEns: async () => {},
-  sellerHederaAccount: null,
   connectWallet: async () => false,
   disconnectWallet: () => {},
   completeWorldIdVerification: () => {},
@@ -237,7 +235,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ensAvatar,
         isLoadingEns,
         refreshEns,
-        sellerHederaAccount: null,
         connectWallet,
         disconnectWallet,
         completeWorldIdVerification,

@@ -393,7 +393,7 @@ export async function executeBuyerUniversalPayment(params: {
     };
   }
 
-  // 3. Case B: Native HSK, ETH or HBAR payment directly to Treasury / HSP Adapter
+  // 3. Case B: Native HSK or ETH payment directly to Treasury / HSP Adapter
   if (token === "HSK" || chainKey === "hashkey-testnet" && token === "HSK") {
     const pricePerUnit = 0.75;
     const unitsNeeded = (requiredUsdc / pricePerUnit) * 1.01;
@@ -418,8 +418,8 @@ export async function executeBuyerUniversalPayment(params: {
     };
   }
 
-  if (token === "ETH" || token === "HBAR") {
-    const pricePerUnit = token === "ETH" ? 2600 : 0.08;
+  if (token === "ETH") {
+    const pricePerUnit = 2600;
     const unitsNeeded = (requiredUsdc / pricePerUnit) * 1.01; // 1% buffer
     const weiNeeded = ethers.parseEther(unitsNeeded.toFixed(6));
     const valueHex = "0x" + weiNeeded.toString(16);

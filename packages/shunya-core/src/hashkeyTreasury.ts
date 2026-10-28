@@ -85,6 +85,7 @@ export class HashKeyTreasuryEngine {
   > = new Map();
 
   private persistencePath: string = path.join(process.cwd(), ".data", "hashkey_treasury.json");
+  public readonly chainId: number = 133;
   public hspAdapterAddress: string = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
   public routerAddress: string = "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D";
   public hskUsdRate: number = 0.75; // Standard benchmark rate: 1 HSK = $0.75 USD

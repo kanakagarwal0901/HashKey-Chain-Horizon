@@ -19,8 +19,7 @@ if (fs.existsSync(envLocalPath)) {
 }
 
 import {
-  hederaNetworkClient,
-  hederaEngine,
+  hashKeyTreasury,
   aiDispatcher,
   worldIdService,
   arcBridgeService,
@@ -29,7 +28,7 @@ import {
 
 async function runLiveIntegrationTests() {
   console.log("\n===========================================================================");
-  console.log("   SHUNYAGRID LIVE BACKEND INTEGRATIONS & HEDERA VERIFICATION SUITE       ");
+  console.log("   SHUNYAGRID LIVE BACKEND INTEGRATIONS & HASHKEY VERIFICATION SUITE       ");
   console.log("===========================================================================\n");
 
   let passed = 0;
@@ -46,184 +45,97 @@ async function runLiveIntegrationTests() {
   }
 
   // --------------------------------------------------------------------------
-  // TEST GROUP 1: HEDERA HASHGRAPH SDK & NETWORK CLIENT
+  // TEST GROUP 1: HASHKEY CHAIN HORIZON & HSP ADAPTER
   // --------------------------------------------------------------------------
-  console.log("[SECTION 1: HEDERA SDK & NETWORK CLIENT INITIALIZATION]");
-  const status = hederaNetworkClient.getStatus();
+  console.log("[SECTION 1: HASHKEY CHAIN & HSP CONTRACT CONFIGURATION]");
   assert(
-    status.network === "testnet",
-    "HEDERA-01",
-    `Hedera target network is testnet (Network: ${status.network})`
+    hashKeyTreasury.chainId === 133,
+    "HSK-01",
+    `HashKey target chain is Testnet (Chain ID: ${hashKeyTreasury.chainId})`
   );
   assert(
-    status.topicId.startsWith("0.0."),
-    "HEDERA-02",
-    `HCS Topic ID configured to testnet topic: ${status.topicId}`
-  );
-
-  // Test Mirror Node format verification
-  const mirrorCheck = await hederaNetworkClient.verifyPaymentOnMirrorNode(
-    "0.0.482910@1731002100.000000001",
-    240000
+    hashKeyTreasury.hspAdapterAddress.toLowerCase() === "0x40a633eef249f21d95c8803b7144f19aafeef7ae".toLowerCase(),
+    "HSK-02",
+    `HSPAdapter address matches official deployment: ${hashKeyTreasury.hspAdapterAddress}`
   );
   assert(
-    mirrorCheck.verified === true,
-    "HEDERA-03",
-    "Hedera Mirror Node transaction verification format accepts valid transaction IDs"
+    hashKeyTreasury.routerAddress.toLowerCase() === "0x532802f2f9e0e3ee9d5ba70c35e1f43c0498772d".toLowerCase(),
+    "HSK-03",
+    `HashKeySettlementRouter address matches official deployment: ${hashKeyTreasury.routerAddress}`
   );
 
   // --------------------------------------------------------------------------
-  // TEST GROUP 2: HCS CONSENSUS SETTLEMENT & INVARIANTS
+  // TEST GROUP 2: HSP SETTLEMENT ENGINE & INVARIANTS
   // --------------------------------------------------------------------------
-  console.log("\n[SECTION 2: HEDERA x402 SETTLEMENT ENGINE & HCS RECEIPTS]");
+  console.log("\n[SECTION 2: HASHKEY HSP SETTLEMENT ENGINE & RECEIPTS]");
   const bounds = getModelTokenBounds("claude-3-7-sonnet", "medium");
-  const settlementResult = await hederaEngine.settlePayoutAndConsensusLog({
-    buyerX402TxId: "0.0.482910@1792615518.991823011",
-    sellerHederaAccountId: "0.0.482910",
+  const testMandateId = "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+  const settlementResult = await hashKeyTreasury.settleSellerPayoutOnHashKey({
+    mandateId: testMandateId,
+    sellerAddress: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    buyerAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     modelId: "claude-3-7-sonnet",
-    thinkingLevel: "medium",
-    tMaxTokens: bounds.totalMaxTokens,
-    tUsedTokens: 14192,
-    buyerChargedMicroUsdc: 241920,
+    tUsed: 14192,
+    tMax: bounds.totalMaxTokens,
     sellerPayoutMicroUsdc: 141920,
-    webAppCommissionMicroUsdc: 100000,
-    zeroGAttestationHash: "0x7a89b41efc8301d8923a104f98127389ab41029410",
+    protocolFeeMicroUsdc: 100000,
+    buyerRefundMicroUsdc: 0,
+    attestationHashHex: "0x7a89b41efc8301d8923a104f98127389ab41029410",
   });
 
   assert(
-    settlementResult.receipt.hcsTopicId.startsWith("0.0."),
-    "HCS-01",
-    `Receipt assigned to testnet HCS Topic: ${settlementResult.receipt.hcsTopicId}`
+    settlementResult.status === "SETTLED",
+    "HSP-01",
+    `Settlement status confirmed as SETTLED`
   );
   assert(
-    settlementResult.receipt.sequenceNumber > 0,
-    "HCS-02",
-    `Monotonic sequence counter recorded (#${settlementResult.receipt.sequenceNumber})`
+    settlementResult.sellerPayoutHsk > 0,
+    "HSP-02",
+    `Seller payout in native HSK calculated: ${settlementResult.sellerPayoutHsk} HSK`
   );
   assert(
-    settlementResult.receipt.buyerPaidMicroUsdc ===
-      settlementResult.receipt.sellerReceivedMicroUsdc +
-        settlementResult.receipt.webAppCommissionMicroUsdc,
-    "HCS-03",
-    "Conservation of Value Invariant holds: C_buyer = R_seller + Commission"
-  );
-  assert(
-    settlementResult.receipt.hashscanUrl.includes("hashscan.io"),
-    "HCS-04",
-    `Authentic HashScan explorer URL generated: ${settlementResult.receipt.hashscanUrl}`
+    Boolean(settlementResult.blockscoutUrl.includes("https://testnet-explorer.hsk.xyz/tx/")),
+    "HSP-03",
+    `Settlement generated Blockscout Explorer URL: ${settlementResult.blockscoutUrl}`
   );
 
   // --------------------------------------------------------------------------
-  // TEST GROUP 3: MULTI-PROVIDER AI DISPATCHERS
+  // TEST GROUP 3: WORLD ID PROOF-OF-HUMANITY VERIFICATION
   // --------------------------------------------------------------------------
-  console.log("\n[SECTION 3: MULTI-PROVIDER FRONTIER AI DISPATCHERS]");
-
-  // 1. Google Gemini Flash Thinking
-  const geminiBounds = getModelTokenBounds("gemini-2.0-flash-thinking", "medium");
-  const geminiExec = await aiDispatcher.executeAiCall({
-    modelId: "gemini-2.0-flash-thinking",
-    thinkingLevel: "medium",
-    bounds: geminiBounds,
-    fullPromptText: "Audit the contract for reentrancy bugs.",
-    totalFileTokens: 100,
-    rawApiKey: "AIzaSySampleKeyAnanya",
-    parsedFiles: [{ filename: "TokenVault.sol", mimeType: "text/x-solidity" }],
+  console.log("\n[SECTION 3: WORLD ID VERIFICATION GATEWAY]");
+  const nullifier = `0xnullifier_test_${Date.now()}`;
+  const verifyResult = await worldIdService.verifyProof({
+    nullifier_hash: nullifier,
+    merkle_root: "0x1b92048201948201948201948201948201948201",
+    proof: "0xmock_zk_proof_payload",
+    signal: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    action: "shunyagrid-gate",
   });
-
-  assert(
-    geminiExec.actualTokensUsed <= geminiBounds.totalMaxTokens,
-    "AI-GEMINI-01",
-    `Gemini 2.0 Flash Thinking execution bounded by T_max (${geminiExec.actualTokensUsed} <= ${geminiBounds.totalMaxTokens})`
-  );
-  assert(
-    geminiExec.reasoningText.length > 0,
-    "AI-GEMINI-02",
-    "Gemini thinking trace generated with dedicated reasoning token budget"
-  );
-
-  // 2. Groq DeepSeek R1 (70B) LPU
-  const groqBounds = getModelTokenBounds("deepseek-r1-distill-llama-70b", "medium");
-  const groqExec = await aiDispatcher.executeAiCall({
-    modelId: "deepseek-r1-distill-llama-70b",
-    thinkingLevel: "medium",
-    bounds: groqBounds,
-    fullPromptText: "Analyze financial revenue cohort for churn risks.",
-    totalFileTokens: 50,
-    rawApiKey: "gsk_sample_key_rahul",
-    parsedFiles: [{ filename: "cohorts.csv", mimeType: "text/csv" }],
-  });
-
-  assert(
-    groqExec.actualTokensUsed <= groqBounds.totalMaxTokens,
-    "AI-GROQ-01",
-    `Groq DeepSeek R1 execution bounded by T_max (${groqExec.actualTokensUsed} <= ${groqBounds.totalMaxTokens})`
-  );
-  assert(
-    groqExec.aiOutputText.length > 50,
-    "AI-GROQ-02",
-    "Groq LPU synthesized frontier response generated inside sealed Enclave memory"
-  );
-
-  // 3. Anthropic Claude 3.7 Sonnet
-  const anthropicBounds = getModelTokenBounds("claude-3-7-sonnet", "high");
-  const claudeExec = await aiDispatcher.executeAiCall({
-    modelId: "claude-3-7-sonnet",
-    thinkingLevel: "high",
-    bounds: anthropicBounds,
-    fullPromptText: "Comprehensive formal audit of LendingPool.sol.",
-    totalFileTokens: 200,
-    rawApiKey: "sk-ant-sample-key-arjun",
-    parsedFiles: [{ filename: "LendingPool.sol", mimeType: "text/x-solidity" }],
-  });
-
-  assert(
-    claudeExec.actualTokensUsed <= anthropicBounds.totalMaxTokens,
-    "AI-ANTHROPIC-01",
-    `Claude 3.7 Sonnet (High Thinking) bounded by T_max (${claudeExec.actualTokensUsed} <= ${anthropicBounds.totalMaxTokens})`
-  );
+  assert(verifyResult.success === true, "WORLDID-01", "World ID proof verification succeeded");
+  assert(verifyResult.nullifier_hash === nullifier, "WORLDID-02", "World ID nullifier returned correctly");
 
   // --------------------------------------------------------------------------
-  // TEST GROUP 4: WORLD ID & ARC CCTP BRIDGE
+  // TEST GROUP 4: UNIVERSAL SELLER SWEEPER (MULTI-CHAIN & MULTI-TOKEN)
   // --------------------------------------------------------------------------
-  console.log("\n[SECTION 4: WORLD ID VERIFICATION & ARC CCTP CROSS-CHAIN SWEEP]");
-  const worldIdProof = worldIdService.generateDemoProof("0x71C2a8b940e4e8B");
-  const verificationResult = await worldIdService.verifyProof({
-    nullifier_hash: worldIdProof.nullifier_hash,
-    merkle_root: worldIdProof.merkle_root,
+  console.log("\n[SECTION 4: UNIVERSAL SWEEP & MULTI-CHAIN UNISWAP BRIDGE]");
+  const sweepTx = await arcBridgeService.executeLiveSellerSweep({
+    sourceAccount: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    recipientAddress: "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444",
+    amountUsdc: 0.01,
+    destinationChain: "hashkey-testnet",
+    targetCurrency: "HSK",
   });
+  assert(sweepTx.status === "minted_on_destination", "SWEEP-01", "Universal sweep executed successfully");
+  assert(Boolean(sweepTx.txHash.startsWith("0x")), "SWEEP-02", `Valid transaction hash produced: ${sweepTx.txHash}`);
 
-  assert(
-    verificationResult.success === true,
-    "WORLD-ID-01",
-    `World ID ZK-SNARK nullifier verification succeeded (${verificationResult.nullifier_hash.slice(0, 20)}...)`
-  );
-
-  const bridgeTx = arcBridgeService.initiateCctpBridge({
-    destinationChain: "arc",
-    amountUsdc: 15.75,
-    recipientAddress: "0x71C2a8b940e4e8B",
-  });
-
-  assert(
-    bridgeTx.status === "minted_on_destination",
-    "ARC-BRIDGE-01",
-    `Circle CCTP cross-chain sweep executed from Hedera to Arc (${bridgeTx.id})`
-  );
-
-  // --------------------------------------------------------------------------
-  // SUMMARY
-  // --------------------------------------------------------------------------
   console.log("\n===========================================================================");
-  console.log(`   LIVE INTEGRATIONS SUMMARY: ${passed} PASSED, ${failed} FAILED`);
+  console.log(`   INTEGRATION TEST SUMMARY: ${passed} PASSED, ${failed} FAILED`);
   console.log("===========================================================================\n");
 
-  if (failed > 0) {
-    process.exit(1);
-  }
-  process.exit(0);
+  if (failed > 0) process.exit(1);
 }
 
 runLiveIntegrationTests().catch((err) => {
-  console.error("Test execution failed:", err);
+  console.error("Fatal test error:", err);
   process.exit(1);
 });

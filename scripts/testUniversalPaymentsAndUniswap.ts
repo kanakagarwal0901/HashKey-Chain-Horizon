@@ -18,7 +18,14 @@ try {
   }
 } catch {}
 
-import { uniswapService, arcBridgeService, calculateSellerBalance, hederaEngine, SUPPORTED_TOKENS, SUPPORTED_CHAINS } from "../packages/shunya-core/src/index";
+import {
+  uniswapService,
+  arcBridgeService,
+  calculateSellerBalance,
+  hashKeyTreasury,
+  SUPPORTED_TOKENS,
+  SUPPORTED_CHAINS,
+} from "../packages/shunya-core/src/index";
 import { verifySepoliaUsdcPayment, SHUNYA_TREASURY_EVM_ADDRESS } from "../src/lib/sepoliaPaymentVerifier";
 
 async function main() {
@@ -28,7 +35,7 @@ async function main() {
 
   // 1. Test Uniswap V3 Quote Generation
   console.log("\n[1/4] Testing Uniswap V3 Quote Engine Across Tokens & Chains...");
-  const tokens = ["USDC", "ETH", "DAI", "USDT", "UNI", "HBAR"];
+  const tokens = ["USDC", "ETH", "DAI", "USDT", "HSK"];
   for (const token of tokens) {
     const quote = uniswapService.getQuote({
       fromToken: "USDC",
@@ -59,56 +66,55 @@ async function main() {
   if (!swapTx.data.startsWith("0x04e45aaf")) {
     throw new Error(`Unexpected exactInputSingle selector: got ${swapTx.data.slice(0, 10)}`);
   }
-  console.log("  ✓ Buyer swap calldata verified successfully!");
+  console.log("  ✔ Buyer swap calldata verified successfully!");
 
   // 3. Test Multi-Token Live Seller Sweep
-  console.log("\n[3/4] Executing Live Multi-Token Sweep (HTS USDC -> Target Token to Connected MetaMask)...");
-  const targetTokensToSweep = ["USDC", "HBAR"];
-  const sellerAccount = process.env.NEXT_PUBLIC_DEFAULT_SELLER_HEDERA_ACCOUNT || "0.0.11145557";
-  
+  console.log("\n[3/4] Executing Live Multi-Token Sweep (HSK -> Target Token to Connected MetaMask)...");
+  const targetTokensToSweep = [
+    { chain: "hashkey-testnet", token: "HSK" },
+    { chain: "ethereum-sepolia", token: "ETH" },
+  ];
+  const sellerAccount = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+
   // Ensure seller has sufficient balance before sweeping
   let balRes = await calculateSellerBalance(sellerAccount);
   if (balRes.displayBalance < 0.02) {
     const mockTx = "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-    await hederaEngine.settlePayoutAndConsensusLog({
-      buyerX402TxId: mockTx,
-      buyerSepoliaTxHash: mockTx,
-      sellerHederaAccountId: sellerAccount,
+    await hashKeyTreasury.settleSellerPayoutOnHashKey({
+      mandateId: mockTx,
+      sellerAddress: sellerAccount,
+      buyerAddress: buyerAddress,
       modelId: "gemini-2.0-flash",
-      thinkingLevel: "none",
-      tMaxTokens: 10000,
-      tUsedTokens: 5000,
-      buyerChargedMicroUsdc: 100_000,
-      sellerPayoutMicroUsdc: 50_000, // $0.05 USDC
-      webAppCommissionMicroUsdc: 50_000,
-      zeroGAttestationHash: "0xattestation_universal_" + Date.now(),
+      tUsed: 5000,
+      tMax: 10000,
+      sellerPayoutMicroUsdc: 50_000,
+      protocolFeeMicroUsdc: 50_000,
+      attestationHashHex: "0xattestation_universal_" + Date.now(),
     });
     balRes = await calculateSellerBalance(sellerAccount);
   }
   const sweepAmount = Math.min(0.01, Number(balRes.displayBalance.toFixed(4)));
 
-  for (const targetToken of targetTokensToSweep) {
-    console.log(`\n  Executing live sweep for target asset: ${targetToken} ($${sweepAmount.toFixed(4)} USDC)...`);
+  for (const item of targetTokensToSweep) {
+    console.log(`\n  Executing live sweep for target asset: ${item.token} on ${item.chain} ($${sweepAmount.toFixed(4)} USD)...`);
     try {
       const sweepTx = await arcBridgeService.executeLiveSellerSweep({
         sourceAccount: sellerAccount,
         recipientAddress: buyerAddress,
         amountUsdc: sweepAmount,
-        destinationChain: "hedera-testnet",
-        targetToken,
+        destinationChain: item.chain,
+        targetToken: item.token,
       });
 
-      console.log(`  ✓ Sweep confirmed on Hedera Testnet EVM!`);
+      console.log(`  ✔ Sweep confirmed!`);
       console.log(`    - Tx Hash: ${sweepTx.txHash}`);
       console.log(`    - Confirmed Block: #${sweepTx.blockNumber}`);
       console.log(`    - Recipient: ${sweepTx.recipientAddress}`);
       console.log(`    - Token Delivered: ${sweepTx.swappedAmount} ${sweepTx.swappedToken}`);
       console.log(`    - DEX Router: ${sweepTx.dexRouter}`);
-      console.log(`    - Gas Sent: +${sweepTx.gasSentHbar} HBAR`);
-      console.log(`    - HCS Sequence: #${sweepTx.hcsSequenceNumber}`);
-      console.log(`    - HashScan: ${sweepTx.hashscanUrl}`);
+      console.log(`    - Explorer: ${sweepTx.explorerUrl}`);
     } catch (sweepErr: any) {
-      console.error(`  ✗ Sweep error for ${targetToken}:`, sweepErr.message);
+      console.error(`  ✖ Sweep error for ${item.token}:`, sweepErr.message);
       throw sweepErr;
     }
   }

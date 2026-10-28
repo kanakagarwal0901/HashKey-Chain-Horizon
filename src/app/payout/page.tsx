@@ -259,7 +259,7 @@ export default function SellerPayoutPage() {
 
       setSweepResult({
         txId: data.bridgeTx?.txHash || data.sourceBurnTxId || "0x" + Math.random().toString(16).slice(2, 66),
-        hashscanUrl: data.hashscanUrl || data.blockscoutUrl || `${HSK_TESTNET_EXPLORER}/tx/${data.bridgeTx?.txHash || ""}`,
+        explorerUrl: data.explorerUrl || data.blockscoutUrl || `${HSK_TESTNET_EXPLORER}/tx/${data.bridgeTx?.txHash || ""}`,
         settledAmount: parsedAmount,
         targetToken: selectedToken,
         recipientAddress,
@@ -684,7 +684,7 @@ export default function SellerPayoutPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-500">Transaction ID:</span>
                   <a
-                    href={sweepResult.hashscanUrl}
+                    href={sweepResult.explorerUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="text-emerald-400 font-semibold hover:underline flex items-center gap-1 tabular-data"
@@ -854,7 +854,7 @@ export default function SellerPayoutPage() {
                         <td className="px-6 py-5 text-zinc-400 truncate max-w-[150px] tabular-data">
                           {b.txHash ? (
                             <a
-                              href={b.hashscanUrl || `${HSK_TESTNET_EXPLORER}/tx/${b.txHash}`}
+                              href={b.explorerUrl || `${HSK_TESTNET_EXPLORER}/tx/${b.txHash}`}
                               target="_blank"
                               rel="noreferrer"
                               className="text-emerald-400 hover:underline font-medium"

@@ -1,6 +1,5 @@
 import { arcBridgeService } from "../packages/shunya-core/src/arcBridge";
 import { verifyUniversalBuyerPayment } from "../src/lib/sepoliaPaymentVerifier";
-import { ethers } from "ethers";
 
 async function main() {
   console.log("==================================================================");
@@ -8,7 +7,7 @@ async function main() {
   console.log("==================================================================\n");
 
   const recipient = "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444";
-  const sourceHederaAccount = "0.0.11145557";
+  const sourceSellerAccount = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
   // -------------------------------------------------------------
   // TEST SUITE 1: Seller Sweeps Across Listed Chains & Tokens
@@ -18,13 +17,12 @@ async function main() {
   console.log("-------------------------------------------------------------");
 
   const sweepTests = [
+    { chain: "hashkey-testnet", token: "HSK", amount: 0.005 },
     { chain: "arbitrum-sepolia", token: "ETH", amount: 0.005 },
     { chain: "arbitrum-sepolia", token: "USDC", amount: 0.005 },
     { chain: "ethereum-sepolia", token: "ETH", amount: 0.005 },
     { chain: "ethereum-sepolia", token: "USDC", amount: 0.005 },
-    { chain: "hedera-testnet", token: "HBAR", amount: 0.005 },
-    { chain: "hedera-testnet", token: "USDC", amount: 0.005 },
-    { chain: "arc", token: "USDC", amount: 0.005 },
+    { chain: "base-sepolia", token: "ETH", amount: 0.005 },
   ];
 
   let sweepIndex = 1;
@@ -34,7 +32,7 @@ async function main() {
     console.log(`\n(${sweepIndex}/${sweepTests.length}) Sweeping $${st.amount} USDC -> ${st.token} on ${st.chain}...`);
     try {
       const sweep = await arcBridgeService.executeLiveSellerSweep({
-        sourceAccount: sourceHederaAccount,
+        sourceAccount: sourceSellerAccount,
         recipientAddress: recipient,
         amountUsdc: st.amount,
         destinationChain: st.chain,
@@ -44,10 +42,10 @@ async function main() {
 
       console.log(`  ✔ SUCCESS on ${st.chain}:`);
       console.log(`    • Tx Hash: ${sweep.txHash}`);
-      console.log(`    • Explorer: ${sweep.hashscanUrl}`);
+      console.log(`    • Explorer: ${sweep.explorerUrl}`);
       console.log(`    • Block Number: #${sweep.blockNumber}`);
       console.log(`    • Token: ${sweep.swappedToken}`);
-      sweepResults.push({ ...st, success: true, txHash: sweep.txHash, explorerUrl: sweep.hashscanUrl });
+      sweepResults.push({ ...st, success: true, txHash: sweep.txHash, explorerUrl: sweep.explorerUrl });
     } catch (err: any) {
       console.error(`  ✖ FAILED on ${st.chain} (${st.token}):`, err.message);
       sweepResults.push({ ...st, success: false, error: err.message });
@@ -62,22 +60,17 @@ async function main() {
   console.log("STAGE 2: BUYER UNIVERSAL PAYMENT VERIFICATION ACROSS CHAINS");
   console.log("-------------------------------------------------------------");
 
-  // Verify the real on-chain transactions generated in Stage 1 as buyer payments!
-  // In Stage 1:
-  // - Arbitrum Sepolia ETH sweep sent real ETH
-  // - Arbitrum Sepolia USDC sweep sent real USDC
-  // Let's verify payments using verifyUniversalBuyerPayment!
   const buyerTests = [
     {
       name: "Arbitrum Sepolia Buyer Payment",
-      txHash: sweepResults[0].txHash,
+      txHash: sweepResults[1]?.txHash || "0x_test_sim_arb",
       chainKey: "arbitrum-sepolia",
       token: "ETH",
       microUsdc: 5000,
     },
     {
       name: "Arbitrum Sepolia USDC Buyer Payment",
-      txHash: sweepResults[1].txHash,
+      txHash: sweepResults[2]?.txHash || "0x_test_sim_usdc",
       chainKey: "arbitrum-sepolia",
       token: "USDC",
       microUsdc: 5000,

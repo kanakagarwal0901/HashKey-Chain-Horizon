@@ -68,10 +68,7 @@ export default function SellerHubPage() {
     logout,
   } = useAuth();
 
-  // Hedera Account Gateway Input State
-  
-  
-  const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
+const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
 
   // Provider & Model
   const [provider, setProvider] = useState<string>("anthropic");
@@ -171,7 +168,6 @@ export default function SellerHubPage() {
   const [totalEarnedUsdc, setTotalEarnedUsdc] = useState<number>(0);
   const [hskBalance, setHskBalance] = useState<number>(0);
   const [htsUsdcBalance, setHtsUsdcBalance] = useState<number>(0);
-  const [hbarBalance, setHbarBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
   const [balanceDetails, setBalanceDetails] = useState<any>(null);
 
@@ -281,9 +277,7 @@ export default function SellerHubPage() {
       if (res.ok) {
         const data = await res.json();
         setBalanceDetails(data);
-        setHskBalance(data.currentBalanceHsk ?? 0);
         setHtsUsdcBalance(data.displayBalance ?? data.currentBalanceUsdc ?? 0);
-        setHbarBalance(data.currentBalanceHsk ?? 0);
         setTotalEarnedUsdc(data.displayBalance ?? data.lifetimeSettledUsdc ?? 0);
       }
     } catch (err) {

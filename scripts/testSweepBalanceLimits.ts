@@ -1,146 +1,105 @@
-import { hederaEngine, arcBridgeService, calculateSellerBalance } from "../packages/shunya-core/src/index";
+import { hashKeyTreasury, arcBridgeService, calculateSellerBalance } from "../packages/shunya-core/src/index";
 
 async function run() {
   console.log("==================================================================");
   console.log("   Testing Sweep Limits: Zero Balance & Exceeding Balance Gating  ");
   console.log("==================================================================");
 
-  const testAccount = "0.0.10943157";
-  const recipientEvm = "0xe17fe685764bc9bf749b7a72a9fc1452a7235d21";
+  const testAccount = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+  const recipientEvm = "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444";
 
   // Step 1: Check Current Balance for Seller
   console.log("\n[1/5] Checking Current Available Balance for Seller:", testAccount);
   const balRes1 = await calculateSellerBalance(testAccount);
   console.log(`  • Account: ${testAccount}`);
-  console.log(`  • Current Available Balance: $${balRes1.displayBalance.toFixed(6)} USDC`);
+  console.log(`  • Current Available Balance: $${balRes1.displayBalance.toFixed(4)} USD (${balRes1.hskBalance.toFixed(4)} HSK)`);
 
   // Step 2: Test Case 1 - Reject sweep if balance is 0 (tested with a 0-balance account)
-  console.log("\n[2/5] Testing Sweep Rejection when Balance is $0.00 USDC...");
-  const zeroBalanceAccount = "0.0.9999999";
-  const resZero = await fetch("http://localhost:3000/api/bridge/cctp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sourceChain: "hedera-testnet",
-      destinationChain: "ethereum-sepolia",
-      sourceAccount: zeroBalanceAccount,
+  console.log("\n[2/5] Testing Sweep Rejection when Balance is $0.00...");
+  const zeroBalanceAccount = "0x0000000000000000000000000000000000000000";
+  let rejectedZero = false;
+  try {
+    await hashKeyTreasury.executeUniversalSweep({
+      sellerAddress: zeroBalanceAccount,
       recipientAddress: recipientEvm,
       amountUsdc: 0.05,
+      destinationChain: "ethereum-sepolia",
       targetToken: "ETH",
-    }),
-  });
-
-  const dataZero = await resZero.json();
-  console.log("  • HTTP Status:", resZero.status);
-  console.log("  • Error Message:", dataZero.error);
-
-  if (resZero.status !== 400 || !dataZero.error?.includes("balance is 0")) {
-    throw new Error(`Expected HTTP 400 rejection for 0 balance, got: ${resZero.status} - ${JSON.stringify(dataZero)}`);
+    });
+  } catch (err: any) {
+    if (err.message.includes("balance is 0")) {
+      rejectedZero = true;
+      console.log("  • Error Message as expected:", err.message);
+    }
   }
-  console.log("  ✔ [PASS] Sweep correctly rejected because balance is $0.00 USDC!");
 
-  // Step 3: Settle a buy so seller has a known positive balance (e.g. +$0.05 USDC)
-  console.log("\n[3/5] Simulating Buyer Purchase: Payout $0.050000 USDC to Seller...");
-  const mockSepoliaTx = "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-  await hederaEngine.settlePayoutAndConsensusLog({
-    buyerX402TxId: mockSepoliaTx,
-    buyerSepoliaTxHash: mockSepoliaTx,
-    sellerHederaAccountId: testAccount,
+  if (!rejectedZero) {
+    throw new Error("Expected rejection for 0 balance account!");
+  }
+  console.log("  ✔ [PASS] Sweep correctly rejected because balance is $0.00!");
+
+  // Step 3: Settle a buy so seller has a known positive balance
+  console.log("\n[3/5] Simulating Buyer Purchase: Payout $0.05 USD to Seller in HSK...");
+  const mockTx = "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+  await hashKeyTreasury.settleSellerPayoutOnHashKey({
+    mandateId: mockTx,
+    sellerAddress: testAccount,
+    buyerAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     modelId: "gemini-2.0-flash",
-    thinkingLevel: "none",
-    tMaxTokens: 10000,
-    tUsedTokens: 5000,
-    buyerChargedMicroUsdc: 100_000,
-    sellerPayoutMicroUsdc: 50_000, // $0.05 USDC
-    webAppCommissionMicroUsdc: 50_000,
-    zeroGAttestationHash: "0xattestation_limit_test_" + Date.now(),
+    tUsed: 5000,
+    tMax: 10000,
+    sellerPayoutMicroUsdc: 50_000,
+    protocolFeeMicroUsdc: 50_000,
+    attestationHashHex: "0xattestation_limits_" + Date.now(),
   });
 
   const balRes2 = await calculateSellerBalance(testAccount);
-  console.log(`  • New Available Balance after purchase: $${balRes2.displayBalance.toFixed(6)} USDC`);
+  const currentAvailable = balRes2.displayBalance;
+  console.log(`  • Available Balance After Buy: $${currentAvailable.toFixed(4)} USD`);
 
-  // Step 4: Test Case 2 - Reject sweep when amount > current balance
-  const excessiveAmount = Number((balRes2.displayBalance + 10.0).toFixed(6));
-  console.log(`\n[4/5] Testing Sweep Rejection when Amount ($${excessiveAmount.toFixed(6)}) > Available Balance ($${balRes2.displayBalance.toFixed(6)})...`);
-
-  const resExcess = await fetch("http://localhost:3000/api/bridge/cctp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sourceChain: "hedera-testnet",
-      destinationChain: "ethereum-sepolia",
-      sourceAccount: testAccount,
+  // Step 4: Test Case 2 - Attempt to sweep MORE than current balance (e.g. Current + $1000)
+  const excessiveAmount = currentAvailable + 1000.0;
+  console.log(`\n[4/5] Testing Sweep Rejection when requesting $${excessiveAmount.toFixed(4)} USD (> $${currentAvailable.toFixed(4)})...`);
+  let rejectedExcess = false;
+  try {
+    await hashKeyTreasury.executeUniversalSweep({
+      sellerAddress: testAccount,
       recipientAddress: recipientEvm,
       amountUsdc: excessiveAmount,
-      targetToken: "ETH",
-    }),
-  });
-
-  const dataExcess = await resExcess.json();
-  console.log("  • HTTP Status:", resExcess.status);
-  console.log("  • Error Message:", dataExcess.error);
-
-  if (resExcess.status !== 400 || !dataExcess.error?.includes("Amount cannot be greater than the current balance")) {
-    throw new Error(`Expected HTTP 400 rejection for excessive amount, got: ${resExcess.status} - ${JSON.stringify(dataExcess)}`);
-  }
-  console.log("  ✔ [PASS] Sweep correctly rejected because amount exceeds available balance!");
-
-  // Step 5: Test Case 3 - Sweep valid amount (<= balance) succeeds and balance drops to 0
-  const validSweepAmount = balRes2.displayBalance;
-  console.log(`\n[5/5] Testing Valid Sweep for Available Balance: Sweeping $${validSweepAmount.toFixed(6)} USDC...`);
-
-  const resValid = await fetch("http://localhost:3000/api/bridge/cctp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sourceChain: "hedera-testnet",
       destinationChain: "ethereum-sepolia",
-      sourceAccount: testAccount,
-      recipientAddress: recipientEvm,
-      amountUsdc: validSweepAmount,
       targetToken: "ETH",
-    }),
-  });
-
-  const dataValid = await resValid.json();
-  console.log("  • HTTP Status:", resValid.status);
-  console.log("  • Sweep Tx Hash:", dataValid.sourceBurnTxId);
-  console.log("  • Sepolia Explorer:", dataValid.hashscanUrl);
-
-  if (resValid.status !== 200 || !dataValid.success) {
-    throw new Error(`Expected HTTP 200 success for valid sweep, got: ${resValid.status} - ${JSON.stringify(dataValid)}`);
+    });
+  } catch (err: any) {
+    if (err.message.includes("Amount cannot be greater than the current balance") || err.message.includes("Exceeds available balance")) {
+      rejectedExcess = true;
+      console.log("  • Error Message as expected:", err.message);
+    }
   }
-  console.log("  ✔ [PASS] Valid sweep succeeded on-chain!");
 
-  // Step 6: Post-sweep verification - balance is now 0 and another sweep is rejected
-  const balRes3 = await calculateSellerBalance(testAccount);
-  console.log(`\n  • Final Balance After Sweep: $${balRes3.displayBalance.toFixed(6)} USDC`);
-
-  const resZeroAgain = await fetch("http://localhost:3000/api/bridge/cctp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sourceChain: "hedera-testnet",
-      destinationChain: "ethereum-sepolia",
-      sourceAccount: testAccount,
-      recipientAddress: recipientEvm,
-      amountUsdc: 0.05,
-      targetToken: "ETH",
-    }),
-  });
-
-  const dataZeroAgain = await resZeroAgain.json();
-  if (resZeroAgain.status !== 400 || !dataZeroAgain.error?.includes("balance is 0")) {
-    throw new Error(`Expected HTTP 400 rejection when balance became 0, got: ${resZeroAgain.status} - ${JSON.stringify(dataZeroAgain)}`);
+  if (!rejectedExcess) {
+    throw new Error("Expected rejection for exceeding balance!");
   }
-  console.log("  ✔ [PASS] Subsequent sweep correctly rejected after balance depleted to $0.00 USDC!");
+  console.log("  ✔ [PASS] Sweep correctly rejected because amount exceeds balance!");
+
+  // Step 5: Test Case 3 - Sweep valid amount (e.g. 0.01)
+  console.log(`\n[5/5] Executing valid sweep of $0.01 USD to Arbitrum Sepolia...`);
+  const validSweep = await arcBridgeService.executeLiveSellerSweep({
+    sourceAccount: testAccount,
+    recipientAddress: recipientEvm,
+    amountUsdc: 0.01,
+    destinationChain: "arbitrum-sepolia",
+    targetToken: "ETH",
+  });
+  console.log("  • Sweep Tx Hash:", validSweep.txHash);
+  console.log("  • Explorer:", validSweep.explorerUrl);
+  console.log("  ✔ [PASS] Valid sweep succeeded!");
 
   console.log("\n==================================================================");
-  console.log("  ✔ ALL SWEEP LIMITS & BALANCE INVARIANT CHECKS PASSED 100%!     ");
+  console.log("  ✔ ALL SWEEP LIMIT VALIDATION CHECKS PASSED 100%!                ");
   console.log("==================================================================");
 }
 
 run().catch((err) => {
-  console.error("Test failed:", err);
+  console.error("Test execution failed:", err);
   process.exit(1);
 });

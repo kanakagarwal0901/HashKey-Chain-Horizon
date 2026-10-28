@@ -1,5 +1,5 @@
 /**
- * ShunyaGrid - Ethereum Sepolia Buyer Payment Verification & Hedera Consensus Linking
+ * ShunyaGrid - Ethereum Sepolia Buyer Payment Verification & HashKey HSP Consensus Linking
  * Validates real Circle USDC payment decoding, replay protection, and dual receipt generation.
  */
 
@@ -8,7 +8,7 @@ import {
   SHUNYA_TREASURY_EVM_ADDRESS,
   verifySepoliaUsdcPayment,
 } from "../src/lib/sepoliaPaymentVerifier";
-import { hederaEngine, getModelTokenBounds } from "../packages/shunya-core/src";
+import { hashKeyTreasury, getModelTokenBounds } from "../packages/shunya-core/src";
 
 async function runSepoliaPaymentTests() {
   console.log("\n=======================================================================");
@@ -37,7 +37,7 @@ async function runSepoliaPaymentTests() {
 
   assert(
     SHUNYA_TREASURY_EVM_ADDRESS.toLowerCase() === "0x9b3b7375b0591E8A304A8f66D11186Fb07672625".toLowerCase(),
-    "SEP-02: ShunyaGrid Treasury EVM recipient address matches Operator Hedera ECDSA address",
+    "SEP-02: ShunyaGrid Treasury EVM recipient address matches Treasury address",
     SHUNYA_TREASURY_EVM_ADDRESS
   );
 
@@ -56,41 +56,40 @@ async function runSepoliaPaymentTests() {
     "SEP-04: Non-existent or unconfirmed Sepolia transaction is safely handled"
   );
 
-  // TEST 4: Hedera Settlement linking with buyerSepoliaTxHash
-  console.log("\n[SECTION 2: HEDERA HCS CONSENSUS SETTLEMENT WITH SEPOLIA PAYMENT LINK]");
+  // TEST 4: HashKey HSP Settlement linking with buyerSepoliaTxHash
+  console.log("\n[SECTION 2: HASHKEY CHAIN HSP SETTLEMENT WITH SEPOLIA PAYMENT LINK]");
   const bounds = getModelTokenBounds("claude-3-7-sonnet", "medium");
   const testSepoliaTx = "0x" + "d".repeat(64);
 
-  const settlement = await hederaEngine.settlePayoutAndConsensusLog({
-    buyerX402TxId: testSepoliaTx,
-    buyerSepoliaTxHash: testSepoliaTx,
-    sellerHederaAccountId: "0.0.482910",
+  const settlement = await hashKeyTreasury.settleSellerPayoutOnHashKey({
+    mandateId: testSepoliaTx,
+    sellerAddress: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    buyerAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     modelId: "claude-3-7-sonnet",
-    thinkingLevel: "medium",
-    tMaxTokens: bounds.totalMaxTokens,
-    tUsedTokens: 12450,
-    buyerChargedMicroUsdc: 241920,
+    tUsed: 12450,
+    tMax: bounds.totalMaxTokens,
     sellerPayoutMicroUsdc: 124500,
-    webAppCommissionMicroUsdc: 117420,
-    zeroGAttestationHash: "0xattestation_test_hash",
+    protocolFeeMicroUsdc: 117420,
+    buyerRefundMicroUsdc: 0,
+    attestationHashHex: "0xattestation_test_hash",
   });
 
   assert(
-    settlement.receipt.buyerSepoliaTxHash === testSepoliaTx,
-    "SEP-05: Hedera settlement receipt stores buyerSepoliaTxHash",
-    settlement.receipt.buyerSepoliaTxHash
+    settlement.status === "SETTLED",
+    "SEP-05: HashKey settlement status is SETTLED",
+    settlement.status
   );
 
   assert(
-    settlement.receipt.sepoliaEtherscanUrl === `https://sepolia.etherscan.io/tx/${testSepoliaTx}`,
-    "SEP-06: Hedera settlement receipt includes direct Sepolia Etherscan URL",
-    settlement.receipt.sepoliaEtherscanUrl
+    Boolean(settlement.blockscoutUrl?.includes("https://testnet-explorer.hsk.xyz/tx/")),
+    "SEP-06: HashKey settlement receipt includes direct HashKey Explorer URL",
+    settlement.blockscoutUrl
   );
 
   assert(
-    settlement.receipt.hcsTopicId === "0.0.11134146" || !!settlement.receipt.hcsTopicId,
-    "SEP-07: Hedera settlement submitted to live HCS Audit Consensus Topic",
-    settlement.receipt.hcsTopicId
+    settlement.sellerPayoutHsk > 0,
+    "SEP-07: HashKey settlement converts seller payout into native HSK",
+    `${settlement.sellerPayoutHsk} HSK`
   );
 
   console.log("\n=======================================================================");

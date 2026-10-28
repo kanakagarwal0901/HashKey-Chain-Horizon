@@ -12,7 +12,7 @@ envContent.split("\n").forEach((line) => {
   }
 });
 
-let pk = env.SHUNYA_TREASURY_PRIVATE_KEY || env.HEDERA_OPERATOR_KEY || "";
+let pk = env.SHUNYA_TREASURY_PRIVATE_KEY || env.OPERATOR_PRIVATE_KEY || "";
 if (!pk.startsWith("0x")) pk = "0x" + pk;
 
 async function bridgeToL2s() {

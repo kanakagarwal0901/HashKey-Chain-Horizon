@@ -45,7 +45,6 @@ export async function POST(request: NextRequest) {
       txHash: sweepRecord.txHash,
       sourceBurnTxId: sweepRecord.txHash,
       explorerUrl: sweepRecord.explorerUrl,
-      hashscanUrl: sweepRecord.explorerUrl,
       swappedAmount: sweepRecord.swappedAmount,
       targetToken: sweepRecord.targetToken,
       destinationChain: sweepRecord.destinationChain,

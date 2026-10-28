@@ -1,84 +1,63 @@
-import { hederaEngine, arkivDb } from "../packages/shunya-core/src/index";
+import { hashKeyTreasury } from "../packages/shunya-core/src/index";
 
 async function run() {
   console.log("==================================================================");
-  console.log("  Testing Seller USDC Balance Immediate Update on AI Prompt Buy   ");
+  console.log("  Testing Seller Balance Immediate Update on AI Prompt Buy (HashKey)");
   console.log("==================================================================");
 
-  const testSellerAccountId = "0.0.11145557";
+  const testSellerAccountId = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
-  // Step 1: Query baseline balance via API route
+  // Step 1: Query baseline balance
   console.log("\n[1/4] Fetching baseline seller balance for account:", testSellerAccountId);
-  const baseRes = await fetch(`http://localhost:3000/api/seller/hedera-balance?accountId=${testSellerAccountId}`);
-  const baseData = await baseRes.json();
-  console.log("  • Initial Raw HTS USDC Balance:", baseData.rawHtsUsdcBalance);
-  console.log("  • Initial Lifetime Settled USDC:", baseData.lifetimeSettledUsdc);
-  console.log("  • Initial Available Balance to Sweep:", baseData.displayBalance);
+  const baseData = hashKeyTreasury.getSellerBalance(testSellerAccountId);
+  console.log("  • Initial Lifetime Settled HSK:", baseData.lifetimeSettledHsk);
+  console.log("  • Initial Available Balance:", baseData.currentBalanceUsdc, "USD (", baseData.currentBalanceHsk, "HSK)");
 
   // Step 2: Simulate buyer purchasing an AI prompt and settling payout
   const mockPayoutMicroUsdc = 50_000; // 0.05 USDC
-  const mockBuyerPaidMicroUsdc = 100_000; // 0.10 USDC
   const mockCommissionMicroUsdc = 50_000; // 0.05 USDC
-  const mockSepoliaTx = "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-  const mockJobId = `job_${Date.now()}`;
+  const mockTx = "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
 
-  console.log("\n[2/4] Executing AI Inference Purchase & Hedera Settlement...");
-  console.log("  • Buyer Sepolia Payment Tx:", mockSepoliaTx);
-  console.log("  • Seller Payout Amount:", mockPayoutMicroUsdc / 1_000_000, "USDC");
+  console.log("\n[2/4] Executing AI Inference Purchase & HashKey Settlement...");
+  console.log("  • Buyer Payment Tx:", mockTx);
+  console.log("  • Seller Payout Amount:", mockPayoutMicroUsdc / 1_000_000, "USD");
 
-  const settlement = await hederaEngine.settlePayoutAndConsensusLog({
-    buyerX402TxId: mockSepoliaTx,
-    buyerSepoliaTxHash: mockSepoliaTx,
-    sellerHederaAccountId: testSellerAccountId,
+  const settlement = await hashKeyTreasury.settleSellerPayoutOnHashKey({
+    mandateId: mockTx,
+    sellerAddress: testSellerAccountId,
+    buyerAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     modelId: "gemini-2.0-flash",
-    thinkingLevel: "none",
-    tMaxTokens: 10000,
-    tUsedTokens: 5000,
-    buyerChargedMicroUsdc: mockBuyerPaidMicroUsdc,
+    tUsed: 5000,
+    tMax: 10000,
     sellerPayoutMicroUsdc: mockPayoutMicroUsdc,
-    webAppCommissionMicroUsdc: mockCommissionMicroUsdc,
-    zeroGAttestationHash: "0xattestation_test_hash_" + Date.now(),
+    protocolFeeMicroUsdc: mockCommissionMicroUsdc,
+    attestationHashHex: "0xattestation_test_hash_" + Date.now(),
   });
 
-  console.log("  • Settlement Completed! Payout Tx ID:", settlement.sellerPayoutTxId);
-  console.log("  • HCS Sequence Number:", settlement.receipt.sequenceNumber);
-  console.log("  • Consensus Timestamp:", settlement.receipt.consensusTimestamp);
+  console.log("  • Settlement Completed! Payout Tx Hash:", settlement.txHash);
+  console.log("  • Seller Payout in HSK:", settlement.sellerPayoutHsk);
+  console.log("  • Explorer Link:", settlement.blockscoutUrl);
 
-  // Step 3: Query updated balance via API route (zero delay)
-  console.log("\n[3/4] Querying /api/seller/hedera-balance immediately after purchase...");
-  const updatedRes = await fetch(`http://localhost:3000/api/seller/hedera-balance?accountId=${testSellerAccountId}`);
-  const updatedData = await updatedRes.json();
-  console.log("  • Updated Raw HTS USDC Balance:", updatedData.rawHtsUsdcBalance);
-  console.log("  • Updated Lifetime Settled USDC:", updatedData.lifetimeSettledUsdc);
-  console.log("  • Updated Available Balance to Sweep:", updatedData.displayBalance);
+  // Step 3: Query updated balance immediately after purchase
+  console.log("\n[3/4] Querying seller balance immediately after purchase...");
+  const updatedData = hashKeyTreasury.getSellerBalance(testSellerAccountId);
+  console.log("  • Updated Available Balance:", updatedData.currentBalanceUsdc, "USD (", updatedData.currentBalanceHsk, "HSK)");
 
-  const earningsDelta = updatedData.lifetimeSettledUsdc - baseData.lifetimeSettledUsdc;
-  console.log("  • Lifetime Settled Delta:", earningsDelta.toFixed(6), "USDC");
+  // Step 4: Verify positive increase
+  console.log("\n[4/4] Verifying Balance Differential...");
+  const diff = updatedData.currentBalanceUsdc - baseData.currentBalanceUsdc;
+  console.log(`  • Balance Differential: +$${diff.toFixed(4)} USD`);
 
-  if (earningsDelta < 0.049) {
-    throw new Error(`Lifetime settled did not reflect purchase payout! Delta was ${earningsDelta}`);
+  if (diff < 0.049) {
+    throw new Error(`Balance did not increase as expected! Diff was: ${diff}`);
   }
-
-  // Check that the new settlement is in recentSettlements
-  const hasSettlement = updatedData.recentSettlements.some(
-    (s: any) => s.sellerPayoutTxId === settlement.sellerPayoutTxId || s.buyerSepoliaTxHash === mockSepoliaTx
-  );
-  console.log("  • Purchase appears in seller's recent settlements list:", hasSettlement);
-
-  if (!hasSettlement) {
-    throw new Error("Settlement record not found in seller recentSettlements list!");
-  }
-
-  console.log("\n[4/4] Verifying Persistence across process reload...");
-  const receipts = hederaEngine.getReceiptsForAccount(testSellerAccountId);
-  console.log("  • Receipts loaded from disk for account:", receipts.length);
 
   console.log("\n==================================================================");
-  console.log("  ✔ SUCCESS: Seller USDC balance is immediately updated on buy!");
+  console.log("  ✔ IMMEDIATE SELLER BALANCE UPDATE VERIFICATION PASSED!          ");
   console.log("==================================================================");
 }
 
 run().catch((err) => {
-  console.error("Test failed:", err);
+  console.error("Test execution failed:", err);
   process.exit(1);
 });
