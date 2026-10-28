@@ -56,45 +56,48 @@ export async function runHashKeyAutonomousAgent() {
   console.log(`  HSP Adapter Contract:  ${HSP_ADAPTER_ADDRESS}`);
   console.log(`  Settlement Router:     ${ROUTER_ADDRESS}\n`);
 
-  // Step 1: Define Target Model & Deterministic Token Bounds
-  const modelId = "claude-3-7-sonnet";
-  const thinkingLevel: ThinkingLevel = "medium";
-  const key = `${modelId}:${thinkingLevel}`;
-  const bounds = MODEL_TOKEN_CATALOG[key];
+  // Step 1: Discover Capable Seller Agent Node from Orderbook
+  console.log(`[1. DISCOVERY & PEER-TO-PEER ORDERBOOK MATCHING]`);
+  const allListings = arkivDb.getAllListings();
+  if (allListings.length === 0) {
+    throw new Error(
+      "No seller nodes found on the orderbook. Please register an authentic seller node via the Seller Hub first."
+    );
+  }
 
-  console.log(`[1. OBJECTIVE & DETERMINISTIC BOUNDS]`);
+  const selectedSeller = allListings[0];
+  const modelId = selectedSeller.model;
+  const thinkingLevel: ThinkingLevel = modelId.includes("claude") ? "medium" : "none";
+  const key = `${modelId}:${thinkingLevel}`;
+  const bounds = MODEL_TOKEN_CATALOG[key] || MODEL_TOKEN_CATALOG[`${modelId}:none`] || {
+    minRequiredTokens: 1_000,
+    totalMaxTokens: 24_192,
+    provider: selectedSeller.provider,
+    modelId: modelId,
+    displayName: modelId,
+    thinkingLevel: "none",
+    maxInputAndFileTokens: 16000,
+    thinkingBudgetTokens: 0,
+    maxOutputTokens: 8192,
+    defaultPricePer1kMicroUsdc: selectedSeller.pricePer1kMicroUsdc,
+    contextWindow: 200000,
+    maxCompletionTokens: 8192,
+  };
+
+  const sellerEvmAddress =
+    (selectedSeller as any).hedaraPayoutAccount ||
+    (selectedSeller as any).payoutAddress ||
+    selectedSeller.ownerAddress;
+  console.log(`  Matched Seller Node:   ${selectedSeller.ensName}`);
+  console.log(`  Seller Payout Target:  ${sellerEvmAddress}`);
+  console.log(`  Model Offered:         ${modelId} (Provider: ${selectedSeller.provider})`);
+  console.log(`  Available Quota:       ${selectedSeller.availableTokens.toLocaleString()} tokens`);
+  console.log(`  Rate:                  ${(selectedSeller.pricePer1kMicroUsdc / 1_000_000).toFixed(4)} / 1k tokens\n`);
+
+  console.log(`[2. OBJECTIVE & DETERMINISTIC BOUNDS]`);
   console.log(`  Model Selected:        ${modelId} (Thinking Level: ${thinkingLevel})`);
   console.log(`  Minimum Bound (T_min): ${bounds.minRequiredTokens.toLocaleString()} tokens`);
   console.log(`  Maximum Bound (T_max): ${bounds.totalMaxTokens.toLocaleString()} tokens (Guaranteed Zero-Cutoff)\n`);
-
-  // Step 2: Query Orderbook for Capable Seller Agent Node
-  console.log(`[2. DISCOVERY & PEER-TO-PEER ORDERBOOK MATCHING]`);
-  let eligibleSellers = arkivDb.queryEligibleListings(modelId, bounds.totalMaxTokens);
-
-  if (eligibleSellers.length === 0) {
-    console.log(`  [Auto-Provision] Registering autonomous seller node on HashKey Chain...`);
-    const autoSellerWallet = ethers.Wallet.createRandom();
-    arkivDb.createListing({
-      ownerAddress: autoSellerWallet.address,
-      ensName: "hsk-inference-node-01.hsk",
-      model: modelId,
-      provider: "anthropic",
-      availableTokens: 200_000,
-      pricePer1kMicroUsdc: 15_000,
-      humanVerified: true,
-      worldIdNullifier: "0xworld_id_nullifier_hsk_agent_seller",
-      sealedApiKey: "ENCLAVE_SEALED:sk-ant-hashkey-agent-token-9981",
-      hedaraPayoutAccount: autoSellerWallet.address,
-    });
-    eligibleSellers = arkivDb.queryEligibleListings(modelId, bounds.totalMaxTokens);
-  }
-
-  const selectedSeller = eligibleSellers[0];
-  const sellerEvmAddress = (selectedSeller as any).hedaraPayoutAccount || (selectedSeller as any).payoutAddress || selectedSeller.ownerAddress;
-  console.log(`  Matched Seller Node:   ${selectedSeller.ensName}`);
-  console.log(`  Seller Payout Target:  ${sellerEvmAddress}`);
-  console.log(`  Available Quota:       ${selectedSeller.availableTokens.toLocaleString()} tokens`);
-  console.log(`  Rate:                  $${(selectedSeller.pricePer1kMicroUsdc / 1_000_000).toFixed(4)} / 1k tokens\n`);
 
   // Step 3: Local Cryptographic Sealing (Confidential Client Encryption)
   console.log(`[3. CONFIDENTIAL CLIENT-SIDE ENCRYPTION]`);
