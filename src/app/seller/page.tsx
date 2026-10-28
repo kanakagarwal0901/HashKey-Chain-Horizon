@@ -924,8 +924,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           <div className="flex items-baseline gap-4">
             <h3 className="text-4xl sm:text-5xl font-bold text-white tracking-tight tabular-data">
               {hskBalance.toFixed(4)}{" "}
-              <span className="text-emerald-400 text-base font-normal">HSK</span>{" "}
-              <span className="text-zinc-500 text-lg font-normal">(≈ ${totalEarnedUsdc.toFixed(2)} USD)</span>
+              <span className="text-emerald-400 text-base font-normal">HSK</span>
             </h3>
             <button
               onClick={() => fetchSellerBalance(walletAddress || undefined)}
