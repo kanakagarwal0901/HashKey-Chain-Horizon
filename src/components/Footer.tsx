@@ -161,34 +161,12 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://dorahacks.io/hackathon/hskchainindia/detail"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
-                >
-                  <span>DoraHacks Horizon</span>
-                  <ArrowUpRight className="w-3 h-3 text-zinc-400" />
-                </a>
-              </li>
-              <li>
-                <a
                   href="https://github.com/kanakagarwal0901/HashKey-Chain-Horizon"
                   target="_blank"
                   rel="noreferrer"
                   className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
                 >
                   <span>GitHub Repository</span>
-                  <ArrowUpRight className="w-3 h-3 text-zinc-400" />
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://luma.com/hashkey-demo-day-mumbai"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
-                >
-                  <span>Mumbai Demo Day (Luma)</span>
                   <ArrowUpRight className="w-3 h-3 text-zinc-400" />
                 </a>
               </li>
