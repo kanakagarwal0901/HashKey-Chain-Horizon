@@ -24,7 +24,7 @@ import SpatialCard from "@/components/SpatialCard";
 
 const HSK_TESTNET_EXPLORER = "https://testnet-explorer.hskchain.net";
 const HSP_ADAPTER_CONTRACT = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
-const DEFAULT_SELLER_NODE = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+const DEFAULT_SELLER_NODE = "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
 
 interface TokenOption {
   symbol: string;
@@ -159,10 +159,42 @@ export default function SellerPayoutPage() {
     const handleSettlementSync = () => {
       fetchHashKeyBalance(currentSellerNode);
       fetchBridgeHistory();
+      setTimeout(() => fetchHashKeyBalance(currentSellerNode), 1500);
+      setTimeout(() => fetchHashKeyBalance(currentSellerNode), 3500);
     };
-    window.addEventListener("shunyagrid_settlement_completed", handleSettlementSync);
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "shunyagrid_last_settlement_at" || e.key === "shunyagrid_last_sweep_at") {
+        handleSettlementSync();
+      }
+    };
+
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== "undefined") {
+      window.addEventListener("shunyagrid_settlement_completed", handleSettlementSync);
+      window.addEventListener("storage", handleStorage);
+
+      if (typeof BroadcastChannel !== "undefined") {
+        bc = new BroadcastChannel("shunyagrid_channel");
+        bc.onmessage = (event) => {
+          if (event.data?.type === "settlement_completed" || event.data?.type === "sweep_completed") {
+            handleSettlementSync();
+          }
+        };
+      }
+    }
+
+    const pollInterval = setInterval(() => {
+      fetchHashKeyBalance(currentSellerNode);
+    }, 4000);
+
     return () => {
-      window.removeEventListener("shunyagrid_settlement_completed", handleSettlementSync);
+      clearInterval(pollInterval);
+      if (bc) bc.close();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("shunyagrid_settlement_completed", handleSettlementSync);
+        window.removeEventListener("storage", handleStorage);
+      }
     };
   }, [currentSellerNode]);
 

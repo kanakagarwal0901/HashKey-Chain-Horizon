@@ -126,7 +126,7 @@ export class ArcBridgeService {
   }): Promise<ArcBridgeTransaction> {
     const sellerAddress = params.sourceAccount && params.sourceAccount.trim().startsWith("0x")
       ? params.sourceAccount.trim()
-      : "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+      : "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
     const destinationChain = params.destinationChain || "hashkey-testnet";
     const targetToken = params.targetToken || params.targetCurrency || "HSK";
 

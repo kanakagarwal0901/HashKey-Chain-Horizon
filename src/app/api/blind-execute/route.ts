@@ -276,9 +276,15 @@ export async function POST(request: NextRequest) {
       const buyerRefundMicroUsdc = split.unusedTokensReturnedToSellerQuota > 0 ? Math.floor(((bounds.totalMaxTokens - aiResult.actualTokensUsed) / 1000) * pricePer1k) : 0;
 
       // Settle Seller Payout in HSK on HashKey Chain
+      const targetSellerAddress =
+        (listing as any).payoutAddress ||
+        (listing as any).hedaraPayoutAccount ||
+        listing.ownerAddress ||
+        "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
+
       const hspRecord = await hashKeyTreasury.settleSellerPayoutOnHashKey({
         mandateId: body.mandateId || ethers.hexlify(ethers.randomBytes(32)),
-        sellerAddress: listing.ownerAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        sellerAddress: targetSellerAddress,
         buyerAddress: buyerAddress || evmPaymentDetails?.from || "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
         modelId,
         tUsed: aiResult.actualTokensUsed,

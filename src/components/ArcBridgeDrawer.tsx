@@ -68,7 +68,7 @@ export default function ArcBridgeDrawer({
   const [selectedToken, setSelectedToken] = useState<string>("HSK");
   const [selectedChain, setSelectedChain] = useState<string>("hashkey-testnet");
   const [sourceAccountId, setSourceAccountId] = useState<string>(
-    sellerNodeAddress || walletAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+    sellerNodeAddress || walletAddress || "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21"
   );
   const [sweepAmount, setSweepAmount] = useState<string>(availableUsdcEarnings.toFixed(5));
   const [destinationEvmAddress, setDestinationEvmAddress] = useState<string>(

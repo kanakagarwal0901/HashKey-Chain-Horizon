@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hashKeyTreasury } from "@shunya/core";
 
-export async function GET() {
-  const sellerBalance = hashKeyTreasury.getSellerBalance("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+export async function GET(request: NextRequest) {
+  const sellerAddress = request.nextUrl.searchParams.get("seller") || "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
+  const sellerBalance = hashKeyTreasury.getSellerBalance(sellerAddress);
   return NextResponse.json({
     success: true,
     history: sellerBalance.recentSweeps,
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     const sellerAddress = (
       body.sourceAccount ||
       body.sellerAddress ||
-      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21"
     ).trim();
 
     const sweepRecord = await hashKeyTreasury.executeUniversalSweep({

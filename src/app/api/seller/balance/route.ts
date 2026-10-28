@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const rawAddress = searchParams.get("address") || searchParams.get("accountId") || searchParams.get("seller");
     const sellerAddress = (rawAddress && rawAddress.startsWith("0x"))
       ? rawAddress
-      : "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+      : "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21";
 
     const balance = await hashKeyTreasury.getSellerLiveBalance(sellerAddress);
 

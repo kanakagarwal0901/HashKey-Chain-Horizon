@@ -629,6 +629,12 @@ contract VaultLending {
             new CustomEvent("shunyagrid_settlement_completed", { detail: executeData })
           );
           localStorage.setItem("shunyagrid_last_settlement_at", Date.now().toString());
+
+          if (typeof BroadcastChannel !== "undefined") {
+            const bc = new BroadcastChannel("shunyagrid_channel");
+            bc.postMessage({ type: "settlement_completed", detail: executeData });
+            bc.close();
+          }
         } catch (syncErr) {
           console.warn("[Buyer] Failed to dispatch balance sync event:", syncErr);
         }

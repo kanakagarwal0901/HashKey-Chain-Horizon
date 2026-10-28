@@ -322,6 +322,8 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
     const handleSyncEvent = () => {
       fetchSellerBalance(walletAddress || undefined);
       fetchListings();
+      setTimeout(() => fetchSellerBalance(walletAddress || undefined), 1500);
+      setTimeout(() => fetchSellerBalance(walletAddress || undefined), 3500);
     };
 
     const handleStorage = (e: StorageEvent) => {
@@ -336,21 +338,32 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
       }
     };
 
+    let bc: BroadcastChannel | null = null;
     if (typeof window !== "undefined") {
       window.addEventListener("shunyagrid_settlement_completed", handleSyncEvent);
       window.addEventListener("storage", handleStorage);
       window.addEventListener("focus", handleSyncEvent);
       document.addEventListener("visibilitychange", handleVisibility);
+
+      if (typeof BroadcastChannel !== "undefined") {
+        bc = new BroadcastChannel("shunyagrid_channel");
+        bc.onmessage = (event) => {
+          if (event.data?.type === "settlement_completed" || event.data?.type === "sweep_completed") {
+            handleSyncEvent();
+          }
+        };
+      }
     }
 
-    // 5-second background interval polling to ensure fresh balance during continuous buying
+    // 4-second background interval polling to ensure fresh balance during continuous buying
     const pollInterval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       fetchSellerBalance(walletAddress || undefined);
-    }, 5000);
+    }, 4000);
 
     return () => {
       clearInterval(pollInterval);
+      if (bc) bc.close();
       if (typeof window !== "undefined") {
         window.removeEventListener("shunyagrid_settlement_completed", handleSyncEvent);
         window.removeEventListener("storage", handleStorage);
@@ -870,12 +883,12 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <span>
               Payout Node:{" "}
               <a
-                href={`https://testnet-explorer.hskchain.net/address/${walletAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"}`}
+                href={`https://testnet-explorer.hskchain.net/address/${walletAddress || "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21"}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-white hover:underline font-semibold tabular-data"
               >
-                {(walletAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8").slice(0, 10)}... <ExternalLink className="w-2.5 h-2.5 inline" />
+                {(walletAddress || "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21").slice(0, 10)}... <ExternalLink className="w-2.5 h-2.5 inline" />
               </a>
             </span>
             <span>&bull;</span>

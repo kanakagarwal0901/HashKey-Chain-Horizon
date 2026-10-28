@@ -27,7 +27,7 @@ export interface SellerBalanceResult {
 }
 
 export async function calculateSellerBalance(rawAddress?: string | null): Promise<SellerBalanceResult> {
-  const sellerAddress = (rawAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8").trim();
+  const sellerAddress = (rawAddress || "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21").trim();
 
   const balance = hashKeyTreasury.getSellerBalance(sellerAddress);
 
