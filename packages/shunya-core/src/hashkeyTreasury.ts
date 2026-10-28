@@ -533,6 +533,130 @@ export class HashKeyTreasuryEngine {
   }
 
   /**
+   * Pre-flight Check: Verifies whether the EVM Treasury possesses sufficient destination
+   * token liquidity and native gas tokens on the target chain before the user debits their HSK.
+   */
+  public async checkTreasuryLiquidity(params: {
+    destinationChain: string;
+    targetToken: string;
+    amountUsdc?: number;
+    amountHsk?: number;
+  }): Promise<{
+    sufficient: boolean;
+    availableAmount: number;
+    requiredAmount: number;
+    tokenSymbol: string;
+    destinationChain: string;
+    hasGas: boolean;
+    error?: string;
+  }> {
+    const chainKey = this.normalizeChainKey(params.destinationChain);
+    const tokenSymbol = (params.targetToken || (chainKey === "hashkey-testnet" ? "HSK" : "USDC")).toUpperCase().trim();
+    const chainConfig = SUPPORTED_CHAINS[chainKey] || SUPPORTED_CHAINS["hashkey-testnet"];
+
+    let requestedUsdc = params.amountUsdc || 0;
+    let requestedHsk = params.amountHsk || 0;
+    if (requestedHsk > 0 && requestedUsdc <= 0) {
+      requestedUsdc = requestedHsk * this.hskUsdRate;
+    } else if (requestedUsdc > 0 && requestedHsk <= 0) {
+      requestedHsk = requestedUsdc / this.hskUsdRate;
+    }
+
+    const quote = uniswapService.getQuote({
+      fromToken: "USDC",
+      toToken: tokenSymbol,
+      amountIn: Math.max(0.0001, requestedUsdc),
+      chainId: chainKey,
+    });
+    const requiredAmount = quote.expectedAmountOut;
+
+    const candidateKeys = this.getCandidateTreasuryKeys();
+    const rpcUrls = this.getChainRpcUrls(chainKey);
+    const isNative = this.isNativeCurrency(chainKey, tokenSymbol);
+
+    let maxTokenBal = 0;
+    let hasGas = false;
+
+    const ERC20_ABI = [
+      "function balanceOf(address account) view returns (uint256)",
+      "function decimals() view returns (uint8)",
+    ];
+
+    rpcLoop: for (const rpcUrl of rpcUrls) {
+      try {
+        const provider = new ethers.JsonRpcProvider(rpcUrl, chainConfig.chainId, { staticNetwork: true });
+        let querySucceeded = false;
+
+        if (isNative) {
+          for (const pk of candidateKeys) {
+            try {
+              const wallet = new ethers.Wallet(pk, provider);
+              const balWei = await Promise.race([
+                provider.getBalance(wallet.address),
+                new Promise<bigint>((_, reject) => setTimeout(() => reject(new Error("RPC Timeout")), 2500))
+              ]);
+              const bal = parseFloat(ethers.formatEther(balWei));
+              if (bal > maxTokenBal) maxTokenBal = bal;
+              if (balWei > ethers.parseEther("0.0001")) hasGas = true;
+              querySucceeded = true;
+            } catch {}
+          }
+          if (querySucceeded) break rpcLoop;
+        } else {
+          const tokenMeta = SUPPORTED_TOKENS[tokenSymbol];
+          const tokenAddress = tokenMeta?.addresses?.[chainKey];
+          if (!tokenAddress || tokenAddress === "0x0000000000000000000000000000000000000000") {
+            return {
+              sufficient: false,
+              availableAmount: 0,
+              requiredAmount,
+              tokenSymbol,
+              destinationChain: chainConfig.name,
+              hasGas: false,
+              error: `Token ${tokenSymbol} is not deployed on destination chain ${chainConfig.name}.`,
+            };
+          }
+          const decimals = tokenMeta.decimals || 6;
+
+          for (const pk of candidateKeys) {
+            try {
+              const wallet = new ethers.Wallet(pk, provider);
+              const erc20 = new ethers.Contract(tokenAddress, ERC20_ABI, wallet);
+              const [tokenUnits, gasWei] = await Promise.all([
+                erc20.balanceOf(wallet.address),
+                provider.getBalance(wallet.address),
+              ]);
+              const tokenNum = parseFloat(ethers.formatUnits(tokenUnits, decimals));
+              if (tokenNum > maxTokenBal) maxTokenBal = tokenNum;
+              if (gasWei > 0n) hasGas = true;
+              querySucceeded = true;
+            } catch {}
+          }
+          if (querySucceeded) break rpcLoop;
+        }
+      } catch {}
+    }
+
+    const sufficient = maxTokenBal >= requiredAmount && hasGas;
+    let error: string | undefined = undefined;
+    if (!hasGas) {
+      error = `Treasury on ${chainConfig.name} has insufficient native gas token to broadcast the payout. Your HSK was NOT deducted.`;
+    } else if (maxTokenBal < requiredAmount) {
+      error = `Treasury liquidity check failed: ${chainConfig.name} only has ${maxTokenBal.toFixed(4)} ${tokenSymbol} available in reserves, but ${requiredAmount.toFixed(4)} ${tokenSymbol} is required. Your HSK was NOT deducted.`;
+    }
+
+    return {
+      sufficient,
+      availableAmount: Number(maxTokenBal.toFixed(6)),
+      requiredAmount: Number(requiredAmount.toFixed(6)),
+      tokenSymbol,
+      destinationChain: chainConfig.name,
+      hasGas,
+      error,
+    };
+  }
+
+  /**
    * Executes a Universal Multi-Chain, Multi-Token Seller Sweep:
    * 1. Debits the seller's HSK balance to 0 (or by swept amount) and returns it to Treasury reserves.
    * 2. Delivers the corresponding token amount to the seller's recipientAddress on the destination chain.
@@ -725,9 +849,55 @@ export class HashKeyTreasuryEngine {
     }
 
     if (!isLiveOnChain || !sweepTxHash) {
-      throw new Error(
-        `Live on-chain sweep failed: Unable to deliver ${amountOutFormatted} to ${params.recipientAddress} on ${chainConfig.name}. Ensure Treasury has sufficient ${tokenSymbol} liquidity and native gas. (Detail: ${failureReason || "Insufficient balance on candidate wallets"})`
-      );
+      // If the user already debited their HSK on HashKey Chain via MetaMask (sourceBurnTxId),
+      // we MUST execute an automatic on-chain refund returning the exact HSK back to the user's wallet!
+      let rollbackRefundTxHash = "";
+      if (params.sourceBurnTxId && requestedHsk > 0) {
+        const hskWeiRefund = ethers.parseEther(requestedHsk.toFixed(6));
+        const hskRpcs = this.getChainRpcUrls("hashkey-testnet");
+        refundLoop: for (const rpc of hskRpcs) {
+          try {
+            const hskProvider = new ethers.JsonRpcProvider(rpc, 133, { staticNetwork: true });
+            for (const pk of candidateKeys) {
+              try {
+                const wallet = new ethers.Wallet(pk, hskProvider);
+                const bal = await hskProvider.getBalance(wallet.address).catch(() => 0n);
+                if (bal >= hskWeiRefund + ethers.parseEther("0.0001")) {
+                  console.log(
+                    `[HashKeyTreasury] Destination delivery failed. Executing AUTOMATIC ON-CHAIN ROLLBACK REFUND of ${requestedHsk} HSK from ${wallet.address} to ${params.sellerAddress}...`
+                  );
+                  const refundTx = await wallet.sendTransaction({
+                    to: params.sellerAddress,
+                    value: hskWeiRefund,
+                  });
+                  const receipt = await refundTx.wait(1);
+                  if (receipt && receipt.status === 1) {
+                    rollbackRefundTxHash = receipt.hash;
+                    console.log(
+                      `[HashKeyTreasury] Rollback refund confirmed on HashKey block #${receipt.blockNumber}! Tx: ${rollbackRefundTxHash}`
+                    );
+                    break refundLoop;
+                  }
+                }
+              } catch (wErr: any) {
+                console.warn("[HashKeyTreasury] Candidate refund key attempt failed:", wErr.message);
+              }
+            }
+          } catch (rErr: any) {
+            console.warn("[HashKeyTreasury] RPC fallback for rollback refund:", rErr.message);
+          }
+        }
+      }
+
+      if (rollbackRefundTxHash) {
+        throw new Error(
+          `Destination delivery on ${chainConfig.name} failed (${failureReason || "Insufficient treasury liquidity"}). Because your HSK was debited on HashKey Chain, an AUTOMATIC ON-CHAIN REFUND of ${requestedHsk.toFixed(4)} HSK has been executed back to your wallet! HashKey Refund Tx: ${rollbackRefundTxHash}`
+        );
+      } else {
+        throw new Error(
+          `Live on-chain sweep failed: Unable to deliver ${amountOutFormatted} to ${params.recipientAddress} on ${chainConfig.name}. Ensure Treasury has sufficient ${tokenSymbol} liquidity and native gas. (Detail: ${failureReason || "Insufficient balance on candidate wallets"})`
+        );
+      }
     }
 
     const explorerUrl =

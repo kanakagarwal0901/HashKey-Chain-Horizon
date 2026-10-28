@@ -33,6 +33,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Pre-flight liquidity check: verifies Treasury destination reserves BEFORE MetaMask debit
+    if (body.isPreflight === true || body.checkLiquidity === true) {
+      const liquidity = await hashKeyTreasury.checkTreasuryLiquidity({
+        destinationChain,
+        targetToken,
+        amountUsdc,
+        amountHsk,
+      });
+      return NextResponse.json(
+        {
+          success: liquidity.sufficient,
+          ...liquidity,
+        },
+        { status: liquidity.sufficient ? 200 : 400 }
+      );
+    }
+
     if (!recipientAddress || !recipientAddress.startsWith("0x")) {
       return NextResponse.json(
         { error: "Missing or invalid recipient EVM address. Please provide a valid 42-character 0x EVM address." },

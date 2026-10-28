@@ -328,6 +328,26 @@ export default function SellerPayoutPage() {
 
     setIsSweeping(true);
     try {
+      // Step 0: Pre-flight check - verify Treasury destination reserves BEFORE MetaMask debit
+      const preflightRes = await fetch("/api/bridge/cctp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          isPreflight: true,
+          destinationChain,
+          targetToken: selectedToken,
+          amountHsk: parsedAmount,
+          amountUsdc: parsedAmount * (hskUsdRate > 0 ? hskUsdRate : 0.0894),
+        }),
+      });
+      const preflightData = await preflightRes.json();
+      if (!preflightRes.ok || preflightData.error || preflightData.sufficient === false) {
+        throw new Error(
+          preflightData.error ||
+            `Treasury liquidity check failed: The destination chain (${destinationChain}) does not have sufficient ${selectedToken} reserves. Your HSK was NOT deducted.`
+        );
+      }
+
       let sourceBurnTxId = "";
       if (typeof window !== "undefined" && (window as any).ethereum) {
         // Step 1: Ensure MetaMask is on HashKey Chain Testnet (0x85 / 133)
