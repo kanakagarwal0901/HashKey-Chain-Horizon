@@ -8,7 +8,6 @@ import {
   realEnsService,
   getOrCreateEnclaveKeyPair,
   unwrapSellerApiKey,
-  cleanApiKey,
   getMinimumListingQuotaForModel,
   verifyApiKeyWithProvider,
 } from "@shunya/core";
@@ -204,9 +203,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Perform live test call to the provider API to verify model access & remaining tokens
-    const sanitizedKey = cleanApiKey(rawKey);
-    console.log(`[Listings API] Verified key unwrap for ${provider}/${model}, prefix=${sanitizedKey.slice(0, 8)}, len=${sanitizedKey.length}`);
-    const keyVerdict = await verifyApiKeyWithProvider(provider || "", model, sanitizedKey);
+    const keyVerdict = await verifyApiKeyWithProvider(provider || "", model, rawKey);
     if (!keyVerdict.valid) {
       return NextResponse.json(
         {

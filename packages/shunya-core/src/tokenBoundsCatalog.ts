@@ -489,7 +489,7 @@ export const SUPPORTED_MODELS: ModelMetadata[] = [
 export const PROVIDERS = [
   { id: "anthropic", name: "Anthropic (Claude)", keyPrefix: "sk-ant-", keyPlaceholder: "sk-ant-api03-..." },
   { id: "openai", name: "OpenAI (o3 / o1 / GPT-4o)", keyPrefix: "sk-", keyPlaceholder: "sk-proj-... or sk-..." },
-  { id: "gemini", name: "Google Gemini", keyPrefix: "AIzaSy", keyPlaceholder: "AIzaSy..." },
+  { id: "gemini", name: "Google Gemini", keyPrefix: "AIza / AQ.", keyPlaceholder: "AQ.Ab8... or AIzaSy..." },
   { id: "groq", name: "Groq High-Speed LPU", keyPrefix: "gsk_", keyPlaceholder: "gsk_..." },
 ] as const;
 

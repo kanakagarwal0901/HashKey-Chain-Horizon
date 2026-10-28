@@ -1,7 +1,6 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import { DEFAULT_ENCLAVE_KEYPAIR, cleanApiKey } from "@shunya/core";
 
 export interface BlindBuyerEnvelope {
   wrappedKeysBase64: string;
@@ -61,7 +60,7 @@ class EnclaveVaultSingleton {
   private bootEnclave(): void {
     this.bootedAtIso = new Date().toISOString();
 
-    // 1. Check for cached RSA keypair on disk
+    // Check for cached RSA keypair on disk
     const keyPath = path.join(process.cwd(), ".enclave_keypair.json");
     if (fs.existsSync(keyPath)) {
       try {
@@ -72,20 +71,23 @@ class EnclaveVaultSingleton {
           this.rsaPrivateKeyPem = json.privateKey;
         }
       } catch (err) {
-        console.warn("[EnclaveVault] Could not parse .enclave_keypair.json");
+        console.warn("[EnclaveVault] Could not parse .enclave_keypair.json, generating new pair.");
       }
     }
 
-    // 2. Check environment variable override
-    if (!this.rsaPublicKeyPem && process.env.ENCLAVE_PUBLIC_KEY && process.env.ENCLAVE_PRIVATE_KEY) {
-      this.rsaPublicKeyPem = process.env.ENCLAVE_PUBLIC_KEY.replace(/\\n/g, "\n");
-      this.rsaPrivateKeyPem = process.env.ENCLAVE_PRIVATE_KEY.replace(/\\n/g, "\n");
-    }
-
-    // 3. Fallback to deterministic default keypair (identical across serverless containers)
     if (!this.rsaPublicKeyPem || !this.rsaPrivateKeyPem) {
-      this.rsaPublicKeyPem = DEFAULT_ENCLAVE_KEYPAIR.publicKey;
-      this.rsaPrivateKeyPem = DEFAULT_ENCLAVE_KEYPAIR.privateKey;
+      const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
+        modulusLength: 2048,
+        publicKeyEncoding: { type: "spki", format: "pem" },
+        privateKeyEncoding: { type: "pkcs8", format: "pem" },
+      });
+      this.rsaPublicKeyPem = publicKey;
+      this.rsaPrivateKeyPem = privateKey;
+      try {
+        fs.writeFileSync(keyPath, JSON.stringify({ publicKey, privateKey }, null, 2));
+      } catch {
+        // Disk write fallback
+      }
     }
 
     // ECDSA P-256 Attestation Signing Keypair
@@ -121,17 +123,34 @@ class EnclaveVaultSingleton {
 
     if (sealedApiKeyBase64.startsWith("ENCLAVE_SEALED:")) {
       const raw = sealedApiKeyBase64.replace("ENCLAVE_SEALED:", "").trim();
-      return cleanApiKey(raw);
+      if (
+        raw.startsWith("sk-") ||
+        raw.startsWith("gsk_") ||
+        raw.startsWith("AIza") ||
+        raw.startsWith("xai-")
+      ) {
+        return raw;
+      }
+      try {
+        const decoded = Buffer.from(raw, "base64").toString("utf8");
+        if (
+          decoded.startsWith("sk-") ||
+          decoded.startsWith("gsk_") ||
+          decoded.startsWith("AIza") ||
+          decoded.startsWith("xai-")
+        ) {
+          return decoded;
+        }
+      } catch {}
+      return raw;
     }
 
-    const trimmed = cleanApiKey(sealedApiKeyBase64);
+    const trimmed = sealedApiKeyBase64.trim();
     if (
       trimmed.startsWith("sk-") ||
       trimmed.startsWith("gsk_") ||
       trimmed.startsWith("AIza") ||
-      trimmed.startsWith("xai-") ||
-      trimmed.startsWith("demo") ||
-      trimmed.startsWith("test")
+      trimmed.startsWith("xai-")
     ) {
       return trimmed;
     }
@@ -146,7 +165,7 @@ class EnclaveVaultSingleton {
         },
         buffer
       );
-      return cleanApiKey(decrypted.toString("utf8"));
+      return decrypted.toString("utf8");
     } catch (err: any) {
       // In local development or direct unsealed scenarios, check if base64 decodes directly as plaintext
       try {
@@ -156,10 +175,9 @@ class EnclaveVaultSingleton {
           plain.startsWith("gsk_") ||
           plain.startsWith("AIza") ||
           plain.startsWith("xai-") ||
-          plain.startsWith("demo") ||
-          plain.startsWith("test")
+          plain.length >= 15
         ) {
-          return cleanApiKey(plain);
+          return plain;
         }
       } catch {}
       throw new Error(`Enclave RSA-OAEP unwrap failure: ${err.message}`);

@@ -572,7 +572,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
       }
 
       // Ensure sealedApiKey is fully computed
-      let finalSealedKey = "";
+      let finalSealedKey = sealedKeyCiphertext;
       if (!finalSealedKey || finalSealedKey.length < 10) {
         try {
           const pkRes = await fetch("/api/enclave-pubkey");
@@ -585,7 +585,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         }
       }
       if (!finalSealedKey) {
-        finalSealedKey = sealedKeyCiphertext || `ENCLAVE_SEALED:${rawApiKey.trim()}`;
+        finalSealedKey = `ENCLAVE_SEALED:${rawApiKey.trim()}`;
       }
 
       const effectiveEns = ensMode === "real" ? customRealEns.trim().toLowerCase() : ensLabel;
@@ -1226,31 +1226,6 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                       Test Key & Detect Tokens
                     </>
                   )}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
-                <span>Testing without an upstream key?</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const demoKey = `demo-token-key-${provider}-enclave`;
-                    setRawApiKey(demoKey);
-                    setKeyVerification({
-                      tested: true,
-                      valid: true,
-                      model,
-                      modelDisplayName: currentModelMeta?.name || model,
-                      tokensRemaining: 250_000,
-                      tokenLimit: 500_000,
-                      requestsRemaining: 100,
-                    });
-                    setTokenQuota(250_000);
-                  }}
-                  className="text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1 transition"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Auto-Fill Verified Sandbox Key
                 </button>
               </div>
 
