@@ -247,7 +247,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Session active &bull; Ready for confidential inference
+                    Session active • Ready for confidential inference
                   </span>
                 </div>
               </div>
@@ -323,19 +323,19 @@ export default function HomePage() {
             </div>
             <ul className="space-y-4 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
               <li className="flex items-start gap-3">
-                <span className="text-zinc-400 dark:text-zinc-600 font-bold shrink-0">&times;</span>
+                <span className="text-zinc-400 dark:text-zinc-600 font-bold shrink-0">×</span>
                 <span><strong>Mid-stream cutoffs:</strong> Reasoning context expands past quota, abruptly aborting generation.</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-zinc-400 dark:text-zinc-600 font-bold shrink-0">&times;</span>
+                <span className="text-zinc-400 dark:text-zinc-600 font-bold shrink-0">×</span>
                 <span><strong>Surveillance vulnerability:</strong> Resellers and proxies log prompts, code, and customer records.</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-zinc-400 dark:text-zinc-600 font-bold shrink-0">&times;</span>
+                <span className="text-zinc-400 dark:text-zinc-600 font-bold shrink-0">×</span>
                 <span><strong>Bot accounts & Sybils:</strong> Fake quota accounts and unverified nodes populate the marketplace.</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-zinc-400 dark:text-zinc-600 font-bold shrink-0">&times;</span>
+                <span className="text-zinc-400 dark:text-zinc-600 font-bold shrink-0">×</span>
                 <span><strong>Recurring commitments:</strong> Monthly minimum commitments and non-refundable credit balances.</span>
               </li>
             </ul>

@@ -412,7 +412,7 @@ export default function WorldIdModal({
               <div className="space-y-0.5">
                 <span className="text-xs font-semibold text-white block">Scan with World App or Open Simulator</span>
                 <span className="text-[11px] text-neutral-500 font-mono">
-                  App: {appId} &bull; Action: shunyagrid-gate
+                  App: {appId} • Action: shunyagrid-gate
                 </span>
               </div>
             </div>
@@ -560,7 +560,7 @@ export default function WorldIdModal({
                     onClick={() => handleSaveConfig(appId, actionName)}
                     className="w-full py-1.5 rounded-full btn-secondary-apple text-xs font-semibold"
                   >
-                    Save &amp; Reconnect Bridge
+                    Save & Reconnect Bridge
                   </button>
                 </div>
               )}

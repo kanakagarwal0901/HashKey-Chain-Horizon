@@ -12,7 +12,7 @@ export default function NotFound() {
 
         <div className="space-y-2">
           <h1 className="text-3xl sm:text-4xl font-bold text-zinc-950 dark:text-white tracking-tight">
-            404 &bull; Page Not Found
+            404 • Page Not Found
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 max-w-md mx-auto text-sm leading-relaxed">
             The requested ShunyaGrid route could not be found or has moved. Choose from one of the active protocol modules below:

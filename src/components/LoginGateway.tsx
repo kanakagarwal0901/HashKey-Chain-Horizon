@@ -178,7 +178,7 @@ export default function LoginGateway({
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] dark:bg-neutral-900 border border-black/[0.06] dark:border-[var(--border-subtle)] text-xs text-zinc-700 dark:text-neutral-400 font-medium">
                 <Sparkles className="w-3.5 h-3.5 text-zinc-600 dark:text-neutral-300" />
-                Step 1 &bull; Purpose
+                Step 1 • Purpose
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
                 What would you like to do?
@@ -265,7 +265,7 @@ export default function LoginGateway({
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] dark:bg-neutral-900 border border-black/[0.06] dark:border-[var(--border-subtle)] text-xs text-zinc-700 dark:text-neutral-400 font-medium">
                 <Wallet className="w-3.5 h-3.5 text-zinc-600 dark:text-neutral-300" />
-                Step 2 &bull; Connect Wallet
+                Step 2 • Connect Wallet
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
                 Connect your crypto wallet
@@ -354,7 +354,7 @@ export default function LoginGateway({
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] dark:bg-neutral-900 border border-black/[0.06] dark:border-[var(--border-subtle)] text-xs text-zinc-700 dark:text-neutral-400 font-medium">
                 <Shield className="w-3.5 h-3.5 text-zinc-600 dark:text-neutral-300" />
-                Step 3 &bull; Human Check
+                Step 3 • Human Check
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
                 Quick anti-bot verification
@@ -454,7 +454,7 @@ export default function LoginGateway({
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-950/60 border border-emerald-500/20 dark:border-emerald-800/60 text-xs text-emerald-700 dark:text-emerald-400 font-medium antigravity-float">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 pulse-ring-emerald" />
-                <span>Onboarding complete &bull; Welcome to ShunyaGrid</span>
+                <span>Onboarding complete • Welcome to ShunyaGrid</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
                 You are verified and ready
@@ -508,11 +508,11 @@ export default function LoginGateway({
                 <span>Looking for the other service?</span>
                 {selectedRole === "seller" ? (
                   <Link href="/buyer" className="text-zinc-900 dark:text-white hover:underline font-medium">
-                    Go to Buyer Studio &rarr;
+                    Go to Buyer Studio →
                   </Link>
                 ) : (
                   <Link href="/seller" className="text-zinc-900 dark:text-white hover:underline font-medium">
-                    Go to Seller Hub &rarr;
+                    Go to Seller Hub →
                   </Link>
                 )}
               </div>

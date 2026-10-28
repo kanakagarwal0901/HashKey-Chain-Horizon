@@ -36,7 +36,7 @@ export default function Footer() {
               
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full liquid-glass-pill text-[11px] text-zinc-700 dark:text-zinc-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 pulse-ring-emerald" />
-                <span>HashKey Chain 133 (HSP) &bull; Sepolia 11155111</span>
+                <span>HashKey Chain 133 (HSP) • Sepolia 11155111</span>
               </div>
             </div>
           </div>
@@ -206,7 +206,7 @@ export default function Footer() {
 
           <div className="flex items-center gap-4 text-[11px]">
             <span>Non-custodial confidential AI inference network.</span>
-            <span className="text-zinc-400 dark:text-zinc-600">&bull;</span>
+            <span className="text-zinc-400 dark:text-zinc-600">•</span>
             <span className="text-emerald-600 dark:text-emerald-400 font-medium">All systems operational</span>
           </div>
         </div>

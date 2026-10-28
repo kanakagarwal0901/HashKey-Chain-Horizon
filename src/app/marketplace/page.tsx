@@ -299,7 +299,7 @@ export default function MarketplacePage() {
                         <span>0 active nodes online</span>
                       </div>
                       <Link href="/seller" className="text-white hover:underline text-[11px] font-semibold">
-                        List Quota &rarr;
+                        List Quota →
                       </Link>
                     </div>
                   )}

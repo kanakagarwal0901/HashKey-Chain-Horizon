@@ -801,7 +801,7 @@ contract VaultLending {
               <span className="text-zinc-200 font-semibold tabular-data">
                 {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "Connected"}
               </span>
-              <span className="text-emerald-400 font-medium">&bull; World ID Verified</span>
+              <span className="text-emerald-400 font-medium">• World ID Verified</span>
             </div>
           ) : (
             <button
@@ -977,9 +977,9 @@ contract VaultLending {
 
           <div className="flex items-center gap-3.5 text-zinc-400 text-xs">
             <span>Thinking: <strong className="text-zinc-200 tabular-data">{bounds.thinkingBudgetTokens.toLocaleString()}</strong></span>
-            <span>&bull;</span>
+            <span>•</span>
             <span>Input Cap: <strong className="text-zinc-200 tabular-data">{bounds.maxInputAndFileTokens.toLocaleString()}</strong></span>
-            <span>&bull;</span>
+            <span>•</span>
             <span>Context: <strong className="text-zinc-200 tabular-data">{Math.round(bounds.contextWindow / 1000)}k</strong></span>
             <span className="px-2.5 py-1 rounded-full bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 text-[11px] font-medium hidden sm:inline-block">
               Guaranteed Full Response
@@ -1186,7 +1186,7 @@ contract VaultLending {
                     </span>
                   </div>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    Quota: <span className="text-zinc-200 tabular-data font-medium">{selectedSeller.availableTokens.toLocaleString()} tokens</span> &bull; Upper bound: <span className="text-white tabular-data font-semibold">{bounds.totalMaxTokens.toLocaleString()} tokens</span>
+                    Quota: <span className="text-zinc-200 tabular-data font-medium">{selectedSeller.availableTokens.toLocaleString()} tokens</span> • Upper bound: <span className="text-white tabular-data font-semibold">{bounds.totalMaxTokens.toLocaleString()} tokens</span>
                   </p>
                 </div>
               </div>
@@ -1283,7 +1283,7 @@ contract VaultLending {
                           <div className="truncate">
                             <span className="text-zinc-200 font-medium block truncate">{f.name}</span>
                             <span className="text-[10px] text-zinc-500 tabular-data">
-                              {(f.size / 1024).toFixed(1)} KB &bull; ~{estTokens} tokens
+                              {(f.size / 1024).toFixed(1)} KB • ~{estTokens} tokens
                             </span>
                           </div>
                         </div>
@@ -1502,7 +1502,7 @@ contract VaultLending {
                         Zero-Cutoff Escrow Protection
                       </span>
                       <h4 className="text-base font-bold text-white">
-                        API Rejected &bull; 100% Refund Issued On-Chain
+                        API Rejected • 100% Refund Issued On-Chain
                       </h4>
                     </div>
                   </div>
@@ -1712,7 +1712,7 @@ contract VaultLending {
                         Mandate: <span className="text-zinc-200">{executionResult.hashKeySettlement?.mandateId?.slice(0, 16) || "0x..."}...</span>
                         {executionResult.hashKeySettlement?.blockNumber && (
                           <span className="block text-[10px] text-zinc-500 mt-0.5">
-                            Block #{executionResult.hashKeySettlement.blockNumber} &bull; HashKey Testnet (ID 133)
+                            Block #{executionResult.hashKeySettlement.blockNumber} • HashKey Testnet (ID 133)
                           </span>
                         )}
                       </div>

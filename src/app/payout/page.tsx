@@ -374,7 +374,7 @@ export default function SellerPayoutPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-ring-emerald" />
-            HashKey Chain Horizon &bull; Track 2: Agent Payments & A2A Settlement
+            HashKey Chain Horizon • Track 2: Agent Payments & A2A Settlement
           </span>
           <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-300 border border-white/10 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5 text-zinc-400" />
@@ -501,7 +501,7 @@ export default function SellerPayoutPage() {
               <span className="text-emerald-400 text-[11px] block font-semibold">Net Available to Sweep (Wallet HSK)</span>
               <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-950/50 border border-emerald-800/40 text-emerald-300 font-mono flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                1 HSK &asymp; ${hskUsdRate.toFixed(4)} USD
+                1 HSK ≈ ${hskUsdRate.toFixed(4)} USD
               </span>
             </div>
 
@@ -510,8 +510,8 @@ export default function SellerPayoutPage() {
               <span className="text-xs text-zinc-400 font-normal">HSK</span>
             </div>
             <div className="text-xs text-zinc-400 flex items-center gap-2 pt-0.5 tabular-data">
-              <span>&asymp; ${totalEarnedUsdc.toFixed(2)} USD</span>
-              <span>&bull;</span>
+              <span>≈ ${totalEarnedUsdc.toFixed(2)} USD</span>
+              <span>•</span>
               <span>Lifetime: {(balanceDetails?.lifetimeSettledHsk || hskBalance).toFixed(4)} HSK</span>
             </div>
             <div className="text-[11px] text-zinc-500 pt-1 flex items-center gap-1.5">
@@ -733,7 +733,7 @@ export default function SellerPayoutPage() {
               {selectedToken !== "HSK" ? (
                 <div className="flex items-center justify-between text-xs text-zinc-500 pt-1.5 border-t border-white/[0.06] tabular-data">
                   <span>Routing Protocol:</span>
-                  <span className="text-zinc-300">HashKey Settlement Router &bull; 1 HSK &asymp; {quotePreview.rate.toFixed(4)} {selectedToken}</span>
+                  <span className="text-zinc-300">HashKey Settlement Router • 1 HSK ≈ {quotePreview.rate.toFixed(4)} {selectedToken}</span>
                 </div>
               ) : (
                 <div className="text-[11px] text-zinc-500 pt-1.5 border-t border-white/[0.06]">

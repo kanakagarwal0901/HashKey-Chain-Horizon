@@ -660,7 +660,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-ring-emerald" />
-            HashKey Chain Horizon &bull; Track 2: Agent Payments & A2A Settlement
+            HashKey Chain Horizon • Track 2: Agent Payments & A2A Settlement
           </span>
           <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-300 border border-white/10 flex items-center gap-1.5">
             <Coins className="w-3.5 h-3.5 text-zinc-400" />
@@ -925,7 +925,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <h3 className="text-4xl sm:text-5xl font-bold text-white tracking-tight tabular-data">
               {hskBalance.toFixed(4)}{" "}
               <span className="text-emerald-400 text-base font-normal">HSK</span>{" "}
-              <span className="text-zinc-500 text-lg font-normal">(&asymp; ${totalEarnedUsdc.toFixed(2)} USD)</span>
+              <span className="text-zinc-500 text-lg font-normal">(≈ ${totalEarnedUsdc.toFixed(2)} USD)</span>
             </h3>
             <button
               onClick={() => fetchSellerBalance(walletAddress || undefined)}
@@ -942,7 +942,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/30 border border-emerald-800/40 text-emerald-400 font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-zinc-400 font-sans">Uniswap / Live DEX Oracle:</span>
-              <strong className="text-white">1 HSK &asymp; ${hskUsdRate.toFixed(4)} USD</strong>
+              <strong className="text-white">1 HSK ≈ ${hskUsdRate.toFixed(4)} USD</strong>
             </div>
             <span className="text-[11px] text-zinc-500 font-mono">({rateSource})</span>
           </div>
@@ -963,7 +963,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                 <span className="text-zinc-500 italic">Not connected</span>
               )}
             </span>
-            <span>&bull;</span>
+            <span>•</span>
             <span>
               HSP Contract:{" "}
               <a
@@ -975,7 +975,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                 0x40A6...7ae <ExternalLink className="w-2.5 h-2.5 inline" />
               </a>
             </span>
-            <span>&bull;</span>
+            <span>•</span>
             <span className="tabular-data">Chain ID: 133</span>
           </div>
 
@@ -1174,7 +1174,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                     </div>
                     <div className="px-3 py-1.5 rounded-xl bg-emerald-950/30 border border-emerald-800/30 flex items-center gap-1.5">
                       <span className="text-emerald-400 font-medium">Min Quota:</span>
-                      <strong className="text-emerald-300 tabular-data">&ge; {minRequiredQuota.toLocaleString()} tokens</strong>
+                      <strong className="text-emerald-300 tabular-data">≥ {minRequiredQuota.toLocaleString()} tokens</strong>
                     </div>
                   </div>
                 </div>
@@ -1256,7 +1256,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                             onClick={() => setTokenQuota(keyVerification.tokensRemaining!)}
                             className="btn-secondary-apple px-3.5 py-1.5 text-xs font-medium tabular-data"
                           >
-                            Set Quota to {keyVerification.tokensRemaining.toLocaleString()} &rarr;
+                            Set Quota to {keyVerification.tokensRemaining.toLocaleString()} →
                           </button>
                         )}
                       </div>
@@ -1305,7 +1305,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                   className="w-full rounded-2xl bg-[#121316] border border-white/10 hover:border-white/20 p-4 text-sm text-white font-bold tabular-data focus:outline-none focus:border-white/30 transition"
                 />
                 <span className="text-xs text-zinc-400 tabular-data block">
-                  Minimum required for {formatModelDisplayName(currentModelMeta?.name)}: &ge; {minRequiredQuota.toLocaleString()} tokens.
+                  Minimum required for {formatModelDisplayName(currentModelMeta?.name)}: ≥ {minRequiredQuota.toLocaleString()} tokens.
                 </span>
               </div>
 

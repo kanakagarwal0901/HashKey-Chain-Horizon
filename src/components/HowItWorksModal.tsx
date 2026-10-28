@@ -228,7 +228,7 @@ export default function HowItWorksModal({
         {/* Pinned Action Footer */}
         <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3 shrink-0">
           <div className="text-xs text-neutral-500 hidden sm:block">
-            HashKey Chain Horizon &bull; Track 2 HSP Verified
+            HashKey Chain Horizon • Track 2 HSP Verified
           </div>
           <div className="flex items-center gap-2.5 ml-auto">
             <button

@@ -476,7 +476,7 @@ export default function ArcBridgeDrawer({
                 <div className="text-xl font-bold tabular-data text-emerald-400 flex items-baseline gap-2">
                   <span>{(availableHskEarnings ?? 0).toFixed(4)} <span className="text-xs font-normal text-emerald-300">HSK</span></span>
                   <span className="text-xs font-normal text-neutral-400">
-                    (&asymp; ${((availableHskEarnings ?? 0) * (hskUsdRate && hskUsdRate > 0 ? hskUsdRate : 0.0894)).toFixed(2)} USD)
+                    (≈ ${((availableHskEarnings ?? 0) * (hskUsdRate && hskUsdRate > 0 ? hskUsdRate : 0.0894)).toFixed(2)} USD)
                   </span>
                 </div>
               </div>
