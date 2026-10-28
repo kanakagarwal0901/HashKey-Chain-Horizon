@@ -268,17 +268,42 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
     }
   };
 
-  // Fetch live on-chain HashKey Treasury balance & settled earnings
+  // Fetch live on-chain HashKey wallet balance & settled earnings
   const fetchSellerBalance = async (accId?: string) => {
-    const target = (accId || walletAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8").trim();
+    const target = (accId || walletAddress || "").trim();
+    if (!target) {
+      setHskBalance(0);
+      setHtsUsdcBalance(0);
+      setTotalEarnedUsdc(0);
+      setBalanceDetails(null);
+      return;
+    }
     setIsLoadingBalance(true);
     try {
+      // 1. Direct on-chain HashKey RPC query for instant real-time wallet balance
+      if (typeof window !== "undefined" && target.startsWith("0x")) {
+        try {
+          const { ethers } = await import("ethers");
+          const rpcProvider = new ethers.JsonRpcProvider("https://testnet.hsk.xyz", 133);
+          const rawWei = await rpcProvider.getBalance(target);
+          const liveHsk = parseFloat(ethers.formatEther(rawWei));
+          setHskBalance(liveHsk);
+          setTotalEarnedUsdc(Number((liveHsk * 0.75).toFixed(2)));
+          setHtsUsdcBalance(Number((liveHsk * 0.75).toFixed(2)));
+        } catch (rpcErr) {
+          console.warn("Direct RPC balance query fallback:", rpcErr);
+        }
+      }
+
+      // 2. Fetch synchronized balance and settlements from API
       const res = await fetch(`/api/seller/balance?address=${encodeURIComponent(target)}`);
       if (res.ok) {
         const data = await res.json();
         setBalanceDetails(data);
-        setHtsUsdcBalance(data.displayBalance ?? data.currentBalanceUsdc ?? 0);
-        setTotalEarnedUsdc(data.displayBalance ?? data.lifetimeSettledUsdc ?? 0);
+        const liveHsk = Number(data.currentBalanceHsk ?? data.onChainHsk ?? data.hskBalance ?? 0);
+        setHskBalance(liveHsk);
+        setHtsUsdcBalance(data.displayBalance ?? Number((liveHsk * 0.75).toFixed(2)));
+        setTotalEarnedUsdc(data.displayBalance ?? Number((liveHsk * 0.75).toFixed(2)));
       }
     } catch (err) {
       console.warn("Failed to fetch live HashKey seller balance:", err);

@@ -335,6 +335,45 @@ export class HashKeyTreasuryEngine {
   /**
    * Retrieves the current balance and transaction history for a seller node.
    */
+
+  /**
+   * Fetches the actual on-chain native HSK balance of a wallet from HashKey Chain (Chain ID: 133).
+   */
+  public async getOnChainHskBalance(address: string): Promise<number> {
+    try {
+      if (!address || !address.startsWith("0x")) return 0;
+      const provider = new ethers.JsonRpcProvider(this.hashKeyRpcUrl, 133, { staticNetwork: true });
+      const rawWei = await Promise.race([
+        provider.getBalance(address),
+        new Promise<bigint>((_, reject) => setTimeout(() => reject(new Error("RPC Timeout")), 2500))
+      ]);
+      return parseFloat(ethers.formatEther(rawWei));
+    } catch (err: any) {
+      console.warn(`[HashKeyTreasury] Could not query on-chain balance for ${address}:`, err.message);
+      return 0;
+    }
+  }
+
+  /**
+   * Fetches the live seller balance reflecting the actual on-chain HSK present in the wallet.
+   */
+  public async getSellerLiveBalance(sellerAddress: string): Promise<SellerTreasuryBalance & { onChainHsk: number }> {
+    this.loadPersistence();
+    const syncResult = this.getSellerBalance(sellerAddress);
+    const onChainHsk = await this.getOnChainHskBalance(sellerAddress);
+
+    // If wallet has on-chain HSK or sync balance, reflect the actual on-chain balance
+    const actualHsk = Number(Math.max(onChainHsk, syncResult.currentBalanceHsk).toFixed(4));
+    const actualUsdc = Number((actualHsk * this.hskUsdRate).toFixed(4));
+
+    return {
+      ...syncResult,
+      onChainHsk,
+      currentBalanceHsk: actualHsk,
+      currentBalanceUsdc: actualUsdc,
+    };
+  }
+
   public getSellerBalance(sellerAddress: string): SellerTreasuryBalance {
     this.loadPersistence();
     const normSeller = this.normalizeAddress(sellerAddress);
@@ -395,8 +434,17 @@ export class HashKeyTreasuryEngine {
     this.getSellerBalance(params.sellerAddress);
     const state = this.balances.get(normSeller);
 
-    if (!state || state.currentHsk <= 0.0001 || state.currentUsdc <= 0.0001) {
-      throw new Error("Cannot sweep: Current balance is 0.0000 HSK. You cannot sweep until earnings settle from queries. (balance is 0)");
+    const onChainHsk = await this.getOnChainHskBalance(params.sellerAddress);
+    let availableHsk = 0;
+    if (state && state.lifetimeHsk > 0) {
+      availableHsk = state.currentHsk;
+    } else {
+      availableHsk = onChainHsk;
+    }
+    const availableUsdc = availableHsk * this.hskUsdRate;
+
+    if (availableHsk <= 0.0001) {
+      throw new Error("Cannot sweep: Current balance is 0.0000 HSK. You cannot sweep until your connected wallet has an HSK balance on HashKey Chain.");
     }
 
     // Determine requested sweep amounts in USD and HSK
@@ -413,9 +461,9 @@ export class HashKeyTreasuryEngine {
       throw new Error("Sweep amount must be greater than 0");
     }
 
-    if (requestedUsdc > state.currentUsdc + 0.0001) {
+    if (requestedHsk > availableHsk + 0.0001) {
       throw new Error(
-        `Cannot sweep $${requestedUsdc.toFixed(4)} USD: Exceeds available balance of $${state.currentUsdc.toFixed(4)} USD (${state.currentHsk.toFixed(4)} HSK). Amount cannot be greater than the current balance.`
+        `Cannot sweep ${requestedHsk.toFixed(4)} HSK (${requestedUsdc.toFixed(2)} USD): Exceeds available balance of ${availableHsk.toFixed(4)} HSK present in connected wallet.`
       );
     }
 
@@ -484,14 +532,23 @@ export class HashKeyTreasuryEngine {
         ? `https://sepolia.basescan.org/tx/${sweepTxHash}`
         : `https://testnet-explorer.hskchain.net/tx/${sweepTxHash}`;
 
+    const sellerState = state || {
+      currentHsk: 0,
+      currentUsdc: 0,
+      lifetimeHsk: 0,
+      lifetimeUsdc: 0,
+      sweptHsk: 0,
+      sweptUsdc: 0,
+    };
+
     // Deduct full swept amount from seller balance (transferred to Treasury account)
-    state.currentUsdc = Math.max(0, state.currentUsdc - requestedUsdc);
-    state.currentHsk = Math.max(0, state.currentHsk - requestedHsk);
-    if (state.currentUsdc < 0.0001) state.currentUsdc = 0;
-    if (state.currentHsk < 0.0001) state.currentHsk = 0;
-    state.sweptUsdc += requestedUsdc;
-    state.sweptHsk += requestedHsk;
-    this.balances.set(normSeller, state);
+    sellerState.currentUsdc = Math.max(0, sellerState.currentUsdc - requestedUsdc);
+    sellerState.currentHsk = Math.max(0, sellerState.currentHsk - requestedHsk);
+    if (sellerState.currentUsdc < 0.0001) sellerState.currentUsdc = 0;
+    if (sellerState.currentHsk < 0.0001) sellerState.currentHsk = 0;
+    sellerState.sweptUsdc += requestedUsdc;
+    sellerState.sweptHsk += requestedHsk;
+    this.balances.set(normSeller, sellerState);
 
     const record: UniversalSweepRecord = {
       id: `sweep-${Date.now()}-${ethers.hexlify(ethers.randomBytes(4))}`,

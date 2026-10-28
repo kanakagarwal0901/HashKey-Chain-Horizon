@@ -6,12 +6,12 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const rawAddress = searchParams.get("address") || searchParams.get("accountId");
+    const rawAddress = searchParams.get("address") || searchParams.get("accountId") || searchParams.get("seller");
     const sellerAddress = (rawAddress && rawAddress.startsWith("0x"))
       ? rawAddress
       : "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
-    const balance = hashKeyTreasury.getSellerBalance(sellerAddress);
+    const balance = await hashKeyTreasury.getSellerLiveBalance(sellerAddress);
 
     return NextResponse.json({
       success: true,
@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
       // Native HSK balances
       hskBalance: balance.currentBalanceHsk,
       currentBalanceHsk: balance.currentBalanceHsk,
+      onChainHsk: (balance as any).onChainHsk ?? balance.currentBalanceHsk,
       lifetimeSettledHsk: balance.lifetimeSettledHsk,
       totalSweptHsk: balance.totalSweptHsk,
       // USD equivalent balances

@@ -113,11 +113,27 @@ export default function SellerPayoutPage() {
     if (!address) return;
     setIsLoadingBalance(true);
     try {
+      // 1. Direct on-chain HashKey RPC query for instant real-time wallet balance
+      if (typeof window !== "undefined" && address.startsWith("0x")) {
+        try {
+          const { ethers } = await import("ethers");
+          const rpcProvider = new ethers.JsonRpcProvider("https://testnet.hsk.xyz", 133);
+          const rawWei = await rpcProvider.getBalance(address);
+          const liveHsk = parseFloat(ethers.formatEther(rawWei));
+          setHskBalance(liveHsk);
+          setTotalEarnedUsdc(Number((liveHsk * 0.75).toFixed(2)));
+        } catch (rpcErr) {
+          console.warn("Direct on-chain balance query fallback to API:", rpcErr);
+        }
+      }
+
+      // 2. Fetch full settlement metadata from backend API
       const res = await fetch(`/api/seller/balance?address=${encodeURIComponent(address)}`);
       if (res.ok) {
         const data = await res.json();
-        setHskBalance(data.currentBalanceHsk || data.hskBalance || 0);
-        setTotalEarnedUsdc(data.displayBalance || data.currentBalanceUsdc || 0);
+        const effectiveHsk = Number(data.currentBalanceHsk ?? data.onChainHsk ?? data.hskBalance ?? 0);
+        setHskBalance(effectiveHsk);
+        setTotalEarnedUsdc(data.displayBalance ?? Number((effectiveHsk * 0.75).toFixed(2)));
         setBalanceDetails(data);
         if (data.recentSettlements) {
           setRecentSettlements(data.recentSettlements);
@@ -129,6 +145,10 @@ export default function SellerPayoutPage() {
       setIsLoadingBalance(false);
     }
   };
+
+  useEffect(() => {
+    if (walletAddress) setRecipientAddress(walletAddress);
+  }, [walletAddress]);
 
   useEffect(() => {
     fetchHashKeyBalance(currentSellerNode);
@@ -402,7 +422,7 @@ export default function SellerPayoutPage() {
 
           {/* Net Available Balance Card */}
           <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
-            <span className="text-emerald-400 text-[11px] block font-semibold">Net Available to Sweep</span>
+            <span className="text-emerald-400 text-[11px] block font-semibold">Net Available to Sweep (Wallet HSK)</span>
             <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight flex items-baseline gap-2 tabular-data">
               {hskBalance.toFixed(4)}
               <span className="text-xs text-zinc-400 font-normal">HSK</span>
@@ -545,7 +565,7 @@ export default function SellerPayoutPage() {
                 )}
                 {isZeroBalance && (
                   <span className="text-xs text-amber-400 block">
-                    Balance is 0.0000 HSK. Sweeps unlock once queries finish executing.
+                    Balance is 0.0000 HSK. Sweeps unlock once your connected wallet holds an HSK balance on HashKey Chain.
                   </span>
                 )}
               </div>
