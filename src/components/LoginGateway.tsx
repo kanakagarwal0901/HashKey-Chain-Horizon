@@ -175,12 +175,12 @@ export default function LoginGateway({
         {/* STEP 1: CHOOSE INTENT / ROLE */}
         {currentStep === "role" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] dark:bg-neutral-900 border border-black/[0.06] dark:border-[var(--border-subtle)] text-xs text-zinc-700 dark:text-neutral-400 font-medium">
                 <Sparkles className="w-3.5 h-3.5 text-zinc-600 dark:text-neutral-300" />
                 Step 1 • Purpose
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight mt-1">
                 What would you like to do?
               </h2>
               <p className="text-xs sm:text-sm text-zinc-600 dark:text-neutral-400 leading-relaxed max-w-lg">
@@ -199,7 +199,7 @@ export default function LoginGateway({
                     : "border-black/[0.06] hover:border-black/20 dark:hover:border-white/20"
                 }`}
               >
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="w-10 h-10 rounded-full bg-black/[0.04] dark:bg-neutral-900 border border-black/[0.06] dark:border-[var(--border-subtle)] flex items-center justify-center text-zinc-900 dark:text-white">
                     <Cpu className="w-5 h-5" />
                   </div>
@@ -224,7 +224,7 @@ export default function LoginGateway({
                     : "border-black/[0.06] hover:border-black/20 dark:hover:border-white/20"
                 }`}
               >
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="w-10 h-10 rounded-full bg-black/[0.04] dark:bg-neutral-900 border border-black/[0.06] dark:border-[var(--border-subtle)] flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                     <Layers className="w-5 h-5" />
                   </div>
@@ -262,12 +262,12 @@ export default function LoginGateway({
         {/* STEP 2: CONNECT CRYPTO WALLET */}
         {currentStep === "wallet" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] dark:bg-neutral-900 border border-black/[0.06] dark:border-[var(--border-subtle)] text-xs text-zinc-700 dark:text-neutral-400 font-medium">
                 <Wallet className="w-3.5 h-3.5 text-zinc-600 dark:text-neutral-300" />
                 Step 2 • Connect Wallet
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight mt-1">
                 Connect your crypto wallet
               </h2>
               <p className="text-xs sm:text-sm text-zinc-600 dark:text-neutral-400 leading-relaxed max-w-lg">
@@ -351,12 +351,12 @@ export default function LoginGateway({
         {/* STEP 3: VERIFY UNIQUE HUMANITY (WORLD ID) */}
         {currentStep === "humanity" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] dark:bg-neutral-900 border border-black/[0.06] dark:border-[var(--border-subtle)] text-xs text-zinc-700 dark:text-neutral-400 font-medium">
                 <Shield className="w-3.5 h-3.5 text-zinc-600 dark:text-neutral-300" />
                 Step 3 • Human Check
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight mt-1">
                 Quick anti-bot verification
               </h2>
               <p className="text-xs sm:text-sm text-zinc-600 dark:text-neutral-400 leading-relaxed max-w-lg">
@@ -451,7 +451,7 @@ export default function LoginGateway({
         {/* STEP 4: ONBOARDING COMPLETE / READY */}
         {currentStep === "ready" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-950/60 border border-emerald-500/20 dark:border-emerald-800/60 text-xs text-emerald-700 dark:text-emerald-400 font-medium antigravity-float">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 pulse-ring-emerald" />
                 <span>Onboarding complete • Welcome to ShunyaGrid</span>

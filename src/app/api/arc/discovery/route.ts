@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { arkivDb, MODEL_TOKEN_CATALOG } from "@shunya/core";
 
-// Arc Marketplace Discovery API (Arc Bounty Track)
+// Marketplace Discovery API
 export async function GET() {
   const listings = arkivDb.getAllListings();
   const models = Object.values(MODEL_TOKEN_CATALOG);

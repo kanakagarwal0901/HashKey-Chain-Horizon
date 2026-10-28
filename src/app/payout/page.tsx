@@ -437,20 +437,22 @@ export default function SellerPayoutPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-ring-emerald" />
-            HashKey Chain Horizon • Track 2: Agent Payments & A2A Settlement
+            HashKey Chain • Agent Payments & A2A Settlement
           </span>
           <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-300 border border-white/10 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5 text-zinc-400" />
             HSP (HashKey Settlement Protocol) Rails
           </span>
         </div>
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-          Seller Payout & Universal Sweeper
-        </h1>
-        <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
-          Inspect accumulated token revenues settled on-chain via HashKey Settlement Protocol (HSP) on HashKey Chain Testnet (Chain ID 133). 
-          Sweep accumulated earnings natively or cross-chain to any supported EVM network in any token via the HashKey Settlement Router.
-        </p>
+        <div className="space-y-3.5 sm:space-y-4">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
+            Seller Payout & Universal Sweeper
+          </h1>
+          <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
+            Inspect accumulated token revenues settled on-chain via HashKey Settlement Protocol (HSP) on HashKey Chain Testnet (Chain ID 133). 
+            Sweep accumulated earnings natively or cross-chain to any supported EVM network in any token via the HashKey Settlement Router.
+          </p>
+        </div>
 
         <div className="flex items-center gap-3 pt-3">
           <Link

@@ -74,7 +74,7 @@ export default function HowItWorksModal({
         </button>
 
         {/* Modal Title */}
-        <div className="space-y-1.5 pb-4 border-b border-[var(--border-subtle)] shrink-0 pr-10">
+        <div className="space-y-2.5 pb-4 border-b border-[var(--border-subtle)] shrink-0 pr-10">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
             <span className="text-xs text-neutral-400 font-medium">
@@ -228,7 +228,7 @@ export default function HowItWorksModal({
         {/* Pinned Action Footer */}
         <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3 shrink-0">
           <div className="text-xs text-neutral-500 hidden sm:block">
-            HashKey Chain Horizon • Track 2 HSP Verified
+            HashKey Chain • HSP Verified
           </div>
           <div className="flex items-center gap-2.5 ml-auto">
             <button

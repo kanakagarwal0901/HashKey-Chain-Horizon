@@ -75,15 +75,17 @@ export default function MarketplacePage() {
                 Guaranteed Completion
               </span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white flex items-center gap-3">
-              <span className="p-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-white inline-flex">
-                <Layers className="w-7 h-7" />
-              </span>
-              Explore Available AI Models
-            </h1>
-            <p className="text-sm sm:text-base text-zinc-400 max-w-2xl leading-relaxed">
-              Browse live AI models provided by verified sellers. Pick any model and start querying with complete privacy and zero monthly commitments.
-            </p>
+            <div className="space-y-3.5 sm:space-y-4">
+              <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white flex items-center gap-3">
+                <span className="p-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-white inline-flex">
+                  <Layers className="w-7 h-7" />
+                </span>
+                Explore Available AI Models
+              </h1>
+              <p className="text-sm sm:text-base text-zinc-400 max-w-2xl leading-relaxed">
+                Browse live AI models provided by verified sellers. Pick any model and start querying with complete privacy and zero monthly commitments.
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-3.5 self-start lg:self-center">

@@ -660,7 +660,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-ring-emerald" />
-            HashKey Chain Horizon • Track 2: Agent Payments & A2A Settlement
+            HashKey Chain • Agent Payments & A2A Settlement
           </span>
           <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-300 border border-white/10 flex items-center gap-1.5">
             <Coins className="w-3.5 h-3.5 text-zinc-400" />
@@ -671,12 +671,14 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             Hardware Blind Encryption
           </span>
         </div>
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-          Seller Hub: Earn from Unused AI Quota
-        </h1>
-        <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
-          Turn your unused monthly AI limits into passive income. Your API keys are encrypted securely in your browser, and you get paid automatically to your crypto wallet for every token consumed.
-        </p>
+        <div className="space-y-3.5 sm:space-y-4">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
+            Seller Hub: Earn from Unused AI Quota
+          </h1>
+          <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
+            Turn your unused monthly AI limits into passive income. Your API keys are encrypted securely in your browser, and you get paid automatically to your crypto wallet for every token consumed.
+          </p>
+        </div>
 
         {/* Action & Status Pill Box */}
         <div className="flex flex-wrap items-center gap-3.5 pt-3">
@@ -1022,7 +1024,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
               <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5 flex items-center gap-2">
                 Create Your AI Model Listing
               </h2>
-              <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+              <p className="text-xs sm:text-sm text-zinc-400 mt-2.5 leading-relaxed">
                 List your token quota. Any unused capacity is safely returned to you.
               </p>
             </div>

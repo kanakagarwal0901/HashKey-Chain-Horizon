@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import LiquidGlassFilters from "@/components/LiquidGlassFilters";
 
 export const metadata: Metadata = {
-  title: "ShunyaGrid • HashKey Chain Horizon | Track 2: Agent Payments & A2A Settlement",
+  title: "ShunyaGrid • HashKey Chain Confidential AI & Agent Payments",
   description:
     "Autonomous agent payment and A2A settlement network powered by HashKey Settlement Protocol (HSP) and confidential hardware enclaves with mathematical zero-cutoff guarantees.",
 };

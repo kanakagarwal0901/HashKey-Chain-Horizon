@@ -83,7 +83,7 @@ export default function BuyerStudioPage() {
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState<boolean>(false);
   const [buyerSepoliaTxHash, setBuyerSepoliaTxHash] = useState<string | null>(null);
 
-  // Multi-Currency & Multi-Chain Payment State (Defaults to HashKey Chain Track 2)
+  // Multi-Currency & Multi-Chain Payment State (Defaults to HashKey Chain HSP)
   const [paymentCurrency, setPaymentCurrency] = useState<string>("HSK");
   const [paymentChain, setPaymentChain] = useState<string>("hashkey-testnet");
   const [isFetchingQuote, setIsFetchingQuote] = useState<boolean>(false);
@@ -702,12 +702,14 @@ contract VaultLending {
             Guaranteed Full Response
           </span>
         </div>
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-          AI Playground & Studio
-        </h1>
-        <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
-          Ask frontier AI models anything with total privacy and zero monthly commitments. Your prompts and files are encrypted directly in your browser before leaving your device.
-        </p>
+        <div className="space-y-3.5 sm:space-y-4">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
+            AI Playground & Studio
+          </h1>
+          <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
+            Ask frontier AI models anything with total privacy and zero monthly commitments. Your prompts and files are encrypted directly in your browser before leaving your device.
+          </p>
+        </div>
 
         {/* Global Status Bar */}
         <div className="flex flex-wrap items-center gap-3.5 pt-3">
@@ -958,7 +960,7 @@ contract VaultLending {
                 ({eligibleSellers.length} qualified)
               </span>
             </h2>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+            <p className="text-xs sm:text-sm text-zinc-400 mt-2.5 leading-relaxed">
               Only providers with enough verified token capacity ({bounds.totalMaxTokens.toLocaleString()} tokens) are listed, ensuring your answer never cuts off.
             </p>
           </div>
@@ -1141,7 +1143,7 @@ contract VaultLending {
                     <span className="text-xs text-zinc-400">Selected Provider:</span>
                     <span className="text-sm font-semibold text-white">{selectedSeller.ensName}</span>
                     <span className="text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-full font-medium">
-                      Node {selectedSeller.payoutAddress || selectedSeller.hedaraPayoutAccount || selectedSeller.ownerAddress}
+                      Node {selectedSeller.payoutAddress || selectedSeller.ownerAddress}
                     </span>
                   </div>
                   <p className="text-xs text-zinc-400 mt-0.5">
@@ -1295,7 +1297,7 @@ contract VaultLending {
               {/* Currency Selector Buttons */}
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {[
-                  { symbol: "HSK", name: "HashKey", badge: "Track 2 HSP" },
+                  { symbol: "HSK", name: "HashKey", badge: "HSP Native" },
                   { symbol: "USDC", name: "USD Coin", badge: "Direct" },
                   { symbol: "ETH", name: "Ethereum", badge: "Native" },
                   { symbol: "DAI", name: "Dai", badge: "Uniswap" },
@@ -1697,7 +1699,7 @@ contract VaultLending {
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-emerald-300 flex items-center gap-1.5">
                             <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                            HashKey Chain Horizon • Track 2 HSP Settlement (Chain ID 133)
+                            HashKey Chain • HSP Settlement (Chain ID 133)
                           </span>
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                             Status: {executionResult.hashKeySettlement.status}

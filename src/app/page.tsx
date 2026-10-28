@@ -379,7 +379,7 @@ export default function HomePage() {
                 Live AI Marketplace
               </h2>
             </div>
-            <p className="text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm mt-1">
+            <p className="text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm mt-2.5 leading-relaxed">
               Browse active AI providers with verified token capacity. Use any model with complete privacy and instant settlement.
             </p>
           </div>

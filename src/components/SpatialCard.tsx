@@ -74,17 +74,25 @@ export default function SpatialCard({
         transformStyle: "preserve-3d",
       };
 
+  const classes = className.split(/\s+/).filter(Boolean);
+  const innerLayoutClasses = classes
+    .filter((c) => /^(space-[xy]-|flex|grid|gap-|items-|justify-)/.test(c))
+    .join(" ");
+  const outerClasses = classes
+    .filter((c) => !/^(space-[xy]-)/.test(c))
+    .join(" ");
+
   return (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={cardStyle}
-      className={`relative rounded-3xl overflow-hidden liquid-glass ${className}`}
+      className={`relative rounded-3xl overflow-hidden liquid-glass ${outerClasses}`}
       {...props}
     >
       {/* Luminous Specular Top Rim Reflection */}
-      <div data-ui="specular-rim" className="specular-rim-highlight" />
+      <div data-ui="specular-rim" className="specular-rim-highlight pointer-events-none" />
 
       {/* Specular lighting sheen */}
       {glare && !isReducedMotion && (
@@ -96,7 +104,7 @@ export default function SpatialCard({
           }}
         />
       )}
-      <div className="relative z-20 h-full">{children}</div>
+      <div className={`relative z-20 h-full w-full ${innerLayoutClasses}`}>{children}</div>
     </div>
   );
 }
