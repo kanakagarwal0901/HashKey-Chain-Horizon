@@ -35,7 +35,7 @@ export default function HomePage() {
   const [userRole, setUserRole] = useState<"buyer" | "seller">("buyer");
   const [modelFilter, setModelFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [modalTab, setModalTab] = useState<"buyer" | "seller" | "technology" | "hashkey">("buyer");
+  const [modalTab, setModalTab] = useState<"buyer" | "seller" | "technology">("buyer");
 
   useEffect(() => {
     fetch("/api/listings")
@@ -46,7 +46,7 @@ export default function HomePage() {
       .catch((err) => console.error("Error loading listings:", err));
   }, []);
 
-  const openGuide = (tab: "buyer" | "seller" | "technology" | "hashkey") => {
+  const openGuide = (tab: "buyer" | "seller" | "technology") => {
     setModalTab(tab);
     setIsModalOpen(true);
   };
