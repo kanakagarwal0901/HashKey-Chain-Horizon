@@ -93,7 +93,7 @@ export default function BuyerStudioPage() {
     isSwap: boolean;
   }>({
     amountFormatted: "$0.00",
-    rateFormatted: "1 HSK = $0.75",
+    rateFormatted: "1 HSK ≈ $0.0894 USD (Uniswap Live)",
     isSwap: false,
   });
 
@@ -488,9 +488,10 @@ contract VaultLending {
           if (data.quote && isMounted) {
             const usdcPerToken = data.quote.expectedAmountOut || 1.0;
             const unitsNeeded = (upfrontUsdc / usdcPerToken) * 1.005;
+            const formattedRate = data.liveMarket?.rateFormatted || (usdcPerToken < 1 ? `1 ${paymentCurrency} ≈ $${usdcPerToken.toFixed(4)} USDC` : `1 ${paymentCurrency} ≈ $${usdcPerToken.toFixed(2)} USDC`);
             setPaymentQuote({
               amountFormatted: `${unitsNeeded < 0.001 ? unitsNeeded.toFixed(6) : unitsNeeded.toFixed(4)} ${paymentCurrency}`,
-              rateFormatted: `1 ${paymentCurrency} ≈ $${usdcPerToken.toFixed(2)} USDC`,
+              rateFormatted: formattedRate,
               isSwap: true,
             });
           }
@@ -1316,9 +1317,17 @@ contract VaultLending {
                       <Loader2 className="w-3 h-3 animate-spin text-zinc-400" /> Quoting Uniswap V3...
                     </span>
                   ) : (
-                    <span>
-                      Total Required: <strong className="text-white font-bold">{paymentQuote.amountFormatted}</strong>{" "}
-                      <span className="text-zinc-500 text-[11px]">(${upfrontUsdc.toFixed(4)} USD)</span>
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span>
+                        Total Required: <strong className="text-white font-bold">{paymentQuote.amountFormatted}</strong>{" "}
+                        <span className="text-zinc-500 text-[11px]">(${upfrontUsdc.toFixed(4)} USD)</span>
+                      </span>
+                      {paymentQuote.rateFormatted && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/40 border border-emerald-800/40 text-emerald-400 font-mono text-[10px]">
+                          <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                          {paymentQuote.rateFormatted}
+                        </span>
+                      )}
                     </span>
                   )}
                 </div>

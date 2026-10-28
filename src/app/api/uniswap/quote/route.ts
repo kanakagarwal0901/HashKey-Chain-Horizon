@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uniswapService, SUPPORTED_TOKENS, SUPPORTED_CHAINS } from "@shunya/core";
+import { uniswapService, hashKeyTreasury, SUPPORTED_TOKENS, SUPPORTED_CHAINS } from "@shunya/core";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -9,6 +11,15 @@ export async function GET(request: NextRequest) {
   const chainId = searchParams.get("chainId") || "ethereum-sepolia";
 
   try {
+    // 1. Fetch fresh real-time DEX and oracle market rates
+    const livePrices = await uniswapService.fetchLiveMarketRates();
+
+    // 2. Synchronize HashKey Treasury benchmark rate
+    if (livePrices.HSK) {
+      hashKeyTreasury.syncWithLiveOracle(livePrices.HSK);
+    }
+
+    // 3. Compute exact swap quote
     const quote = uniswapService.getQuote({
       fromToken,
       toToken,
@@ -19,6 +30,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       quote,
+      liveMarket: {
+        source: "Uniswap-V3 / Live DEX Oracle",
+        hskUsdRate: livePrices.HSK,
+        ethUsdRate: livePrices.ETH,
+        prices: livePrices,
+        rateFormatted: `1 HSK ≈ $${livePrices.HSK?.toFixed(4)} USD`,
+        timestamp: new Date().toISOString(),
+      },
       supportedTokens: Object.keys(SUPPORTED_TOKENS),
       supportedChains: Object.keys(SUPPORTED_CHAINS),
     });

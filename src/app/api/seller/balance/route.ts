@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
       lifetimeSettledUsdc: balance.lifetimeSettledUsdc,
       totalSweptUsdc: balance.totalSweptUsdc,
       // HashKey Chain & HSP metadata
+      hskUsdRate: hashKeyTreasury.hskUsdRate,
       hspAdapterAddress: balance.hspAdapterAddress,
       blockscoutAccountUrl: balance.blockscoutAccountUrl,
       recentSettlements: balance.recentSettlements,

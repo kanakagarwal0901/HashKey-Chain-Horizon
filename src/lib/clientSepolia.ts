@@ -395,7 +395,21 @@ export async function executeBuyerUniversalPayment(params: {
 
   // 3. Case B: Native HSK or ETH payment directly to Treasury / HSP Adapter
   if (token === "HSK" || chainKey === "hashkey-testnet" && token === "HSK") {
-    const pricePerUnit = 0.75;
+    let pricePerUnit = 0.0894;
+    try {
+      const quoteRes = await fetch(`/api/uniswap/quote?from=${token}&to=USDC&amount=1&chainId=${chainKey}`);
+      if (quoteRes.ok) {
+        const quoteData = await quoteRes.json();
+        if (quoteData.quote?.rate) {
+          pricePerUnit = quoteData.quote.rate;
+        } else if (quoteData.liveMarket?.hskUsdRate && token === "HSK") {
+          pricePerUnit = quoteData.liveMarket.hskUsdRate;
+        }
+      }
+    } catch {
+      // fallback to cached market rate
+    }
+
     const unitsNeeded = (requiredUsdc / pricePerUnit) * 1.01;
     const weiNeeded = ethers.parseEther(unitsNeeded.toFixed(6));
     const valueHex = "0x" + weiNeeded.toString(16);

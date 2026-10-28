@@ -15,6 +15,7 @@ import {
   aiDispatcher,
   buyerRefundEngine,
   hashKeyTreasury,
+  uniswapService,
 } from "@shunya/core";
 import crypto from "crypto";
 import { ethers } from "ethers";
@@ -71,7 +72,8 @@ export async function POST(request: NextRequest) {
 
     if (!paymentHeader) {
       // Return HTTP 402 Payment Required quoting T_max upfront deposit on HashKey Chain
-      const upfrontHsk = (upfrontChargeMicroUsdc / 1_000_000 / 0.75).toFixed(4);
+      const liveRate = uniswapService.getHskUsdRate() || 0.0894;
+      const upfrontHsk = (upfrontChargeMicroUsdc / 1_000_000 / liveRate).toFixed(4);
       const hspQuote = {
         status: 402,
         protocol: "HSP-1.0",

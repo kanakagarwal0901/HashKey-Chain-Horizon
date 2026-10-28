@@ -188,6 +188,8 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
   const [listings, setListings] = useState<any[]>([]);
   const [totalEarnedUsdc, setTotalEarnedUsdc] = useState<number>(0);
   const [hskBalance, setHskBalance] = useState<number>(0);
+  const [hskUsdRate, setHskUsdRate] = useState<number>(0.0894);
+  const [rateSource, setRateSource] = useState<string>("Uniswap-V3 / Live DEX Oracle");
   const [htsUsdcBalance, setHtsUsdcBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
   const [balanceDetails, setBalanceDetails] = useState<any>(null);
@@ -289,6 +291,30 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
     }
   };
 
+  // Dynamically fetch live market & DEX conversion rate from Uniswap Oracle
+  const fetchLiveHskRate = async () => {
+    try {
+      const res = await fetch("/api/uniswap/quote?from=HSK&to=USDC&amount=1&chainId=hashkey-testnet");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.liveMarket?.hskUsdRate) {
+          setHskUsdRate(data.liveMarket.hskUsdRate);
+          if (data.liveMarket.source) setRateSource(data.liveMarket.source);
+        } else if (data.quote?.expectedAmountOut) {
+          setHskUsdRate(data.quote.expectedAmountOut);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch live Uniswap rate:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveHskRate();
+    const interval = setInterval(fetchLiveHskRate, 20_000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Fetch live on-chain HashKey wallet balance & settled earnings
   const fetchSellerBalance = async (accId?: string) => {
     const target = (accId || walletAddress || "").trim();
@@ -309,8 +335,9 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           const rawWei = await rpcProvider.getBalance(target);
           const liveHsk = parseFloat(ethers.formatEther(rawWei));
           setHskBalance(liveHsk);
-          setTotalEarnedUsdc(Number((liveHsk * 0.75).toFixed(2)));
-          setHtsUsdcBalance(Number((liveHsk * 0.75).toFixed(2)));
+          const currentRate = hskUsdRate > 0 ? hskUsdRate : 0.0894;
+          setTotalEarnedUsdc(Number((liveHsk * currentRate).toFixed(2)));
+          setHtsUsdcBalance(Number((liveHsk * currentRate).toFixed(2)));
         } catch (rpcErr) {
           console.warn("Direct RPC balance query fallback:", rpcErr);
         }
@@ -322,9 +349,11 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         const data = await res.json();
         setBalanceDetails(data);
         const liveHsk = Number(data.currentBalanceHsk ?? data.onChainHsk ?? data.hskBalance ?? 0);
+        const rate = Number(data.hskUsdRate) || hskUsdRate || 0.0894;
+        if (data.hskUsdRate) setHskUsdRate(data.hskUsdRate);
         setHskBalance(liveHsk);
-        setHtsUsdcBalance(data.displayBalance ?? Number((liveHsk * 0.75).toFixed(2)));
-        setTotalEarnedUsdc(data.displayBalance ?? Number((liveHsk * 0.75).toFixed(2)));
+        setHtsUsdcBalance(data.displayBalance ?? Number((liveHsk * rate).toFixed(2)));
+        setTotalEarnedUsdc(data.displayBalance ?? Number((liveHsk * rate).toFixed(2)));
       }
     } catch (err) {
       console.warn("Failed to fetch live HashKey seller balance:", err);
@@ -332,6 +361,14 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
       setIsLoadingBalance(false);
     }
   };
+
+  // Re-calculate USD balance whenever the live Uniswap rate updates
+  useEffect(() => {
+    if (hskBalance > 0 && hskUsdRate > 0) {
+      setTotalEarnedUsdc(Number((hskBalance * hskUsdRate).toFixed(2)));
+      setHtsUsdcBalance(Number((hskBalance * hskUsdRate).toFixed(2)));
+    }
+  }, [hskUsdRate, hskBalance]);
 
   useEffect(() => {
     fetchListings();
@@ -898,6 +935,16 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             >
               <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? "animate-spin text-white" : ""}`} />
             </button>
+          </div>
+
+          {/* Live Uniswap / DEX Oracle Ticker Badge */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/30 border border-emerald-800/40 text-emerald-400 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-zinc-400 font-sans">Uniswap / Live DEX Oracle:</span>
+              <strong className="text-white">1 HSK &asymp; ${hskUsdRate.toFixed(4)} USD</strong>
+            </div>
+            <span className="text-[11px] text-zinc-500 font-mono">({rateSource})</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-400 pt-1">

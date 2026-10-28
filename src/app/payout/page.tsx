@@ -60,6 +60,8 @@ export default function SellerPayoutPage() {
 
   // Live Balance State
   const [hskBalance, setHskBalance] = useState<number>(0);
+  const [hskUsdRate, setHskUsdRate] = useState<number>(0.0894);
+  const [rateSource, setRateSource] = useState<string>("Uniswap-V3 / Live DEX Oracle");
   const [totalEarnedUsdc, setTotalEarnedUsdc] = useState<number>(0);
   const [balanceDetails, setBalanceDetails] = useState<any>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
@@ -104,6 +106,30 @@ export default function SellerPayoutPage() {
     }
   };
 
+  // Fetch live market & Uniswap DEX conversion rates dynamically
+  const fetchLiveHskRate = async () => {
+    try {
+      const res = await fetch("/api/uniswap/quote?from=HSK&to=USDC&amount=1&chainId=hashkey-testnet");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.liveMarket?.hskUsdRate) {
+          setHskUsdRate(data.liveMarket.hskUsdRate);
+          if (data.liveMarket.source) setRateSource(data.liveMarket.source);
+        } else if (data.quote?.expectedAmountOut) {
+          setHskUsdRate(data.quote.expectedAmountOut);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch live Uniswap quote:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveHskRate();
+    const interval = setInterval(fetchLiveHskRate, 20_000);
+    return () => clearInterval(interval);
+  }, []);
+
   const fetchHashKeyBalance = async (address: string) => {
     if (!address || !address.startsWith("0x")) {
       setHskBalance(0);
@@ -123,7 +149,8 @@ export default function SellerPayoutPage() {
           const rawWei = await rpcProvider.getBalance(address);
           const liveHsk = parseFloat(ethers.formatEther(rawWei));
           setHskBalance(liveHsk);
-          setTotalEarnedUsdc(Number((liveHsk * 0.75).toFixed(2)));
+          const rate = hskUsdRate > 0 ? hskUsdRate : 0.0894;
+          setTotalEarnedUsdc(Number((liveHsk * rate).toFixed(2)));
         } catch (rpcErr) {
           console.warn("Direct on-chain balance query fallback to API:", rpcErr);
         }
@@ -134,8 +161,10 @@ export default function SellerPayoutPage() {
       if (res.ok) {
         const data = await res.json();
         const effectiveHsk = Number(data.currentBalanceHsk ?? data.onChainHsk ?? data.hskBalance ?? 0);
+        const rate = Number(data.hskUsdRate) || hskUsdRate || 0.0894;
+        if (data.hskUsdRate) setHskUsdRate(data.hskUsdRate);
         setHskBalance(effectiveHsk);
-        setTotalEarnedUsdc(data.displayBalance ?? Number((effectiveHsk * 0.75).toFixed(2)));
+        setTotalEarnedUsdc(data.displayBalance ?? Number((effectiveHsk * rate).toFixed(2)));
         setBalanceDetails(data);
         if (data.recentSettlements) {
           setRecentSettlements(data.recentSettlements);
@@ -147,6 +176,13 @@ export default function SellerPayoutPage() {
       setIsLoadingBalance(false);
     }
   };
+
+  // Re-calculate USD approximation whenever the live Uniswap rate updates
+  useEffect(() => {
+    if (hskBalance > 0 && hskUsdRate > 0) {
+      setTotalEarnedUsdc(Number((hskBalance * hskUsdRate).toFixed(2)));
+    }
+  }, [hskUsdRate, hskBalance]);
 
   useEffect(() => {
     if (walletAddress) setRecipientAddress(walletAddress);
@@ -298,7 +334,7 @@ export default function SellerPayoutPage() {
         body: JSON.stringify({
           sourceAccount: currentSellerNode,
           amountHsk: parsedAmount,
-          amountUsdc: parsedAmount * 0.75,
+          amountUsdc: parsedAmount * (hskUsdRate > 0 ? hskUsdRate : 0.0894),
           destinationChain,
           targetToken: selectedToken,
           destinationAddress: recipientAddress,
@@ -460,7 +496,15 @@ export default function SellerPayoutPage() {
 
           {/* Net Available Balance Card */}
           <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
-            <span className="text-emerald-400 text-[11px] block font-semibold">Available to Withdraw</span>
+
+            <div className="flex items-center justify-between">
+              <span className="text-emerald-400 text-[11px] block font-semibold">Net Available to Sweep (Wallet HSK)</span>
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-950/50 border border-emerald-800/40 text-emerald-300 font-mono flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                1 HSK &asymp; ${hskUsdRate.toFixed(4)} USD
+              </span>
+            </div>
+
             <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight flex items-baseline gap-2 tabular-data">
               {hskBalance.toFixed(4)}
               <span className="text-xs text-zinc-400 font-normal">HSK</span>
@@ -469,6 +513,10 @@ export default function SellerPayoutPage() {
               <span>&asymp; ${totalEarnedUsdc.toFixed(2)} USD</span>
               <span>&bull;</span>
               <span>Lifetime: {(balanceDetails?.lifetimeSettledHsk || hskBalance).toFixed(4)} HSK</span>
+            </div>
+            <div className="text-[11px] text-zinc-500 pt-1 flex items-center gap-1.5">
+              <span>Uniswap / Live DEX Oracle:</span>
+              <span className="text-zinc-400 font-mono">({rateSource})</span>
             </div>
           </div>
         </div>

@@ -54,7 +54,7 @@ export const PAYMENT_CHAINS: Record<string, ChainPaymentConfig> = {
     explorerBaseUrl: "https://testnet-explorer.hskchain.net/tx/",
     usdcAddress: "0x054ed45810DbBAb8B27668922D110669c9D88D0a",
     nativeSymbol: "HSK",
-    nativeUsdPrice: 0.75,
+    nativeUsdPrice: 0.0894,
     uniswapRouters: [
       "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae",
       "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D",

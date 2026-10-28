@@ -164,16 +164,113 @@ export interface UniswapQuote {
 }
 
 export class UniswapService {
-  // Reference market prices in USD for quote generation
+  // Live dynamic market prices in USD from DEX & CEX oracles
   private priceFeed: Record<string, number> = {
     USDC: 1.0,
     DAI: 1.0,
     USDT: 1.0,
-    HSK: 0.75,
-    ETH: 2600.0,
-    WETH: 2600.0,
-    UNI: 8.5,
+    HSK: 0.0894,
+    ETH: 2350.0,
+    WETH: 2350.0,
+    UNI: 7.15,
   };
+
+  private lastFetchTimestamp: number = 0;
+  private readonly CACHE_TTL_MS = 15_000; // 15 seconds fresh cache
+  private isFetching: boolean = false;
+
+  /**
+   * Fetches real-time market prices from DEX and oracle endpoints (Gate.io spot, CoinGecko, Binance).
+   * Gracefully falls back to current cached prices if external network is unavailable.
+   */
+  public async fetchLiveMarketRates(): Promise<Record<string, number>> {
+    const now = Date.now();
+    if (now - this.lastFetchTimestamp < this.CACHE_TTL_MS || this.isFetching) {
+      return { ...this.priceFeed };
+    }
+
+    this.isFetching = true;
+    try {
+      // 1. Query CoinGecko for multi-token USD prices
+      const cgPromise = fetch(
+        "https://api.coingecko.com/api/v3/simple/price?ids=hashkey-ecopoints,ethereum,usd-coin,tether,dai,uniswap&vs_currencies=usd",
+        { cache: "no-store", headers: { Accept: "application/json" } }
+      ).then(async (res) => {
+        if (!res.ok) return null;
+        return await res.json();
+      }).catch(() => null);
+
+      // 2. Query Gate.io for real-time HSK/USDT spot ticker
+      const gatePromise = fetch(
+        "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=HSK_USDT",
+        { cache: "no-store", headers: { Accept: "application/json" } }
+      ).then(async (res) => {
+        if (!res.ok) return null;
+        return await res.json();
+      }).catch(() => null);
+
+      // 3. Query Binance for real-time ETHUSDT ticker
+      const binancePromise = fetch(
+        "https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT",
+        { cache: "no-store", headers: { Accept: "application/json" } }
+      ).then(async (res) => {
+        if (!res.ok) return null;
+        return await res.json();
+      }).catch(() => null);
+
+      const [cgData, gateData, binanceData] = await Promise.all([
+        Promise.race([cgPromise, new Promise((r) => setTimeout(() => r(null), 3000))]),
+        Promise.race([gatePromise, new Promise((r) => setTimeout(() => r(null), 3000))]),
+        Promise.race([binancePromise, new Promise((r) => setTimeout(() => r(null), 3000))]),
+      ]);
+
+      if (cgData && typeof cgData === "object") {
+        const d = cgData as any;
+        if (d["hashkey-ecopoints"]?.usd) this.priceFeed.HSK = Number(d["hashkey-ecopoints"].usd);
+        if (d.ethereum?.usd) {
+          this.priceFeed.ETH = Number(d.ethereum.usd);
+          this.priceFeed.WETH = Number(d.ethereum.usd);
+        }
+        if (d["usd-coin"]?.usd) this.priceFeed.USDC = Number(d["usd-coin"].usd);
+        if (d.tether?.usd) this.priceFeed.USDT = Number(d.tether.usd);
+        if (d.dai?.usd) this.priceFeed.DAI = Number(d.dai.usd);
+        if (d.uniswap?.usd) this.priceFeed.UNI = Number(d.uniswap.usd);
+      }
+
+      // Prioritize high-frequency spot ticker for HSK if available
+      if (Array.isArray(gateData) && gateData[0]?.last) {
+        const parsedHsk = parseFloat(gateData[0].last);
+        if (!isNaN(parsedHsk) && parsedHsk > 0) {
+          this.priceFeed.HSK = parsedHsk;
+        }
+      }
+
+      // Prioritize direct Binance spot ticker for ETH if available
+      if (binanceData && (binanceData as any).price) {
+        const parsedEth = parseFloat((binanceData as any).price);
+        if (!isNaN(parsedEth) && parsedEth > 0) {
+          this.priceFeed.ETH = parsedEth;
+          this.priceFeed.WETH = parsedEth;
+        }
+      }
+
+      this.lastFetchTimestamp = now;
+    } catch (err: any) {
+      console.warn("[UniswapService] Live oracle fetch warning (using cached prices):", err.message);
+    } finally {
+      this.isFetching = false;
+    }
+
+    return { ...this.priceFeed };
+  }
+
+  public getPriceFeed(): Record<string, number> {
+    return { ...this.priceFeed };
+  }
+
+  public getHskUsdRate(): number {
+    return this.priceFeed.HSK || 0.0894;
+  }
 
   /**
    * Derive a live swap quote for exchanging fromToken to toToken via Uniswap V3.

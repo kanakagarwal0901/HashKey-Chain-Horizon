@@ -88,8 +88,16 @@ export class HashKeyTreasuryEngine {
   public readonly chainId: number = 133;
   public hspAdapterAddress: string = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
   public routerAddress: string = "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D";
-  public hskUsdRate: number = 0.75; // Standard benchmark rate: 1 HSK = $0.75 USD
+  public hskUsdRate: number = uniswapService?.getHskUsdRate() || 0.0894; // Dynamically synchronized with Uniswap / DEX Oracle
   public hashKeyRpcUrl: string = process.env.HASHKEY_TESTNET_RPC || "https://testnet.hsk.xyz";
+
+  public syncWithLiveOracle(rate?: number) {
+    if (rate && rate > 0) {
+      this.hskUsdRate = rate;
+    } else if (uniswapService) {
+      this.hskUsdRate = uniswapService.getHskUsdRate();
+    }
+  }
 
   private constructor() {
     this.loadPersistence();
@@ -190,6 +198,7 @@ export class HashKeyTreasuryEngine {
     buyerRefundMicroUsdc?: number;
     attestationHashHex: string;
   }): Promise<HSPSettlementRecord> {
+    this.syncWithLiveOracle();
     const normSeller = this.normalizeAddress(params.sellerAddress);
     const sellerPayoutUsdc = params.sellerPayoutMicroUsdc / 1_000_000;
     const sellerPayoutHsk = Number((sellerPayoutUsdc / this.hskUsdRate).toFixed(6));
@@ -380,6 +389,7 @@ export class HashKeyTreasuryEngine {
    * Fetches the live seller balance reflecting the actual on-chain HSK present in the wallet.
    */
   public async getSellerLiveBalance(sellerAddress: string): Promise<SellerTreasuryBalance & { onChainHsk: number }> {
+    this.syncWithLiveOracle();
     this.loadPersistence();
     const syncResult = this.getSellerBalance(sellerAddress);
     const onChainHsk = await this.getOnChainHskBalance(sellerAddress);
@@ -457,6 +467,7 @@ export class HashKeyTreasuryEngine {
     destinationChain: string;
     targetToken: string;
   }): Promise<UniversalSweepRecord> {
+    this.syncWithLiveOracle();
     this.loadPersistence();
     const normSeller = this.normalizeAddress(params.sellerAddress);
     this.getSellerBalance(params.sellerAddress);

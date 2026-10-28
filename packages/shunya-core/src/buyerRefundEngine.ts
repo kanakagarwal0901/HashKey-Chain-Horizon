@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { ethers } from "ethers";
+import { uniswapService } from "./uniswapService";
 
 export interface BuyerRefundParams {
   paymentRail: "sepolia" | "hashkey" | "arbitrum" | "base" | string;
@@ -101,7 +102,8 @@ export class BuyerRefundEngine {
 
     // 1. Process HashKey Chain Refund
     if (params.paymentRail === "hashkey" || params.paymentRail === "hashkey-testnet") {
-      const hskAmount = refundAmountUsdc / 0.75;
+      const hskRate = uniswapService.getHskUsdRate() || 0.0894;
+      const hskAmount = refundAmountUsdc / hskRate;
       if (treasuryPk && treasuryPk.length === 66) {
         try {
           const provider = new ethers.JsonRpcProvider(HASHKEY_TESTNET_RPC, 133, { staticNetwork: true });
