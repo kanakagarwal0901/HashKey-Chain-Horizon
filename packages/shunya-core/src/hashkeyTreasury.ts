@@ -362,9 +362,16 @@ export class HashKeyTreasuryEngine {
     const syncResult = this.getSellerBalance(sellerAddress);
     const onChainHsk = await this.getOnChainHskBalance(sellerAddress);
 
-    // If wallet has on-chain HSK or sync balance, reflect the actual on-chain balance
-    const actualHsk = Number(Math.max(onChainHsk, syncResult.currentBalanceHsk).toFixed(4));
+    // The actual HSK balance of the connected wallet is strictly its on-chain balance on HashKey Chain
+    const actualHsk = Number(onChainHsk.toFixed(4));
     const actualUsdc = Number((actualHsk * this.hskUsdRate).toFixed(4));
+
+    const normSeller = this.normalizeAddress(sellerAddress);
+    const state = this.balances.get(normSeller);
+    if (state) {
+      state.currentHsk = actualHsk;
+      state.currentUsdc = actualUsdc;
+    }
 
     return {
       ...syncResult,
@@ -380,14 +387,13 @@ export class HashKeyTreasuryEngine {
     let state = this.balances.get(normSeller);
 
     if (!state) {
-      const isZeroAccount = normSeller.includes("9999999") || normSeller.includes("zero") || normSeller === "0x0000000000000000000000000000000000000000";
       state = {
-        currentHsk: isZeroAccount ? 0 : 4.85,
-        currentUsdc: isZeroAccount ? 0 : 3.6375,
-        lifetimeHsk: isZeroAccount ? 0 : 12.50,
-        lifetimeUsdc: isZeroAccount ? 0 : 9.375,
-        sweptHsk: isZeroAccount ? 0 : 7.65,
-        sweptUsdc: isZeroAccount ? 0 : 5.7375,
+        currentHsk: 0,
+        currentUsdc: 0,
+        lifetimeHsk: 0,
+        lifetimeUsdc: 0,
+        sweptHsk: 0,
+        sweptUsdc: 0,
       };
       this.balances.set(normSeller, state);
       this.savePersistence();
