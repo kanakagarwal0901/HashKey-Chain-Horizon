@@ -68,21 +68,21 @@ export default function MarketplacePage() {
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-300 border border-white/10 flex items-center gap-1.5">
                 <Database className="w-3.5 h-3.5 text-zinc-300" />
-                Arkiv DB-Chain Orderbook
+                Live AI Marketplace
               </span>
               <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Deterministic token bounds (Q &ge; T_max)
+                Guaranteed Completion
               </span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white flex items-center gap-3">
               <span className="p-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-white inline-flex">
                 <Layers className="w-7 h-7" />
               </span>
-              Token pool orderbook
+              Explore Available AI Models
             </h1>
             <p className="text-sm sm:text-base text-zinc-400 max-w-2xl leading-relaxed">
-              Explore live peer-to-peer AI token allocations registered as wallet-owned Arkiv entities. Each pool specifies verified reasoning budgets and mathematical pre-flight T_max guarantees.
+              Browse live AI models provided by verified sellers. Pick any model and start querying with complete privacy and zero monthly commitments.
             </p>
           </div>
 
@@ -109,11 +109,11 @@ export default function MarketplacePage() {
         {/* Live Orderbook Network Stats Bar */}
         <div data-ui="stats-grid" className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-white/[0.08] text-xs">
           <div className="p-4 sm:p-5 rounded-2xl liquid-glass-interactive">
-            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">Supported Pools</span>
+            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">AI Models</span>
             <span className="text-white font-bold text-lg mt-0.5 block tabular-data">{pools.length} Tiers</span>
           </div>
           <div className="p-4 sm:p-5 rounded-2xl liquid-glass-interactive">
-            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">Online Seller Nodes</span>
+            <span className="text-zinc-400 block text-[11px] uppercase tracking-wider font-medium">Active Providers</span>
             <span className="text-emerald-400 font-bold text-lg mt-0.5 flex items-center gap-2 tabular-data">
               <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block pulse-ring-emerald" />
               {totalActiveNodes} Online
@@ -138,7 +138,7 @@ export default function MarketplacePage() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search model, provider, or seller ENS..."
+            placeholder="Search model or provider (e.g. Claude, OpenAI, Gemini)..."
             className="w-full pl-10 pr-4 py-2.5 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-400 transition"
           />
         </div>

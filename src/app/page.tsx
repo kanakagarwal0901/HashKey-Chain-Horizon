@@ -24,6 +24,25 @@ import HowItWorksModal from "@/components/HowItWorksModal";
 import SpatialCard from "@/components/SpatialCard";
 import AntigravityStagger from "@/components/AntigravityStagger";
 
+function formatModelDisplayName(rawNameOrId?: string): string {
+  if (!rawNameOrId) return "";
+  return rawNameOrId
+    .replace(/\s*\((Anthropic|OpenAI|Google|Groq|Groq LPU)\)/gi, "")
+    .replace(/^claude-3-7-sonnet.*/i, "Claude 3.7 Sonnet")
+    .replace(/^claude-3-5-sonnet.*/i, "Claude 3.5 Sonnet")
+    .replace(/^claude-3-5-haiku.*/i, "Claude 3.5 Haiku")
+    .replace(/^o3-mini.*/i, "o3-mini Reasoning")
+    .replace(/^o1.*/i, "o1 Deep Reasoning")
+    .replace(/^gpt-4o-mini.*/i, "GPT-4o Mini")
+    .replace(/^gpt-4o.*/i, "GPT-4o Omnimodal")
+    .replace(/^gemini-2\.0-flash-thinking.*/i, "Gemini 2.0 Flash Thinking")
+    .replace(/^gemini-2\.0-flash.*/i, "Gemini 2.0 Flash")
+    .replace(/^gemini-1\.5-pro.*/i, "Gemini 1.5 Pro")
+    .replace(/^deepseek-r1-distill-llama-70b.*/i, "DeepSeek R1 (70B)")
+    .replace(/^llama-3\.3-70b-versatile.*/i, "Llama 3.3 70B Versatile")
+    .trim();
+}
+
 export default function HomePage() {
   const {
     walletAddress,
@@ -67,8 +86,8 @@ export default function HomePage() {
         </h1>
 
         <p className="text-lg sm:text-2xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed font-normal">
-          Run frontier reasoning models with hardware-grade data blindness.
-          Your prompts remain sealed in memory. Guaranteed token headroom prevents mid-stream cutoffs, with 100% automated refund on error.
+          Run the world&apos;s most capable AI models with complete privacy and zero monthly commitments.
+          Your prompts are encrypted in your browser and guaranteed never to cut off midway.
         </p>
 
         {/* Action Hub & Segmented Role Selector */}
@@ -84,7 +103,7 @@ export default function HomePage() {
               }`}
             >
               <Cpu className="w-4 h-4" />
-              <span>Use Frontier AI (Buyer)</span>
+              <span>Use AI (Pay-As-You-Go)</span>
             </button>
             <button
               onClick={() => setUserRole("seller")}
@@ -95,7 +114,7 @@ export default function HomePage() {
               }`}
             >
               <Coins className="w-4 h-4" />
-              <span>Monetize Quota (Seller)</span>
+              <span>Sell Unused API Quota</span>
             </button>
           </div>
 
@@ -105,10 +124,10 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-4 border-b border-black/[0.06] dark:border-white/[0.06]">
                 <div>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold block">
-                    Buyer Execution Rail
+                    For AI Users & Developers
                   </span>
                   <h3 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white mt-1.5 tracking-tight">
-                    Frontier reasoning with complete data blindness
+                    Use the Best AI Models with Complete Privacy
                   </h3>
                 </div>
                 <div className="flex items-center gap-3">
@@ -134,21 +153,21 @@ export default function HomePage() {
                 <div className="p-6 sm:p-7 rounded-2xl liquid-glass-interactive space-y-3">
                   <div className="font-semibold text-base text-zinc-900 dark:text-white">Model Selection</div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Choose Claude 3.7 Sonnet, o3-mini, or Gemini 2.0 with calibrated thinking budgets.
+                    Choose from top models like Claude 3.7 Sonnet, o3-mini, and Gemini 2.0 with flexible thinking depth.
                   </div>
                 </div>
 
                 <div className="p-6 sm:p-7 rounded-2xl liquid-glass-interactive space-y-3">
-                  <div className="font-semibold text-base text-zinc-900 dark:text-white">Client-Side RSA Sealing</div>
+                  <div className="font-semibold text-base text-zinc-900 dark:text-white">100% Private & Encrypted</div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Prompts and files are encrypted with AES-256-GCM in local browser RAM before transmission.
+                    Your questions and files are encrypted directly in your browser before leaving your computer. Nobody else can read them.
                   </div>
                 </div>
 
                 <div className="p-6 sm:p-7 rounded-2xl liquid-glass-interactive space-y-3">
                   <div className="font-semibold text-base text-zinc-900 dark:text-white">Zero-Cutoff Execution</div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Token limits are mathematically bounded. Stream outputs with atomic seller settlement; remaining balance powers protocol routing.
+                    Capacity is reserved before your query starts, so your answer never halts mid-sentence. You only pay for what you actually use.
                   </div>
                 </div>
               </AntigravityStagger>
@@ -158,10 +177,10 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-4 border-b border-black/[0.06] dark:border-white/[0.06]">
                 <div>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold block">
-                    Seller Provider Rail
+                    For API Key Owners & Sellers
                   </span>
                   <h3 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white mt-1.5 tracking-tight">
-                    Turn unused monthly API limits into instant USDC
+                    Turn Unused Monthly API Limits into Passive Income
                   </h3>
                 </div>
                 <div className="flex items-center gap-3">
@@ -185,23 +204,23 @@ export default function HomePage() {
               {/* 3 Pillars for Seller */}
               <AntigravityStagger className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
                 <div className="p-6 sm:p-7 rounded-2xl liquid-glass-interactive space-y-3">
-                  <div className="font-semibold text-base text-zinc-900 dark:text-white">Publish Quota Entity</div>
+                  <div className="font-semibold text-base text-zinc-900 dark:text-white">List Your Extra Quota</div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Set your rate per 1,000 tokens and specify your maximum available volume on Arkiv.
+                    Set your own price per 1,000 tokens and specify how many tokens you want to make available.
                   </div>
                 </div>
 
                 <div className="p-6 sm:p-7 rounded-2xl liquid-glass-interactive space-y-3">
-                  <div className="font-semibold text-base text-zinc-900 dark:text-white">Hardware Key Protection</div>
+                  <div className="font-semibold text-base text-zinc-900 dark:text-white">Bank-Grade Key Security</div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Your upstream API keys are sealed inside trusted 0G execution enclaves. Never stored in plain text.
+                    Your API keys are encrypted immediately and processed inside a secure hardware chip. Never stored in plain text or shared.
                   </div>
                 </div>
 
                 <div className="p-6 sm:p-7 rounded-2xl liquid-glass-interactive space-y-3">
-                  <div className="font-semibold text-base text-zinc-900 dark:text-white">Instant Micro-Payouts</div>
+                  <div className="font-semibold text-base text-zinc-900 dark:text-white">Instant Automatic Payouts</div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Earn native HSK automatically on HashKey Chain as queries resolve. Sweep directly to any token on any EVM chain anytime.
+                    Get paid automatically into your crypto wallet for every token consumed. Withdraw your earnings anytime to any major token.
                   </div>
                 </div>
               </AntigravityStagger>
@@ -255,31 +274,31 @@ export default function HomePage() {
             <span className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight mt-1 block tabular-data">
               0.00%
             </span>
-            <span className="text-xs text-zinc-500 dark:text-zinc-500 block pt-1">Guaranteed via T_max ceiling</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-500 block pt-1">Guaranteed full response</span>
           </SpatialCard>
 
           <SpatialCard maxTilt={3} className="p-6 sm:p-7 space-y-1.5">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400 block font-medium">Seller Visibility</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 block font-medium">Data Privacy</span>
             <span className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight mt-1 block">
-              Zero Access
+              100% Private
             </span>
-            <span className="text-xs text-zinc-500 dark:text-zinc-500 block pt-1">0G Enclave RAM isolation</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-500 block pt-1">Sellers never see your prompts</span>
           </SpatialCard>
 
           <SpatialCard maxTilt={3} className="p-6 sm:p-7 space-y-1.5">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400 block font-medium">Settlement Rail</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 block font-medium">Payout Speed</span>
             <span className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight mt-1 block">
-              HashKey HSP
+              Instant
             </span>
-            <span className="text-xs text-zinc-500 dark:text-zinc-500 block pt-1">Native HTS USDC transfers</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-500 block pt-1">Automatic per-token payments</span>
           </SpatialCard>
 
           <SpatialCard maxTilt={3} className="p-6 sm:p-7 space-y-1.5">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400 block font-medium">Orderbook Engine</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 block font-medium">Capacity Tracking</span>
             <span className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight mt-1 block">
-              Arkiv Time-Scope
+              Real-Time
             </span>
-            <span className="text-xs text-zinc-500 dark:text-zinc-500 block pt-1">Atomic quota reservation</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-500 block pt-1">Verified live token reserves</span>
           </SpatialCard>
         </AntigravityStagger>
       </section>
@@ -288,10 +307,10 @@ export default function HomePage() {
       <section id="architecture-comparison" className="max-w-5xl mx-auto px-4 sm:px-6 scroll-mt-28">
         <div className="text-center space-y-4 mb-14 sm:mb-16">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-950 dark:text-white tracking-tight">
-            Engineered against proxy failure modes
+            Why Choose ShunyaGrid Over Regular AI Proxies?
           </h2>
           <p className="text-zinc-600 dark:text-zinc-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Reasoning models expend thousands of tokens thinking. Here is how ShunyaGrid eliminates unexpected drops.
+            Traditional AI resellers log your data, cut off responses mid-thought, or lock you into monthly plans. ShunyaGrid fixes this.
           </p>
         </div>
 
@@ -326,24 +345,24 @@ export default function HomePage() {
           <SpatialCard maxTilt={2} className="p-8 sm:p-12 space-y-6 border-emerald-500/30 dark:border-white/20">
             <div className="flex items-center gap-2.5 text-zinc-950 dark:text-white font-semibold text-sm">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-              <span>The ShunyaGrid Invariant Guarantee</span>
+              <span>The ShunyaGrid Guarantee</span>
             </div>
             <ul className="space-y-4 text-xs sm:text-sm text-zinc-700 dark:text-zinc-200 leading-relaxed">
               <li className="flex items-start gap-3">
                 <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong>Deterministic token bounds:</strong> Upper limits (T_max) calculated upfront and locked atomically.</span>
+                <span><strong>Guaranteed full answers:</strong> Token capacity is checked upfront, so your generation never gets cut off.</span>
               </li>
               <li className="flex items-start gap-3">
                 <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong>Hardware enclave isolation:</strong> Client-side RSA-OAEP encryption prevents node inspection.</span>
+                <span><strong>Complete prompt privacy:</strong> Your questions and documents are encrypted in your browser, unreadable to anyone else.</span>
               </li>
               <li className="flex items-start gap-3">
                 <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong>World ID proof-of-personhood:</strong> ZK-SNARK verification ensures authentic human node operators.</span>
+                <span><strong>Verified real providers:</strong> Anti-bot checks ensure you are connected only to genuine, authentic providers.</span>
               </li>
               <li className="flex items-start gap-3">
                 <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong>Deterministic settlement:</strong> Sellers earn for actual tokens consumed, remaining balance is retained as protocol commission, and failed queries receive 100% automated refunds.</span>
+                <span><strong>Fair pay-as-you-go:</strong> You only pay for the tokens you actually use, with 100% automated refunds if anything fails.</span>
               </li>
             </ul>
           </SpatialCard>
@@ -357,11 +376,11 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <Database className="w-5 h-5 text-zinc-900 dark:text-white" />
               <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
-                Live Model Orderbook
+                Live AI Marketplace
               </h2>
             </div>
             <p className="text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm mt-1">
-              Active verified nodes with real-time quota. Peer-to-peer confidential inference with instant settlement.
+              Browse active AI providers with verified token capacity. Use any model with complete privacy and instant settlement.
             </p>
           </div>
 
@@ -403,16 +422,16 @@ export default function HomePage() {
         {/* Precision Listings Table (Marked with data-ui for table styling) */}
         <div className="rounded-3xl overflow-hidden liquid-glass" data-ui="table-wrapper">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs" data-ui="orderbook-table">
+            <table className="w-full text-left text-xs min-w-[900px]" data-ui="orderbook-table">
               <thead className="bg-black/[0.02] dark:bg-black/80 text-zinc-600 dark:text-zinc-400 text-[11px] font-semibold border-b border-black/[0.06] dark:border-white/[0.08]">
                 <tr>
-                  <th className="px-7 py-5">Seller Node</th>
-                  <th className="px-7 py-5">Model</th>
-                  <th className="px-7 py-5">Available Quota</th>
-                  <th className="px-7 py-5">Rate / 1k Tokens</th>
-                  <th className="px-7 py-5">Proof of Personhood</th>
-                  <th className="px-7 py-5">Seller EVM Address</th>
-                  <th className="px-7 py-5 text-right">Action</th>
+                  <th className="px-7 py-5 whitespace-nowrap min-w-[220px]">Seller</th>
+                  <th className="px-7 py-5 whitespace-nowrap min-w-[200px]">AI Model</th>
+                  <th className="px-7 py-5 whitespace-nowrap">Available Capacity</th>
+                  <th className="px-7 py-5 whitespace-nowrap">Price / 1k Tokens</th>
+                  <th className="px-7 py-5 whitespace-nowrap">Human Check</th>
+                  <th className="px-7 py-5 whitespace-nowrap">Payout Address</th>
+                  <th className="px-7 py-5 text-right whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/[0.04] dark:divide-white/[0.05]">
@@ -428,7 +447,7 @@ export default function HomePage() {
                 ) : (
                   filteredListings.map((listing) => (
                     <tr key={listing.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition">
-                      <td className="px-7 py-5 font-semibold text-zinc-900 dark:text-white">
+                      <td className="px-7 py-5 font-semibold text-zinc-900 dark:text-white whitespace-nowrap">
                         <div className="flex items-center gap-2.5">
                           <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0 pulse-ring-emerald" />
                           <a
@@ -439,33 +458,37 @@ export default function HomePage() {
                             }
                             target="_blank"
                             rel="noreferrer"
-                            className="hover:underline transition flex items-center gap-1.5 truncate max-w-[170px]"
+                            className="hover:underline transition inline-flex items-center gap-2 whitespace-nowrap"
+                            title={listing.ensName}
                           >
-                            <span>{listing.ensName}</span>
+                            <span className="font-semibold text-zinc-950 dark:text-white">{listing.ensName}</span>
                             {listing.ensName?.endsWith(".eth") && !listing.ensName?.endsWith(".shunyagrid.eth") ? (
-                              <span className="text-[10px] bg-black/[0.06] dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-full font-medium">
+                              <span className="text-[10px] bg-black/[0.06] dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-full font-medium shrink-0">
                                 ENS
                               </span>
                             ) : (
-                              <span className="text-[10px] bg-black/[0.06] dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-full font-medium">
+                              <span className="text-[10px] bg-black/[0.06] dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-full font-medium shrink-0">
                                 SUB
                               </span>
                             )}
                           </a>
                         </div>
                       </td>
-                      <td className="px-7 py-5">
-                        <span className="px-3 py-1 rounded-full bg-black/[0.05] dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-medium">
-                          {listing.model}
-                        </span>
+                      <td className="px-7 py-5 whitespace-nowrap">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/[0.04] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/10 text-xs shadow-sm whitespace-nowrap">
+                          <Cpu className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 shrink-0" />
+                          <span className="font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+                            {formatModelDisplayName(listing.model)}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-7 py-5 font-semibold text-zinc-900 dark:text-white tabular-data">
+                      <td className="px-7 py-5 font-semibold text-zinc-900 dark:text-white tabular-data whitespace-nowrap">
                         {listing.availableTokens?.toLocaleString()} tokens
                       </td>
-                      <td className="px-7 py-5 font-semibold text-zinc-700 dark:text-zinc-200 tabular-data">
+                      <td className="px-7 py-5 font-semibold text-zinc-700 dark:text-zinc-200 tabular-data whitespace-nowrap">
                         ${((listing.pricePer1kMicroUsdc || 0) / 1_000_000).toFixed(4)} USDC
                       </td>
-                      <td className="px-7 py-5">
+                      <td className="px-7 py-5 whitespace-nowrap">
                         {listing.humanVerified ? (
                           <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-500/20 dark:border-emerald-800/40 text-xs font-medium">
                             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -475,8 +498,8 @@ export default function HomePage() {
                           <span className="text-zinc-400 dark:text-zinc-500">Unverified</span>
                         )}
                       </td>
-                      <td className="px-7 py-5 text-zinc-500 dark:text-zinc-400 tabular-data text-xs">
-                        {listing.hedaraPayoutAccount}
+                      <td className="px-7 py-5 text-zinc-500 dark:text-zinc-400 tabular-data text-xs whitespace-nowrap">
+                        {listing.payoutAddress || listing.hedaraPayoutAccount || listing.ownerAddress || "—"}
                       </td>
                       <td className="px-7 py-5 text-right whitespace-nowrap">
                         <Link
@@ -484,7 +507,7 @@ export default function HomePage() {
                           className="btn-primary-apple inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition"
                         >
                           <Zap className="w-3.5 h-3.5" />
-                          <span>Prompt</span>
+                          <span>Use Model</span>
                         </Link>
                       </td>
                     </tr>

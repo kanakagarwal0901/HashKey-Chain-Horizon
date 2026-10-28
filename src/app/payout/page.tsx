@@ -386,10 +386,10 @@ export default function SellerPayoutPage() {
           <div>
             <span className="text-xs text-zinc-400 font-medium block">Stage 1 of 3</span>
             <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5">
-              HashKey Payout Node & Treasury
+              Your Earnings & Payout Wallet
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              Active seller node receives programmatic micropayments on HashKey Chain per actual tokens consumed (<code className="text-zinc-300">T_used</code>).
+              You receive automatic payments directly to your wallet for the exact AI tokens consumed.
             </p>
           </div>
 
@@ -418,7 +418,7 @@ export default function SellerPayoutPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Node Identity Card */}
           <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
-            <span className="text-zinc-500 text-[11px] block">Active Payout Node Address</span>
+            <span className="text-zinc-500 text-[11px] block">Your Payout Wallet</span>
             <div className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${currentSellerNode ? "bg-emerald-400" : "bg-zinc-600"}`} />
               {currentSellerNode ? (
@@ -454,13 +454,13 @@ export default function SellerPayoutPage() {
               <ExternalLink className="w-3 h-3 text-emerald-500" />
             </a>
             <span className="text-xs text-zinc-400 block pt-0.5">
-              Atomic Mandate Lock & Conserved Value Settle
+              Instant Per-Token Settlement
             </span>
           </div>
 
           {/* Net Available Balance Card */}
           <div className="p-6 rounded-2xl liquid-glass-interactive space-y-2">
-            <span className="text-emerald-400 text-[11px] block font-semibold">Net Available to Sweep (Wallet HSK)</span>
+            <span className="text-emerald-400 text-[11px] block font-semibold">Available to Withdraw</span>
             <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight flex items-baseline gap-2 tabular-data">
               {hskBalance.toFixed(4)}
               <span className="text-xs text-zinc-400 font-normal">HSK</span>

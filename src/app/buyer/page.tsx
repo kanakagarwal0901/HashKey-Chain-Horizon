@@ -694,18 +694,18 @@ contract VaultLending {
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-200 border border-white/10 flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-zinc-300" />
-            EF CROPS Confidentiality Standard
+            100% Private & Encrypted
           </span>
           <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            Zero-Cutoff Guaranteed
+            Guaranteed Full Response
           </span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-          Buyer Confidential Studio
+          AI Playground & Studio
         </h1>
         <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
-          Prompts and documents are sealed in browser memory with RSA-OAEP and executed inside isolated 0G hardware enclaves. Guaranteed token headroom ensures zero mid-stream interruptions.
+          Ask frontier AI models anything with total privacy and zero monthly commitments. Your prompts and files are encrypted directly in your browser before leaving your device.
         </p>
 
         {/* Global Status Bar */}
@@ -838,7 +838,7 @@ contract VaultLending {
             </h2>
           </div>
           <span className="text-xs text-emerald-400 bg-emerald-950/40 px-3.5 py-1.5 rounded-full border border-emerald-800/40 font-medium self-start sm:self-auto">
-            Invariant: Quota &ge; T_max
+            Guaranteed Completion
           </span>
         </div>
 
@@ -923,7 +923,7 @@ contract VaultLending {
                 Reasoning Depth Budget
               </span>
               <span className="text-xs text-zinc-500 font-normal">
-                {activeModelMeta.supportsThinking ? "Internal CoT Enabled" : "Deterministic Only"}
+                {activeModelMeta.supportsThinking ? "Thinking Mode Enabled" : "Direct Mode (Fast)"}
               </span>
             </label>
 
@@ -953,7 +953,7 @@ contract VaultLending {
             ) : (
               <div className="p-4 rounded-2xl bg-black/40 border border-white/[0.08] text-xs text-zinc-400 flex items-center gap-2">
                 <Info className="w-4 h-4 text-zinc-500 shrink-0" />
-                <span>This model operates in standard deterministic inference mode.</span>
+                <span>This model answers directly without extra thinking steps.</span>
               </div>
             )}
             <p className="text-xs text-zinc-400">
@@ -968,7 +968,7 @@ contract VaultLending {
         <div className="p-6 sm:p-7 rounded-2xl bg-black/50 border border-white/[0.08] flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-2.5">
             <BrainCircuit className="w-4 h-4 text-zinc-400" />
-            <span className="font-semibold text-white">Guaranteed Ceiling (T_max):</span>
+            <span className="font-semibold text-white">Reserved Token Capacity:</span>
             <span className="text-white font-bold tabular-data text-sm">
               {bounds.totalMaxTokens.toLocaleString()} tokens
             </span>
@@ -981,7 +981,7 @@ contract VaultLending {
             <span>&bull;</span>
             <span>Context: <strong className="text-zinc-200 tabular-data">{Math.round(bounds.contextWindow / 1000)}k</strong></span>
             <span className="px-2.5 py-1 rounded-full bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 text-[11px] font-medium hidden sm:inline-block">
-              Zero-Cutoff Protected
+              Guaranteed Full Response
             </span>
           </div>
         </div>
@@ -993,13 +993,13 @@ contract VaultLending {
           <div>
             <span className="text-xs text-zinc-400 font-medium block">Stage 2 of 3</span>
             <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5">
-              Verified Orderbook Nodes
+              Available AI Providers
               <span className="ml-2 text-sm font-normal text-zinc-400">
                 ({eligibleSellers.length} qualified)
               </span>
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              Only nodes with available quota Q &ge; T_max ({bounds.totalMaxTokens.toLocaleString()} tokens) are qualified to fulfill requests.
+              Only providers with enough verified token capacity ({bounds.totalMaxTokens.toLocaleString()} tokens) are listed, ensuring your answer never cuts off.
             </p>
           </div>
 
@@ -1024,10 +1024,10 @@ contract VaultLending {
           <div className="p-8 rounded-2xl bg-zinc-900 border border-white/10 text-zinc-300 space-y-5">
             <div className="flex items-center gap-3 font-semibold text-sm text-white">
               <AlertCircle className="w-5 h-5 text-zinc-400 shrink-0" />
-              No active nodes meet the Zero-Cutoff Invariant for {activeModelMeta.name} (Q &ge; {bounds.totalMaxTokens.toLocaleString()} tokens)
+              No active providers currently have enough token capacity for {activeModelMeta.name} ({bounds.totalMaxTokens.toLocaleString()} tokens)
             </div>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              To guarantee zero generation drops, ShunyaGrid requires nodes to hold at least T_max headroom.
+              To guarantee your query completes without interruption, we only match you with providers holding full capacity.
             </p>
 
             {activeOrderbookModels.length > 0 && (
@@ -1061,11 +1061,11 @@ contract VaultLending {
             <table className="w-full text-left text-xs" data-ui="sellers-table">
               <thead className="bg-black/80 text-zinc-400 uppercase text-[11px] font-semibold border-b border-white/[0.08]">
                 <tr>
-                  <th className="py-4 px-6 sm:px-7">Seller Node</th>
-                  <th className="py-4 px-6 sm:px-7">Available Quota</th>
-                  <th className="py-4 px-6 sm:px-7">Rate / 1k</th>
-                  <th className="py-4 px-6 sm:px-7">Upfront Escrow</th>
-                  <th className="py-4 px-6 sm:px-7">Payout Node</th>
+                  <th className="py-4 px-6 sm:px-7">Provider</th>
+                  <th className="py-4 px-6 sm:px-7">Available Tokens</th>
+                  <th className="py-4 px-6 sm:px-7">Price / 1k</th>
+                  <th className="py-4 px-6 sm:px-7">Estimated Deposit</th>
+                  <th className="py-4 px-6 sm:px-7">Payout Address</th>
                   <th className="py-4 px-6 sm:px-7 text-right">Action</th>
                 </tr>
               </thead>
@@ -1129,7 +1129,7 @@ contract VaultLending {
                             onClick={() => handlePromptNow(seller)}
                             className="btn-primary-apple inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold"
                           >
-                            <span>Prompt Now</span>
+                            <span>Select Provider</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -1155,7 +1155,7 @@ contract VaultLending {
                 Confidential Prompt Studio
               </h3>
               <p className="text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
-                Choose an eligible verified node in Stage 2 above to begin client-side encryption and execution.
+                Choose an available provider in Stage 2 above to begin your private query.
               </p>
             </div>
             {eligibleSellers.length > 0 && (
@@ -1178,7 +1178,7 @@ contract VaultLending {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-400">Active Node:</span>
+                    <span className="text-xs text-zinc-400">Selected Provider:</span>
                     <span className="text-sm font-semibold text-white">{selectedSeller.ensName}</span>
                     <span className="text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-full font-medium">
                       Node {selectedSeller.payoutAddress || selectedSeller.hedaraPayoutAccount || selectedSeller.ownerAddress}
@@ -1192,14 +1192,14 @@ contract VaultLending {
 
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <span className="text-[10px] text-zinc-500 uppercase block">Required Escrow</span>
+                  <span className="text-[10px] text-zinc-500 uppercase block">Estimated Deposit</span>
                   <span className="text-sm font-bold text-white tabular-data">${upfrontUsdc.toFixed(4)} USDC</span>
                 </div>
                 <button
                   onClick={() => setSelectedSeller(null)}
                   className="btn-secondary-apple px-4 py-2 text-xs font-medium"
                 >
-                  Change Node
+                  Change Provider
                 </button>
               </div>
             </div>
@@ -1209,7 +1209,7 @@ contract VaultLending {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <label className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-zinc-400" />
-                  <span>Confidential Prompt</span>
+                  <span>Your Prompt / Question</span>
                 </label>
                 <span className="text-xs text-zinc-500 tabular-data">
                   ~{estimatedPromptTokens.toLocaleString()} tokens ({promptText.length} chars)
@@ -1229,7 +1229,7 @@ contract VaultLending {
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
                   <Upload className="w-4 h-4 text-zinc-400" />
-                  Confidential Document Attachments
+                  Attach Documents & Files (Optional)
                 </label>
                 <span className="text-xs text-zinc-500 tabular-data">
                   {attachedFiles.length} file{attachedFiles.length === 1 ? "" : "s"} attached (~{estimatedFileTokens.toLocaleString()} tokens)
@@ -1308,7 +1308,7 @@ contract VaultLending {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-zinc-400" />
-                  <span className="text-xs font-semibold text-white">Payment Asset & Network</span>
+                  <span className="text-xs font-semibold text-white">Pay With (Token & Network)</span>
                 </div>
                 <div className="text-xs text-zinc-300 tabular-data">
                   {isFetchingQuote ? (
@@ -1444,7 +1444,7 @@ contract VaultLending {
                 ) : (
                   <p className="text-xs text-emerald-400 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Payload comfortably fits within input bounds. Zero cutoff risk.
+                    Your prompt and files fit well within capacity. Full response guaranteed.
                   </p>
                 )}
               </div>
@@ -1461,12 +1461,12 @@ contract VaultLending {
               >
                 <Shield className="w-4 h-4" />
                 {isExecuting
-                  ? "Executing Sealed Inference..."
+                  ? "Running Encrypted Query..."
                   : !walletAddress
                   ? `Connect Wallet & Lock (${paymentQuote.amountFormatted})`
                   : !worldIdVerified
                   ? `Verify World ID & Lock (${paymentQuote.amountFormatted})`
-                  : `Sign in MetaMask & Lock (${paymentQuote.amountFormatted})`}
+                  : `Run AI Query (${paymentQuote.amountFormatted})`}
               </button>
             </div>
 
@@ -1553,10 +1553,10 @@ contract VaultLending {
                   <div>
                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                      Decrypted AI Response (Local Browser Custody)
+                      Your AI Response (Private & Decrypted)
                     </h3>
                     <p className="text-xs text-zinc-400 mt-1">
-                      Recovered in local browser memory via ephemeral key K_return. Never exposed to the node operator.
+                      Decrypted safely in your browser. Nobody else could read your prompt or answer.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

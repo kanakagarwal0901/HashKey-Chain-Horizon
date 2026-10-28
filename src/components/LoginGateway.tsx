@@ -181,10 +181,10 @@ export default function LoginGateway({
                 Step 1 &bull; Purpose
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
-                Choose your path on ShunyaGrid
+                What would you like to do?
               </h2>
               <p className="text-xs sm:text-sm text-zinc-600 dark:text-neutral-400 leading-relaxed max-w-lg">
-                Select your primary activity. You can switch between Buyer Studio and Seller Hub anytime with the same account.
+                Choose an option below to get started. You can use AI models or sell API quota anytime with the same account.
               </p>
             </div>
 
@@ -205,7 +205,7 @@ export default function LoginGateway({
                   </div>
                   <h3 className="text-base font-semibold text-zinc-950 dark:text-white">Use AI privately</h3>
                   <p className="text-xs text-zinc-600 dark:text-neutral-400 leading-relaxed">
-                    Run frontier reasoning models with zero mid-generation cutoffs. Prompts and files stay sealed client-side.
+                    Ask frontier models anything with 100% privacy and zero monthly commitments. Your prompts never get cut off.
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-950 dark:text-white pt-2 border-t border-black/[0.06] dark:border-[var(--border-subtle)]">
@@ -230,7 +230,7 @@ export default function LoginGateway({
                   </div>
                   <h3 className="text-base font-semibold text-zinc-950 dark:text-white">Monetize spare quota</h3>
                   <p className="text-xs text-zinc-600 dark:text-neutral-400 leading-relaxed">
-                    List unused Tier-3/4 API tokens on the Arkiv orderbook. Earn instant on-chain HashKey HSK payouts.
+                    Share your unused monthly AI token capacity and receive instant automatic payouts to your wallet.
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-950 dark:text-white pt-2 border-t border-black/[0.06] dark:border-[var(--border-subtle)]">
@@ -265,7 +265,7 @@ export default function LoginGateway({
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] dark:bg-neutral-900 border border-black/[0.06] dark:border-[var(--border-subtle)] text-xs text-zinc-700 dark:text-neutral-400 font-medium">
                 <Wallet className="w-3.5 h-3.5 text-zinc-600 dark:text-neutral-300" />
-                Step 2 &bull; Web3 Identity
+                Step 2 &bull; Connect Wallet
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
                 Connect your crypto wallet
@@ -354,13 +354,13 @@ export default function LoginGateway({
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] dark:bg-neutral-900 border border-black/[0.06] dark:border-[var(--border-subtle)] text-xs text-zinc-700 dark:text-neutral-400 font-medium">
                 <Shield className="w-3.5 h-3.5 text-zinc-600 dark:text-neutral-300" />
-                Step 3 &bull; Proof of Personhood
+                Step 3 &bull; Human Check
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
-                Verify unique personhood
+                Quick anti-bot verification
               </h2>
               <p className="text-xs sm:text-sm text-zinc-600 dark:text-neutral-400 leading-relaxed max-w-lg">
-                ShunyaGrid uses zero-knowledge cryptography to prevent bot spam and pricing manipulation. No personal data or biometric information is ever stored.
+                We verify that you're a real human to protect against bots and spam. No personal data or identity is ever stored or tracked.
               </p>
             </div>
 
@@ -370,9 +370,9 @@ export default function LoginGateway({
                   <UserCheck className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">World ID Zero-Knowledge Proof</h4>
+                  <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">World ID Verification</h4>
                   <p className="text-xs text-zinc-600 dark:text-neutral-400 leading-relaxed">
-                    Verify via your World App or generate an authentic Semaphore Groth16 proof in the evaluation sandbox.
+                    Verify instantly with one click or scan a QR code with the World App.
                   </p>
                 </div>
               </div>

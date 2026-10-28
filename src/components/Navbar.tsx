@@ -66,8 +66,8 @@ export default function Navbar() {
   const navItems = [
     { href: "/buyer", label: "Buyer Studio", icon: Cpu },
     { href: "/seller", label: "Seller Hub", icon: Layers },
-    { href: "/marketplace", label: "Orderbook", icon: Database },
-    { href: "/payout", label: "Seller Payout", icon: Coins },
+    { href: "/marketplace", label: "Marketplace", icon: Database },
+    { href: "/payout", label: "Payouts", icon: Coins },
   ];
 
   return (
@@ -84,7 +84,7 @@ export default function Navbar() {
                 ShunyaGrid
               </span>
               <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal tracking-normal">
-                Zero-Cutoff AI Exchange
+                Private Pay-As-You-Go AI
               </span>
             </div>
           </Link>

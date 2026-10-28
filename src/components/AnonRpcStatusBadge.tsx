@@ -29,12 +29,12 @@ export default function AnonRpcStatusBadge({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium liquid-glass-pill text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition"
-        title="EF Anon-RPC Sandboxed Transport Status"
+        title="Private Network Shield Active"
       >
         <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 inline-block pulse-ring-emerald" />
         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-        <span className="hidden sm:inline">EF Anon-RPC:</span>
-        <span className="font-semibold text-zinc-900 dark:text-white tabular-data">{anonymizedPercentage}% Stripped</span>
+        <span className="hidden sm:inline">Privacy Shield:</span>
+        <span className="font-semibold text-zinc-900 dark:text-white tabular-data">100% Private</span>
         {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
       </button>
 
@@ -48,10 +48,10 @@ export default function AnonRpcStatusBadge({
           <div className="flex items-center justify-between pb-3 border-b border-black/[0.06] dark:border-white/[0.08]">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">Anon-RPC Worker Sandbox</h4>
+              <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">Private Network Shield</h4>
             </div>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/[0.04] dark:bg-neutral-900 text-zinc-700 dark:text-neutral-300 border border-black/[0.06] dark:border-[var(--border-subtle)]">
-              v0.3.3 EF CROPS
+              IP Masked
             </span>
           </div>
 

@@ -351,7 +351,7 @@ export default function ArcBridgeDrawer({
             <ArrowRightLeft className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white">Universal Seller Sweeper & Uniswap Bridge</h3>
+            <h3 className="text-lg font-semibold text-white">Withdraw Your Earnings</h3>
             <p className="text-xs text-neutral-400">
               Sweep accumulated HSK to any token on any chain directly to your connected MetaMask
             </p>

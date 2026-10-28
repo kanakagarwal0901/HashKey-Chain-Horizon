@@ -24,7 +24,6 @@ import {
   Check,
   Loader2,
   RefreshCw,
-  Trash2,
   Globe,
   TrendingUp,
   BrainCircuit,
@@ -47,6 +46,28 @@ import {
   getMinimumListingQuotaForModel,
   ThinkingLevel,
 } from "@shunya/core/tokenBoundsCatalog";
+
+function formatModelDisplayName(rawNameOrId?: string): string {
+  if (!rawNameOrId) return "";
+  const meta = getModelMetadata(rawNameOrId);
+  const fullName = meta?.name || rawNameOrId;
+  return fullName
+    .replace(/\s*\((Anthropic|OpenAI|Google|Groq|Groq LPU)\)/gi, "")
+    .replace(/^claude-3-7-sonnet.*/i, "Claude 3.7 Sonnet")
+    .replace(/^claude-3-5-sonnet.*/i, "Claude 3.5 Sonnet")
+    .replace(/^claude-3-5-haiku.*/i, "Claude 3.5 Haiku")
+    .replace(/^o3-mini.*/i, "o3-mini Reasoning")
+    .replace(/^o1.*/i, "o1 Deep Reasoning")
+    .replace(/^gpt-4o-mini.*/i, "GPT-4o Mini")
+    .replace(/^gpt-4o.*/i, "GPT-4o Omnimodal")
+    .replace(/^gemini-2\.0-flash-thinking.*/i, "Gemini 2.0 Flash Thinking")
+    .replace(/^gemini-2\.0-flash.*/i, "Gemini 2.0 Flash")
+    .replace(/^gemini-1\.5-pro.*/i, "Gemini 1.5 Pro")
+    .replace(/^deepseek-r1-distill-llama-70b.*/i, "DeepSeek R1 (70B)")
+    .replace(/^llama-3\.3-70b-versatile.*/i, "Llama 3.3 70B Versatile")
+    .trim();
+}
+
 
 export default function SellerHubPage() {
   const {
@@ -614,10 +635,10 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           </span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-          Seller Quota Hub & Monetization
+          Seller Hub: Earn from Unused AI Quota
         </h1>
         <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
-          Monetize your unused AI API token quotas &bull; Client-side RSA-OAEP sealing protects credentials &bull; Instant HashKey Chain HSP on-chain micropayments settled per actual tokens consumed (T_used) directly to your EVM address.
+          Turn your unused monthly AI limits into passive income. Your API keys are encrypted securely in your browser, and you get paid automatically to your crypto wallet for every token consumed.
         </p>
 
         {/* Action & Status Pill Box */}
@@ -674,10 +695,10 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <Shield className="w-5 h-5 text-emerald-400 shrink-0" />
             <div>
               <h3 className="text-base font-bold text-white tracking-tight">
-                Seller Authentication & Settlement Gateway
+                Quick 3-Step Setup for Sellers
               </h3>
               <p className="text-xs text-zinc-400 mt-0.5">
-                HashKey Chain Horizon &bull; Track 2: MetaMask Web3 + World ID + HashKey HSP
+                Connect your wallet, verify you're human, and receive automatic earnings
               </p>
             </div>
           </div>
@@ -696,7 +717,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
                   <Wallet className="w-3.5 h-3.5 text-zinc-400" />
-                  1. Web3 EVM Wallet
+                  1. Connect Wallet
                 </span>
                 {walletAddress ? (
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1 font-medium">
@@ -717,7 +738,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                 </div>
               ) : (
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Sign listings and receive HSP micropayments on HashKey Chain.
+                  Connect your crypto wallet to sign your listing and receive payments.
                 </p>
               )}
             </div>
@@ -747,7 +768,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-zinc-400" />
-                  2. World ID Verification
+                  2. Human Verification
                 </span>
                 {worldIdVerified ? (
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1 font-medium">
@@ -768,7 +789,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                 </div>
               ) : (
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  ZK proof of personhood stops bots and Sybil attacks.
+                  Quick one-time check to verify you're human and protect the network from spam.
                 </p>
               )}
             </div>
@@ -798,7 +819,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
                   <Zap className="w-3.5 h-3.5 text-emerald-400" />
-                  3. HashKey HSP Rails
+                  3. Payout Target Linked
                 </span>
                 {walletAddress ? (
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1 font-medium">
@@ -824,7 +845,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                     </a>
                   </div>
                   <p className="text-[11px] text-zinc-400">
-                    Programmatic micropayments on HashKey Chain (ID 133).
+                    Instant automatic payments sent directly to your wallet for tokens used.
                   </p>
                 </div>
               ) : (
@@ -855,7 +876,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900 border border-white/10 text-xs text-zinc-300">
               <Coins className="w-3.5 h-3.5 text-zinc-400" />
-              HashKey HSP Settlement Balance
+              Your Accumulated Earnings
             </span>
             <span className="px-3.5 py-1.5 rounded-full text-xs bg-emerald-950/40 border border-emerald-800/40 text-emerald-400 flex items-center gap-1.5 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-ring-emerald" />
@@ -881,7 +902,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-400 pt-1">
             <span>
-              Payout Node:{" "}
+              Payout Wallet:{" "}
               {walletAddress ? (
                 <a
                   href={`https://testnet-explorer.hskchain.net/address/${walletAddress}`}
@@ -923,8 +944,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           )}
 
           <p className="text-xs text-zinc-400 max-w-xl pt-1 leading-relaxed">
-            Tokens used (T_used) are automatically settled on HashKey Chain Testnet directly to your payout node.
-            Sweep accumulated earnings to any chain (HashKey, Sepolia, Arbitrum, Base) in any token via the HashKey Settlement Router.
+            You earn every time someone runs queries using your listed model. Payments arrive automatically in your wallet, and you can withdraw them anytime.
           </p>
         </div>
 
@@ -934,7 +954,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             className="btn-primary-apple px-6 py-3.5 text-xs font-semibold flex items-center gap-2 transition whitespace-nowrap"
           >
             <ArrowRightLeft className="w-4 h-4 text-black" />
-            <span>Universal Sweeper</span>
+            <span>Withdraw Earnings</span>
             <ArrowRight className="w-4 h-4 text-black" />
           </button>
           <Link
@@ -954,10 +974,10 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <div>
               <span className="text-xs text-zinc-400 font-medium block">Stage 3 of 3</span>
               <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5 flex items-center gap-2">
-                Register Authentic Arkiv Seller Entity
+                Create Your AI Model Listing
               </h2>
               <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-                Publish your quota with 1-hour block expiration. Auto-restored if unused.
+                List your token quota. Any unused capacity is safely returned to you.
               </p>
             </div>
             <span className="text-xs text-zinc-400 bg-zinc-900 px-3.5 py-1.5 rounded-full border border-white/10 self-start sm:self-auto">
@@ -967,65 +987,152 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
 
           <form onSubmit={handleSubmitListing} className="space-y-8">
             {/* Step 1: Provider & Model */}
-            <div className="grid sm:grid-cols-2 gap-6">
-              <div className="space-y-2.5">
+            <div className="space-y-6">
+              {/* 1. AI Provider Selection Boxes */}
+              <div className="space-y-3">
                 <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
-                  <span>1. AI Provider:</span>
-                  <span className="text-xs text-zinc-500 font-normal">4 Providers</span>
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-zinc-400" />
+                    1. AI Provider:
+                  </span>
+                  <span className="text-xs text-zinc-500 font-normal">{PROVIDERS.length} Providers Available</span>
                 </label>
-                <select
-                  value={provider}
-                  onChange={(e) => handleProviderChange(e.target.value)}
-                  className="w-full rounded-2xl bg-[#121316] border border-white/10 hover:border-white/20 p-4 text-sm text-white font-medium focus:outline-none focus:border-white/30 transition cursor-pointer"
-                >
-                  {PROVIDERS.map((p) => (
-                    <option key={p.id} value={p.id} className="bg-zinc-900 text-white">
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {PROVIDERS.map((p) => {
+                    const isCurrent = provider === p.id;
+                    const count = getModelsByProvider(p.id).length;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handleProviderChange(p.id)}
+                        className={`p-3.5 rounded-2xl border text-left transition flex flex-col justify-between gap-2 ${
+                          isCurrent
+                            ? "bg-white text-black font-semibold border-white shadow-sm"
+                            : "bg-[#121316] border-white/10 text-zinc-400 hover:text-white hover:border-white/20 hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <span className="text-sm font-semibold">{p.name}</span>
+                        <span className={`text-xs ${isCurrent ? "text-zinc-700 font-medium" : "text-zinc-500"}`}>
+                          {count} models
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="space-y-2.5">
-                <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
-                  <span>2. Target Model:</span>
+              {/* 2. Target Model Selection Boxes */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                    <Cpu className="w-3.5 h-3.5 text-zinc-400" />
+                    2. Target Model:
+                  </label>
                   <span className="text-xs text-zinc-500 font-normal">
-                    {availableModels.length} models for {provider}
+                    Select a model for {PROVIDERS.find((p) => p.id === provider)?.name || provider}
                   </span>
-                </label>
-                <select
-                  value={model}
-                  onChange={(e) => handleModelChange(e.target.value)}
-                  className="w-full rounded-2xl bg-[#121316] border border-white/10 hover:border-white/20 p-4 text-sm text-white font-medium focus:outline-none focus:border-white/30 transition cursor-pointer"
-                >
-                  {availableModels.map((m) => (
-                    <option key={m.id} value={m.id} className="bg-zinc-900 text-white">
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
+                </div>
+
+                {/* Model Selection Boxes Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {availableModels.map((m) => {
+                    const isSelected = model === m.id;
+                    const cleanName = formatModelDisplayName(m.name);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => handleModelChange(m.id)}
+                        className={`p-4 rounded-2xl border text-left transition relative flex flex-col justify-between gap-3 group ${
+                          isSelected
+                            ? "bg-white/[0.08] border-white text-white shadow-[0_0_20px_rgba(255,255,255,0.08)] ring-1 ring-white/20"
+                            : "bg-[#121316] border-white/10 text-zinc-400 hover:text-white hover:border-white/20 hover:bg-white/[0.03]"
+                        }`}
+                      >
+                        <div className="space-y-1.5 w-full">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`text-sm font-bold truncate ${isSelected ? "text-white" : "text-zinc-200"}`}>
+                              {cleanName}
+                            </span>
+                            {isSelected ? (
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 ring-4 ring-emerald-400/20 shrink-0" />
+                            ) : (
+                              <span className="w-2 h-2 rounded-full bg-transparent border border-white/20 group-hover:border-white/40 shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">
+                            {m.description}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-white/[0.06] text-[10px]">
+                          <span className="px-2 py-0.5 rounded-md bg-white/[0.06] text-zinc-300 font-medium tabular-data">
+                            {Math.round(m.contextWindow / 1000)}k ctx
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-white/[0.06] text-zinc-300 font-medium tabular-data">
+                            {Math.round(m.maxOutputTokens / 1000)}k cap
+                          </span>
+                          {m.supportsThinking ? (
+                            <span className="px-2 py-0.5 rounded-md bg-white/[0.06] text-zinc-300 font-medium tabular-data">
+                              Reasoning
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] text-zinc-400 font-medium">
+                              Standard
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
             {/* Model Specification & Headroom Invariant */}
             {currentModelMeta && (
-              <div className="rounded-2xl bg-black/60 border border-white/[0.08] p-5 sm:p-6 space-y-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-zinc-300" />
-                    <span className="text-sm font-bold text-white">
-                      {currentModelMeta.name}
-                    </span>
+              <div className="rounded-2xl bg-black/60 border border-white/[0.08] p-5 sm:p-6 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-white/[0.05] border border-white/10 text-white">
+                      <Zap className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">
+                          {formatModelDisplayName(currentModelMeta.name)}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/[0.08] text-zinc-300 uppercase tracking-wider">
+                          {currentModelMeta.provider}
+                        </span>
+                        {currentModelMeta.supportsThinking && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/[0.08] text-zinc-300">
+                            Reasoning
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-zinc-400">Configured target model specs</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3.5 text-xs text-zinc-400">
-                    <span>Context: <strong className="text-zinc-200 tabular-data">{Math.round(currentModelMeta.contextWindow / 1000)}k</strong></span>
-                    <span>&bull;</span>
-                    <span>Output Cap: <strong className="text-zinc-200 tabular-data">{currentModelMeta.maxOutputTokens.toLocaleString()}</strong></span>
-                    <span>&bull;</span>
-                    <span>Min Quota: <strong className="text-emerald-400 tabular-data">&ge; {minRequiredQuota.toLocaleString()} tokens</strong></span>
+
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center gap-1.5">
+                      <span className="text-zinc-400">Context:</span>
+                      <strong className="text-zinc-200 tabular-data">{Math.round(currentModelMeta.contextWindow / 1000)}k</strong>
+                    </div>
+                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center gap-1.5">
+                      <span className="text-zinc-400">Output Cap:</span>
+                      <strong className="text-zinc-200 tabular-data">{currentModelMeta.maxOutputTokens.toLocaleString()}</strong>
+                    </div>
+                    <div className="px-3 py-1.5 rounded-xl bg-emerald-950/30 border border-emerald-800/30 flex items-center gap-1.5">
+                      <span className="text-emerald-400 font-medium">Min Quota:</span>
+                      <strong className="text-emerald-300 tabular-data">&ge; {minRequiredQuota.toLocaleString()} tokens</strong>
+                    </div>
                   </div>
                 </div>
-                <p className="text-xs text-zinc-400 leading-relaxed">
+
+                <p className="text-xs text-zinc-400 leading-relaxed pt-1 border-t border-white/[0.06]">
                   {currentModelMeta.description} Minimum listing volume is enforced to guarantee zero-cutoff execution for buyers.
                 </p>
               </div>
@@ -1036,11 +1143,11 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 text-zinc-400" />
-                  3. Authentic Provider API Key:
+                  3. Your Provider API Key:
                 </label>
                 <span className="text-xs text-zinc-400 flex items-center gap-1 font-medium">
                   <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                  Client-Side RSA-OAEP Sealing
+                  Encrypted in Your Browser
                 </span>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
@@ -1082,7 +1189,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                       <div className="flex items-center justify-between">
                         <span className="text-white font-semibold flex items-center gap-1.5">
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                          API Key Verified: {keyVerification.modelDisplayName || currentModelMeta?.name}
+                          API Key Verified: {formatModelDisplayName(keyVerification.modelDisplayName || currentModelMeta?.name)}
                         </span>
                         <span className="text-[10px] bg-emerald-950/40 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-800/40 font-medium">
                           Active
@@ -1111,7 +1218,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                     <div className="p-5 rounded-2xl bg-red-950/30 border border-red-800/30 text-xs space-y-2 text-red-300">
                       <div className="font-semibold flex items-center gap-1.5 text-red-400">
                         <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                        Provider Rejected Key for Model {model}
+                        Provider Rejected Key for Model {formatModelDisplayName(currentModelMeta?.name || model)}
                       </div>
                       <p className="text-xs text-zinc-300 leading-relaxed">
                         {keyVerification.error || "The upstream AI provider rejected this API key. Please check your credentials and model permissions."}
@@ -1122,14 +1229,14 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
               )}
 
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Your plaintext key is verified directly via an upstream test call, then sealed in client browser RAM before transmission. It is never stored in plaintext and never leaked to buyers.
+                Your API key is verified with the provider and encrypted in your browser before sending. It is never stored in plain text and never revealed to buyers.
               </p>
 
               {sealedKeyCiphertext && (
                 <div className="p-4 rounded-xl bg-black/60 border border-white/[0.08] text-xs text-zinc-400 space-y-1">
                   <span className="text-white font-medium block flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    Enclave RSA-OAEP Ciphertext Generated (Safe to Broadcast):
+                    Encrypted & Protected (Ready to Publish):
                   </span>
                   <div className="truncate text-zinc-500 tabular-data">{sealedKeyCiphertext}</div>
                 </div>
@@ -1140,7 +1247,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <div className="grid sm:grid-cols-2 gap-6">
               <div className="space-y-2.5">
                 <label className="text-xs font-semibold text-zinc-300 block">
-                  4. Token Quota to List (Tokens):
+                  4. Token Capacity to Offer:
                 </label>
                 <input
                   type="number"
@@ -1151,13 +1258,13 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                   className="w-full rounded-2xl bg-[#121316] border border-white/10 hover:border-white/20 p-4 text-sm text-white font-bold tabular-data focus:outline-none focus:border-white/30 transition"
                 />
                 <span className="text-xs text-zinc-400 tabular-data block">
-                  Minimum required for {currentModelMeta?.name}: &ge; {minRequiredQuota.toLocaleString()} tokens.
+                  Minimum required for {formatModelDisplayName(currentModelMeta?.name)}: &ge; {minRequiredQuota.toLocaleString()} tokens.
                 </span>
               </div>
 
               <div className="space-y-2.5">
                 <label className="text-xs font-semibold text-zinc-300 block">
-                  5. Price per 1,000 Tokens (USDC):
+                  5. Price per 1,000 Tokens ($):
                 </label>
                 <input
                   type="number"
@@ -1180,7 +1287,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <div className="grid sm:grid-cols-2 gap-6 pt-2 border-t border-white/[0.08]">
               <div className="space-y-2.5">
                 <label className="text-xs font-semibold text-zinc-300 block">
-                  6. World ID Proof of Human:
+                  6. Human Verification:
                 </label>
                 <div>
                   {worldIdVerified ? (
@@ -1209,7 +1316,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-zinc-300 block">
-                    7. ENS Node Identity:
+                    7. Your Seller Display Name:
                   </label>
                   {/* Mode Toggle */}
                   <div className="flex items-center gap-1 bg-black p-1 rounded-full border border-white/10 text-xs">
@@ -1255,7 +1362,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                       </span>
                     </div>
                     <span className="text-xs text-zinc-500 mt-1 block">
-                      Subname issued under ShunyaGrid ENS registry with ERC-3668 CCIP resolution.
+                      Choose a free .shunyagrid.eth name or verify your existing .eth name.
                     </span>
                   </div>
                 ) : (
@@ -1315,7 +1422,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
-                  <span>8. Payout Target (HashKey Chain EVM):</span>
+                  <span>8. Payout Wallet Address:</span>
                   {walletAddress ? (
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1 font-medium">
                       <Check className="w-3 h-3" /> HashKey EVM: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
@@ -1365,7 +1472,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                 </div>
               )}
               <p className="text-xs text-zinc-500 leading-relaxed">
-                When queries consume your token quota, authentic HSP transfers settle on-chain directly to this address.
+                When users run queries with your model, payments are automatically sent to this wallet address.
               </p>
             </div>
 
@@ -1381,14 +1488,14 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             >
               <Sparkles className="w-4 h-4" />
               {isSubmitting
-                ? "Broadcasting to Arkiv..."
+                ? "Publishing Listing..."
                 : !walletAddress
                 ? "Connect MetaMask Wallet to Publish"
                 : !worldIdVerified
                 ? "Verify World ID to Publish"
                 : !rawApiKey
                 ? "Enter API Key to Publish"
-                : "Publish Verified Token Listing on Arkiv (1-Hour Expiration)"}
+                : "Publish AI Listing"}
             </button>
           </form>
         </SpatialCard>
@@ -1403,16 +1510,13 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
 
             <div className="space-y-3.5 text-xs text-zinc-400 leading-relaxed">
               <p>
-                1. <strong className="text-white">Zero Idle Waste:</strong> Pre-paid or monthly token quotas that normally expire unused are now monetized on-demand.
+                1. <strong className="text-white">Zero Idle Waste:</strong> Monthly limits that normally expire unused are monetized into cash on-demand.
               </p>
               <p>
-                2. <strong className="text-white">Actual Token Payout:</strong> Once inference finishes, you receive an
-                instant <strong className="text-white">HSK</strong> transfer directly to your HashKey EVM wallet for the exact{" "}
-                <span className="text-emerald-400 font-semibold tabular-data">T_used</span> tokens consumed.
+                2. <strong className="text-white">Instant Token Payout:</strong> Once a query finishes, you receive payment directly in your wallet for the exact tokens consumed.
               </p>
               <p>
-                3. <strong className="text-white">Unused Quota Restored:</strong> Any unused token reservation (<span className="tabular-data">T_max - T_used</span>) is
-                credited straight back to your Arkiv listing so you can keep monetizing.
+                3. <strong className="text-white">Unused Quota Restored:</strong> If a buyer uses fewer tokens than reserved, the rest immediately returns to your listing so you can keep earning.
               </p>
             </div>
           </SpatialCard>
@@ -1420,11 +1524,10 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           <SpatialCard maxTilt={1.5} className="p-8 sm:p-10 space-y-3 text-xs">
             <span className="text-white font-semibold block flex items-center gap-1.5">
               <Shield className="w-4 h-4 text-emerald-400" />
-              Zero Seller Surveillance Guarantee
+              Complete Privacy Guarantee
             </span>
             <p className="text-zinc-400 leading-relaxed">
-              You will never receive or see the Buyer&apos;s prompt text, uploaded documents, or AI output. Your node proxy log only
-              shows the HashKey block confirmation, tokens consumed, and the HSK payout received.
+              You will never receive or see the buyer&apos;s prompt text, uploaded documents, or AI output. You only see the tokens consumed and the payout received.
             </p>
           </SpatialCard>
         </div>
@@ -1435,23 +1538,12 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
             <Database className="w-5 h-5 text-white" />
-            Active Arkiv Orderbook Entities
+            Live Seller Listings
             <span className="text-xs font-normal text-zinc-400 px-3 py-1 rounded-full bg-zinc-900 border border-white/10">
               {listings.length} node{listings.length === 1 ? "" : "s"} listed
             </span>
           </h2>
           <div className="flex items-center gap-2.5">
-            {listings.length > 0 && (
-              <button
-                type="button"
-                onClick={handleClearOrderbook}
-                className="btn-secondary-apple text-xs px-3.5 py-1.5 text-red-400 flex items-center gap-1.5"
-                title="Clear all listings from orderbook"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Clear Orderbook
-              </button>
-            )}
             <button
               onClick={fetchListings}
               className="btn-secondary-apple text-xs px-3.5 py-1.5 text-zinc-300 hover:text-white flex items-center gap-1"
@@ -1475,19 +1567,19 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
               <table className="w-full text-left text-xs" data-ui="seller-listings-table">
                 <thead className="bg-black/80 text-zinc-400 uppercase text-[11px] font-semibold border-b border-white/[0.08]">
                   <tr>
-                    <th className="px-6 py-4">ENS Subname</th>
+                    <th className="px-6 py-4">Seller</th>
                     <th className="px-6 py-4">Model</th>
                     <th className="px-6 py-4">Available Quota</th>
                     <th className="px-6 py-4">Price / 1k</th>
                     <th className="px-6 py-4">World ID</th>
-                    <th className="px-6 py-4">Payout Node (HashKey)</th>
+                    <th className="px-6 py-4">Payout Address</th>
                     <th className="px-6 py-4">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.06]">
                   {listings.map((l) => (
                     <tr key={l.id} className="hover:bg-white/[0.03] transition">
-                      <td className="px-6 py-5 font-semibold text-white">
+                      <td className="px-6 py-5 font-semibold text-white whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <span>{l.ensName}</span>
                           {(l.payoutAddress || l.ownerAddress)?.toLowerCase() === walletAddress?.toLowerCase() && (
@@ -1500,10 +1592,13 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                           {l.ownerAddress ? `${l.ownerAddress.slice(0, 6)}...${l.ownerAddress.slice(-4)}` : ""}
                         </span>
                       </td>
-                      <td className="px-6 py-5">
-                        <span className="px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-200 text-xs font-medium">
-                          {l.model}
-                        </span>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs font-medium whitespace-nowrap">
+                          <Cpu className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                          <span className="text-zinc-100 font-semibold whitespace-nowrap">
+                            {formatModelDisplayName(l.modelDisplayName || l.model)}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-5 font-semibold text-white tabular-data">
                         {l.availableTokens.toLocaleString()} tokens

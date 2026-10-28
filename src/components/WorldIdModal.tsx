@@ -325,8 +325,8 @@ export default function WorldIdModal({
             <UserCheck className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">World ID Proof of Human</h3>
-            <p className="text-xs text-neutral-400">Zero-Knowledge Sybil-Resistant Onboarding</p>
+            <h3 className="text-lg font-bold text-white">Verify You're a Real Human</h3>
+            <p className="text-xs text-neutral-400">Quick one-time check to protect the platform from bots</p>
           </div>
         </div>
 
@@ -348,7 +348,7 @@ export default function WorldIdModal({
           </div>
         ) : (
           <div className="flex items-center justify-between px-3.5 py-1.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs text-neutral-400">
-            <span>Linked Web3 Identity:</span>
+            <span>Linked Wallet:</span>
             <span className="text-emerald-400 font-semibold flex items-center gap-1.5 tabular-data">
               <Check className="w-3.5 h-3.5" />
               {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
@@ -368,7 +368,7 @@ export default function WorldIdModal({
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            Instant ZK Proof (Sandbox)
+            1-Click Instant Verify (Fast)
           </button>
           <button
             type="button"
@@ -380,7 +380,7 @@ export default function WorldIdModal({
             }`}
           >
             <Globe className="w-3.5 h-3.5" />
-            World App / Simulator
+            World App QR Code
           </button>
         </div>
 

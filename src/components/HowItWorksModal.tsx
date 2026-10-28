@@ -122,7 +122,7 @@ export default function HowItWorksModal({
             }`}
           >
             <Shield className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Zero-Cutoff</span>
+            <span className="truncate">Safety & Guarantees</span>
           </button>
         </div>
 
@@ -154,7 +154,7 @@ export default function HowItWorksModal({
                   Pay-As-You-Go with Zero Monthly Subscriptions
                 </h3>
                 <p className="text-xs text-neutral-400 leading-relaxed break-words">
-                  Deposit upfront in USDC or ETH for your guaranteed token bound (T_max). When execution finishes, the seller is paid for actual tokens consumed (T_used), and the remaining balance is kept as protocol commission. If an upstream rejection or failure occurs, 100% of your deposit is refunded automatically on-chain.
+                  Deposit a small amount upfront for your query. When the answer completes, you are charged only for the exact tokens consumed. If an upstream error or rejection ever occurs, 100% of your deposit is refunded immediately.
                 </p>
               </div>
             </div>
@@ -177,7 +177,7 @@ export default function HowItWorksModal({
                   Hardware Enclave Key Security
                 </h3>
                 <p className="text-xs text-neutral-400 leading-relaxed break-words">
-                  Your API key is sealed with RSA-OAEP to the hardware secure enclave. It is decrypted only in isolated enclave RAM during prompt execution and cannot be extracted or stolen by anyone.
+                  Your API key is encrypted directly in your browser. It is processed only inside a secure hardware chip during execution, so nobody—not even buyers or node runners—can ever view or steal your key.
                 </p>
               </div>
 
@@ -186,7 +186,7 @@ export default function HowItWorksModal({
                   Instant USDC Earnings and On-Chain Sweep
                 </h3>
                 <p className="text-xs text-neutral-400 leading-relaxed break-words">
-                  Every time a buyer sends a prompt, you receive instant on-chain HSK and USDC directly to your EVM address via HashKey Settlement Protocol (HSP). Sweep accumulated earnings directly to your connected wallet or any destination chain anytime.
+                  Every time a user runs a query with your model, you get paid automatically into your wallet. You can withdraw your accumulated earnings anytime to any token or blockchain network.
                 </p>
               </div>
             </div>
@@ -206,19 +206,19 @@ export default function HowItWorksModal({
 
               <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
                 <h3 className="text-white font-semibold text-sm">
-                  Deterministic Bounds (T_max)
+                  Guaranteed Full Answers (No Cutoffs)
                 </h3>
                 <p className="text-xs text-neutral-400 leading-relaxed break-words">
-                  Before a prompt is accepted, ShunyaGrid computes the mathematical upper bound of tokens needed (T_max) for that model and thinking level. If the seller&apos;s available quota is less than T_max, the prompt is safely redirected to another node. <strong>A prompt is never started unless completion is mathematically guaranteed.</strong>
+                  Before your question is sent, ShunyaGrid calculates the maximum tokens the AI might need. If a seller does not have enough capacity, we automatically match you with another provider. <strong>A query is never started unless it is guaranteed to complete without interruption.</strong>
                 </p>
               </div>
 
               <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-1.5 min-w-0 break-words">
                 <h3 className="text-white font-semibold text-sm">
-                  Sybil Resistance with World ID
+                  Human Verification (Anti-Bot Protection)
                 </h3>
                 <p className="text-xs text-neutral-400 leading-relaxed break-words">
-                  Both buyers and sellers verify proof-of-personhood using World ID Zero-Knowledge proofs. This eliminates bot farms, orderbook spoofing, and sybil pricing manipulation while preserving 100% user anonymity.
+                  We use World ID to ensure all users and providers are authentic real humans without collecting any private personal data. This keeps the marketplace safe from spam bots, fake listings, and fraud.
                 </p>
               </div>
             </div>
