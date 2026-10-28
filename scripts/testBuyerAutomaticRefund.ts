@@ -144,8 +144,9 @@ async function runAutomaticRefundTests() {
       humanVerified: true,
     });
 
-    // Notify dev server to sync listings from disk
-    await fetch(`${baseUrl}/api/listings?reload=true`);
+    try {
+      // Notify dev server to sync listings from disk
+      await fetch(`${baseUrl}/api/listings?reload=true`);
 
     const buyerWallet = "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444";
     const paymentTx = `0x_test_verified_${crypto.randomBytes(24).toString("hex")}`;
@@ -249,9 +250,11 @@ async function runAutomaticRefundTests() {
       `Seller locked tokens reset to 0 (locked: ${refreshedListing?.lockedTokens})`
     );
 
-    // Clean up temporary test listing from Arkiv storage to keep orderbook clean
-    arkivDb.deleteListing(rejectedSellerListing.id);
-    await fetch(`${baseUrl}/api/listings?reload=true`);
+    } finally {
+      // Clean up temporary test listing from Arkiv storage to keep orderbook clean
+      arkivDb.deleteListing(rejectedSellerListing.id);
+      await fetch(`${baseUrl}/api/listings?reload=true`);
+    }
   }
 
   // --------------------------------------------------------------------------
