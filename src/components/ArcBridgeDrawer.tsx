@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   ArrowRightLeft,
@@ -82,6 +82,8 @@ export default function ArcBridgeDrawer({
   const [addedTokenSuccess, setAddedTokenSuccess] = useState<boolean>(false);
   const [addedNetworkSuccess, setAddedNetworkSuccess] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
+  const [hasUserEdited, setHasUserEdited] = useState<boolean>(false);
+  const prevIsOpenRef = useRef<boolean>(false);
 
   useEffect(() => {
     setMounted(true);
@@ -102,11 +104,18 @@ export default function ArcBridgeDrawer({
     }
   }, [sellerNodeAddress, walletAddress]);
 
-  // When drawer opens, immediately fetch latest balance
+  // When drawer opens, initialize the sweep amount once if not edited
   useEffect(() => {
-    if (isOpen && onRefresh) {
-      onRefresh();
+    if (isOpen && !prevIsOpenRef.current) {
+      setHasUserEdited(false);
+      if (availableHskEarnings && availableHskEarnings > 0) {
+        setSweepAmount(
+          availableHskEarnings < 0.001 ? availableHskEarnings.toFixed(6) : availableHskEarnings.toFixed(4)
+        );
+      }
+      if (onRefresh) onRefresh();
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen]);
 
   // Live Uniswap Quote State
@@ -124,13 +133,16 @@ export default function ArcBridgeDrawer({
     loading: false,
   });
 
+  // Only sync initial balance if user has NOT manually typed and the input is uninitialized
   useEffect(() => {
-    if (availableHskEarnings !== undefined) {
-      setSweepAmount(
-        availableHskEarnings > 0 ? (availableHskEarnings < 0.001 ? availableHskEarnings.toFixed(6) : availableHskEarnings.toFixed(4)) : "0.0000"
-      );
+    if (!hasUserEdited && (sweepAmount === "0.0000" || sweepAmount === "0" || sweepAmount === "")) {
+      if (availableHskEarnings && availableHskEarnings > 0) {
+        setSweepAmount(
+          availableHskEarnings < 0.001 ? availableHskEarnings.toFixed(6) : availableHskEarnings.toFixed(4)
+        );
+      }
     }
-  }, [availableHskEarnings]);
+  }, [availableHskEarnings, hasUserEdited, sweepAmount]);
 
   useEffect(() => {
     if (walletAddress) {
@@ -493,7 +505,7 @@ export default function ArcBridgeDrawer({
                 )}
                 <button
                   disabled={isZeroBalance}
-                  onClick={() => setSweepAmount(currentAvailable > 0 ? (currentAvailable < 0.001 ? currentAvailable.toFixed(6) : currentAvailable.toFixed(4)) : "0.0000")}
+                  onClick={() => { setHasUserEdited(false); setSweepAmount(currentAvailable > 0 ? (currentAvailable < 0.001 ? currentAvailable.toFixed(6) : currentAvailable.toFixed(4)) : "0.0000"); }}
                   className="btn-secondary-apple text-xs font-semibold px-3 py-1.5 rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Sweep Max
@@ -529,7 +541,7 @@ export default function ArcBridgeDrawer({
                   type="number"
                   step="0.0001"
                   value={sweepAmount}
-                  onChange={(e) => setSweepAmount(e.target.value)}
+                  onChange={(e) => { setHasUserEdited(true); setSweepAmount(e.target.value); }}
                   className={`w-full rounded-full bg-[var(--surface-2)] border px-4 py-2.5 text-sm text-white focus:outline-none transition ${
                     isExceedingBalance
                       ? "border-rose-500 text-rose-300 focus:border-rose-400"
