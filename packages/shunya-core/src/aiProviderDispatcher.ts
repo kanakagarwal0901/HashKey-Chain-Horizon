@@ -1,4 +1,5 @@
 import { ThinkingLevel, ModelTokenBounds } from "./tokenBoundsCatalog";
+import { cleanApiKey, isAutomatedTestKey } from "./apiKeyVerifier";
 
 export interface AiExecutionRequest {
   modelId: string;
@@ -21,10 +22,11 @@ export interface AiExecutionResponse {
 export class AiProviderDispatcher {
   // Execute token-bounded inference inside sealed enclave RAM
   public async executeAiCall(params: AiExecutionRequest): Promise<AiExecutionResponse> {
-    const rawKey = params.rawApiKey.trim();
+    const rawKey = cleanApiKey(params.rawApiKey);
     const lowerKey = rawKey.toLowerCase();
     console.log(`[AiDispatcher.executeAiCall] model=${params.modelId}, keyPrefix=${rawKey.slice(0, 8)}, len=${rawKey.length}`);
-    const isTestKey =
+    const isTestKey = isAutomatedTestKey(rawKey);
+    const _legacyTest =
       lowerKey.includes("sample") ||
       lowerKey.includes("placeholder") ||
       lowerKey.includes("demo-token-key") ||
@@ -217,7 +219,7 @@ export class AiProviderDispatcher {
 
   // Live Google Gemini API (Gemini 2.0 Flash Thinking / Flash / Pro)
   private async callGeminiLive(params: AiExecutionRequest): Promise<AiExecutionResponse> {
-    const rawKey = params.rawApiKey.trim();
+    const rawKey = cleanApiKey(params.rawApiKey);
 
     let candidateModels: string[] = [];
 
