@@ -65,7 +65,7 @@ export class ArkivDatabaseEngine {
   private files: Map<string, ArkivFileEntity> = new Map();
   private entityMutexes: Map<string, AsyncMutex> = new Map();
   private currentBlock: number = 19_482_100;
-  private persistencePath: string = path.join(process.cwd(), ".data", "arkiv_listings.json");
+  private persistencePath: string = typeof process !== "undefined" && typeof process.cwd === "function" ? path.join(process.cwd(), ".data", "arkiv_listings.json") : "";
   private shouldPersist: boolean = true;
 
   constructor(options?: { persist?: boolean }) {
@@ -86,9 +86,9 @@ export class ArkivDatabaseEngine {
   }
 
   private loadFromDisk() {
-    if (!this.shouldPersist) return;
+    if (!this.shouldPersist || typeof window !== "undefined") return;
     try {
-      if (fs.existsSync(this.persistencePath)) {
+      if (this.persistencePath && fs && typeof fs.existsSync === "function" && fs.existsSync(this.persistencePath)) {
         const raw = fs.readFileSync(this.persistencePath, "utf8");
         const list: ArkivSellerListingEntity[] = JSON.parse(raw);
         if (Array.isArray(list)) {
@@ -108,8 +108,9 @@ export class ArkivDatabaseEngine {
   }
 
   private saveToDisk() {
-    if (!this.shouldPersist) return;
+    if (!this.shouldPersist || typeof window !== "undefined") return;
     try {
+      if (!this.persistencePath || !fs || typeof fs.existsSync !== "function") return;
       const dir = path.dirname(this.persistencePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       const list = Array.from(this.listings.values());

@@ -84,7 +84,7 @@ export class HashKeyTreasuryEngine {
     }
   > = new Map();
 
-  private persistencePath: string = path.join(process.cwd(), ".data", "hashkey_treasury.json");
+  private persistencePath: string = typeof process !== "undefined" && typeof process.cwd === "function" ? path.join(process.cwd(), ".data", "hashkey_treasury.json") : "";
   public readonly chainId: number = 133;
   public hspAdapterAddress: string = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
   public routerAddress: string = "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D";
@@ -103,8 +103,9 @@ export class HashKeyTreasuryEngine {
   }
 
   private loadPersistence() {
+    if (typeof window !== "undefined") return;
     try {
-      if (fs.existsSync(this.persistencePath)) {
+      if (this.persistencePath && fs && typeof fs.existsSync === "function" && fs.existsSync(this.persistencePath)) {
         const data = JSON.parse(fs.readFileSync(this.persistencePath, "utf8"));
         this.settlements = data.settlements || [];
         this.sweeps = data.sweeps || [];
@@ -118,7 +119,9 @@ export class HashKeyTreasuryEngine {
   }
 
   private savePersistence() {
+    if (typeof window !== "undefined") return;
     try {
+      if (!this.persistencePath || !fs || typeof fs.existsSync !== "function") return;
       const dir = path.dirname(this.persistencePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       const serializableBalances = Object.fromEntries(this.balances.entries());

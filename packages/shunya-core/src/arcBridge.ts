@@ -30,15 +30,16 @@ export interface ArcBridgeTransaction {
 
 export class ArcBridgeService {
   private transactions: ArcBridgeTransaction[] = [];
-  private persistencePath = path.join(process.cwd(), ".data", "seller_sweeps.json");
+  private persistencePath = typeof process !== "undefined" && typeof process.cwd === "function" ? path.join(process.cwd(), ".data", "seller_sweeps.json") : "";
 
   constructor() {
     this.loadFromDisk();
   }
 
   private loadFromDisk() {
+    if (typeof window !== "undefined") return;
     try {
-      if (fs.existsSync(this.persistencePath)) {
+      if (this.persistencePath && fs && typeof fs.existsSync === "function" && fs.existsSync(this.persistencePath)) {
         const raw = fs.readFileSync(this.persistencePath, "utf8");
         const list = JSON.parse(raw);
         if (Array.isArray(list)) {
@@ -49,7 +50,9 @@ export class ArcBridgeService {
   }
 
   private saveToDisk() {
+    if (typeof window !== "undefined") return;
     try {
+      if (!this.persistencePath || !fs || typeof fs.existsSync !== "function") return;
       const dir = path.dirname(this.persistencePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(this.persistencePath, JSON.stringify(this.transactions, null, 2), "utf8");

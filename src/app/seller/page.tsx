@@ -46,7 +46,7 @@ import {
   getModelTokenBounds,
   getMinimumListingQuotaForModel,
   ThinkingLevel,
-} from "@shunya/core";
+} from "@shunya/core/tokenBoundsCatalog";
 
 export default function SellerHubPage() {
   const {

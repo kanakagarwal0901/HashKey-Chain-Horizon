@@ -41,7 +41,11 @@ async function checkBalances() {
       chainId: 84532,
       usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     },
-    "hashkey-testnet": {`r`n      rpc: "https://testnet.hsk.xyz",`r`n      chainId: 133,`r`n      usdc: "0x054ed45810DbBAb8B27668922D110669c9D88D0a",`r`n    },
+    "hashkey-testnet": {
+      rpc: "https://testnet.hsk.xyz",
+      chainId: 133,
+      usdc: "0x054ed45810DbBAb8B27668922D110669c9D88D0a",
+    },
   };
 
   const erc20Abi = [

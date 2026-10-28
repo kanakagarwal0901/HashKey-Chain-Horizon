@@ -41,13 +41,14 @@ export class BuyerRefundEngine {
   private refunds: BuyerRefundResult[] = [];
 
   constructor() {
-    this.refundsFilePath = path.join(process.cwd(), ".data", "buyer_refunds.json");
+    this.refundsFilePath = typeof process !== "undefined" && typeof process.cwd === "function" ? path.join(process.cwd(), ".data", "buyer_refunds.json") : "";
     this.loadFromDisk();
   }
 
   private loadFromDisk() {
+    if (typeof window !== "undefined") return;
     try {
-      if (fs.existsSync(this.refundsFilePath)) {
+      if (this.refundsFilePath && fs && typeof fs.existsSync === "function" && fs.existsSync(this.refundsFilePath)) {
         const raw = fs.readFileSync(this.refundsFilePath, "utf8");
         this.refunds = JSON.parse(raw);
       }
@@ -57,7 +58,9 @@ export class BuyerRefundEngine {
   }
 
   private saveToDisk() {
+    if (typeof window !== "undefined") return;
     try {
+      if (!this.refundsFilePath || !fs || typeof fs.existsSync !== "function") return;
       const dir = path.dirname(this.refundsFilePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(this.refundsFilePath, JSON.stringify(this.refunds, null, 2), "utf8");

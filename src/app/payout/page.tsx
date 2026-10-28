@@ -780,7 +780,7 @@ export default function SellerPayoutPage() {
                         <td className="px-6 py-5 text-zinc-200 font-medium">{s.modelId}</td>
                         <td className="px-6 py-5 text-zinc-300 tabular-data">{s.tUsed} / {s.tMax}</td>
                         <td className="px-6 py-5 text-emerald-400 font-bold tabular-data">
-                          +{s.sellerPayoutHsk?.toFixed(4) || "0.0000"} HSK (${s.sellerPayoutUsdc?.toFixed(4) || "0.0000"})
+                          +{Number(s.sellerPayoutHsk || 0).toFixed(4)} HSK (${Number(s.sellerPayoutUsdc || 0).toFixed(4)})
                         </td>
                         <td className="px-6 py-5">
                           <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-800/40 text-[10px] font-medium">

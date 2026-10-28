@@ -10,7 +10,7 @@ import {
   getModelTokenBounds,
   getModelsByProvider,
   getModelMetadata,
-} from "@shunya/core";
+} from "@shunya/core/tokenBoundsCatalog";
 import {
   Cpu,
   Shield,
@@ -1609,19 +1609,19 @@ contract VaultLending {
                   <div className="p-3.5 rounded-xl bg-black/60 border border-white/[0.06]">
                     <span className="text-zinc-500 block text-[11px]">Seller Payout</span>
                     <span className="font-semibold text-emerald-400 text-sm tabular-data">
-                      ${executionResult.tokenAccounting.sellerPayoutUsdc.toFixed(6)}
+                      ${Number(executionResult.tokenAccounting.sellerPayoutUsdc || 0).toFixed(6)}
                     </span>
                   </div>
                   <div className="p-3.5 rounded-xl bg-black/60 border border-white/[0.06]">
                     <span className="text-zinc-500 block text-[11px]">Protocol Commission</span>
                     <span className="font-semibold text-zinc-300 text-sm tabular-data">
-                      ${executionResult.tokenAccounting.protocolCommissionUsdc.toFixed(6)}
+                      ${Number(executionResult.tokenAccounting.protocolCommissionUsdc || 0).toFixed(6)}
                     </span>
                   </div>
                 </div>
 
                 <p className="text-[11px] text-zinc-400 leading-relaxed pt-1">
-                  Settlement Breakdown: The seller received <span className="text-emerald-400 font-semibold tabular-data">${executionResult.tokenAccounting.sellerPayoutUsdc.toFixed(6)} USDC</span> for actual tokens used. The remaining balance of <span className="text-zinc-200 font-semibold tabular-data">${executionResult.tokenAccounting.protocolCommissionUsdc.toFixed(6)} USDC</span> is retained as protocol commission.
+                  Settlement Breakdown: The seller received <span className="text-emerald-400 font-semibold tabular-data">${Number(executionResult.tokenAccounting.sellerPayoutUsdc || 0).toFixed(6)} USDC</span> for actual tokens used. The remaining balance of <span className="text-zinc-200 font-semibold tabular-data">${Number(executionResult.tokenAccounting.protocolCommissionUsdc || 0).toFixed(6)} USDC</span> is retained as protocol commission.
                 </p>
 
                 {/* Proofs & Dual Verified On-Chain Receipts */}
@@ -1695,7 +1695,7 @@ contract VaultLending {
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
                         <span className="text-xs text-zinc-400 tabular-data">
-                          Payout: +{executionResult.hashKeySettlement?.sellerPayoutHsk?.toFixed(4) || "0.0000"} HSK
+                          Payout: +{Number(executionResult.hashKeySettlement?.sellerPayoutHsk || 0).toFixed(4)} HSK
                         </span>
                         <a
                           href={executionResult.hashKeySettlement?.blockscoutUrl || "https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"}
