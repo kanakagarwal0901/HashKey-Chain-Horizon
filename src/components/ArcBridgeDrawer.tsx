@@ -25,6 +25,7 @@ interface ArcBridgeDrawerProps {
   onClose: () => void;
   availableUsdcEarnings?: number;
   availableHskEarnings?: number;
+  hskUsdRate?: number;
   sellerNodeAddress?: string;
   onSweepSuccess?: () => void;
   onRefresh?: () => void;
@@ -58,8 +59,9 @@ const SUPPORTED_CHAINS = [
 export default function ArcBridgeDrawer({
   isOpen,
   onClose,
-  availableUsdcEarnings = 1.0,
-  availableHskEarnings = 0.5,
+  availableUsdcEarnings = 0,
+  availableHskEarnings = 0,
+  hskUsdRate = 0.0894,
   sellerNodeAddress = "",
   onSweepSuccess,
   onRefresh,
@@ -70,7 +72,9 @@ export default function ArcBridgeDrawer({
   const [sourceAccountId, setSourceAccountId] = useState<string>(
     sellerNodeAddress || walletAddress || ""
   );
-  const [sweepAmount, setSweepAmount] = useState<string>(availableUsdcEarnings.toFixed(5));
+  const [sweepAmount, setSweepAmount] = useState<string>(
+    availableHskEarnings > 0 ? (availableHskEarnings < 0.001 ? availableHskEarnings.toFixed(6) : availableHskEarnings.toFixed(4)) : "0.0000"
+  );
   const [destinationEvmAddress, setDestinationEvmAddress] = useState<string>(
     walletAddress || ""
   );
@@ -84,7 +88,7 @@ export default function ArcBridgeDrawer({
   }, []);
 
   // Derived balance constraint checks
-  const currentAvailable = Number((availableUsdcEarnings ?? 0).toFixed(6));
+  const currentAvailable = Number((availableHskEarnings ?? 0).toFixed(6));
   const parsedAmount = parseFloat(sweepAmount);
   const isZeroBalance = currentAvailable <= 0;
   const isExceedingBalance = !isNaN(parsedAmount) && parsedAmount > currentAvailable + 0.000001;
@@ -115,16 +119,18 @@ export default function ArcBridgeDrawer({
   }>({
     expectedOut: 1.0,
     rate: 1.0,
-    router: "Uniswap-V3",
+    router: "HashKey-HSP-Native",
     feeTier: "0.3%",
     loading: false,
   });
 
   useEffect(() => {
-    if (availableUsdcEarnings !== undefined) {
-      setSweepAmount(availableUsdcEarnings > 0 ? availableUsdcEarnings.toFixed(5) : "0.00000");
+    if (availableHskEarnings !== undefined) {
+      setSweepAmount(
+        availableHskEarnings > 0 ? (availableHskEarnings < 0.001 ? availableHskEarnings.toFixed(6) : availableHskEarnings.toFixed(4)) : "0.0000"
+      );
     }
-  }, [availableUsdcEarnings]);
+  }, [availableHskEarnings]);
 
   useEffect(() => {
     if (walletAddress) {
@@ -139,10 +145,21 @@ export default function ArcBridgeDrawer({
       const parsed = parseFloat(sweepAmount);
       if (isNaN(parsed) || parsed <= 0) return;
 
+      if (selectedToken === "HSK") {
+        setQuotePreview({
+          expectedOut: parsed,
+          rate: 1.0,
+          router: "HashKey-HSP-Native",
+          feeTier: "0.0%",
+          loading: false,
+        });
+        return;
+      }
+
       setQuotePreview((prev) => ({ ...prev, loading: true }));
       try {
         const res = await fetch(
-          `/api/uniswap/quote?from=USDC&to=${selectedToken}&amount=${parsed}&chainId=${selectedChain}`
+          `/api/uniswap/quote?from=HSK&to=${selectedToken}&amount=${parsed}&chainId=${selectedChain}`
         );
         if (res.ok) {
           const data = await res.json();
@@ -150,7 +167,7 @@ export default function ArcBridgeDrawer({
             setQuotePreview({
               expectedOut: data.quote.expectedAmountOut,
               rate: data.quote.rate,
-              router: data.quote.sourceDex || "Uniswap-V3",
+              router: data.quote.sourceDex || "HashKey-HSP-Router",
               feeTier: "0.3%",
               loading: false,
             });
@@ -199,12 +216,12 @@ export default function ArcBridgeDrawer({
       }
 
       if (isZeroBalance) {
-        throw new Error("Cannot sweep: Your available HSK balance is $0.000000. You cannot sweep if your balance is 0.");
+        throw new Error("Cannot sweep: Your available HSK balance is 0.0000 HSK. You cannot sweep until you have an HSK balance on HashKey Chain.");
       }
 
       if (isExceedingBalance) {
         throw new Error(
-          `Cannot sweep $${parsedAmount.toFixed(6)} USDC: Amount cannot be greater than the current balance of $${currentAvailable.toFixed(6)} USDC.`
+          `Cannot sweep ${parsedAmount.toFixed(4)} HSK: Amount cannot be greater than the available balance of ${currentAvailable.toFixed(4)} HSK.`
         );
       }
 
@@ -232,7 +249,7 @@ export default function ArcBridgeDrawer({
           destinationChain: selectedChain,
           sourceAccount: cleanSourceAccount,
           recipientAddress: destinationEvmAddress.trim(),
-          amountUsdc: parsedAmount,
+          amountUsdc: parsedAmount * (hskUsdRate && hskUsdRate > 0 ? hskUsdRate : 0.0894),
           amountHsk: parsedAmount,
           targetToken: selectedToken,
         }),
@@ -254,7 +271,7 @@ export default function ArcBridgeDrawer({
         txId: txHash,
         explorerUrl: scanUrl,
         settledAmount: parsedAmount,
-        currency: "USDC",
+        currency: "HSK",
         swappedToken: data.swappedToken || selectedToken,
         swappedAmount: data.swappedAmount || quotePreview.expectedOut,
         dexRouter: data.dexRouter || "Uniswap V3 SwapRouter02",
@@ -264,8 +281,10 @@ export default function ArcBridgeDrawer({
       });
 
       // Immediately calculate optimistic remaining balance for the drawer
-      const newRemaining = Math.max(0, availableUsdcEarnings - parsedAmount);
-      setSweepAmount(newRemaining > 0 ? newRemaining.toFixed(5) : "0.00000");
+      const newRemaining = Math.max(0, (availableHskEarnings ?? 0) - parsedAmount);
+      setSweepAmount(
+        newRemaining > 0 ? (newRemaining < 0.001 ? newRemaining.toFixed(6) : newRemaining.toFixed(4)) : "0.0000"
+      );
 
       // Broadcast sweep completed locally and cross-tab
       if (typeof window !== "undefined") {
@@ -366,7 +385,7 @@ export default function ArcBridgeDrawer({
                 <h4 className="font-semibold text-white">Sweep & Swap Executed Successfully</h4>
               </div>
               <p className="text-xs text-neutral-300 leading-relaxed">
-                Swapped <strong className="text-white tabular-data">${bridgeResult.settledAmount.toFixed(4)} USD</strong> worth of HSK to{" "}
+                Swapped <strong className="text-white tabular-data">{bridgeResult.settledAmount.toFixed(4)} HSK</strong> to{" "}
                 <strong className="text-white tabular-data">{bridgeResult.swappedAmount.toFixed(6)} {bridgeResult.swappedToken}</strong>{" "}
                 via <strong className="text-white">{bridgeResult.dexRouter || "Uniswap V3"}</strong> and delivered directly to your connected MetaMask wallet (
                 <code className="text-neutral-300 font-mono">
@@ -399,7 +418,7 @@ export default function ArcBridgeDrawer({
               <div className="flex items-center justify-between text-neutral-400">
                 <span>DEX Routing & Rate:</span>
                 <span className="text-neutral-200 tabular-data">
-                  1 USDC ≈ {bridgeResult.dexRate?.toFixed(6)} {bridgeResult.swappedToken}
+                  1 HSK ≈ {bridgeResult.dexRate?.toFixed(6)} {bridgeResult.swappedToken}
                 </span>
               </div>
 
@@ -454,8 +473,11 @@ export default function ArcBridgeDrawer({
             <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
               <div>
                 <span className="text-xs text-slate-400">Available HSK Balance:</span>
-                <div className="text-xl font-bold tabular-data text-emerald-400">
-                  ${availableUsdcEarnings.toFixed(5)} <span className="text-xs font-normal text-neutral-400">USDC</span>
+                <div className="text-xl font-bold tabular-data text-emerald-400 flex items-baseline gap-2">
+                  <span>{(availableHskEarnings ?? 0).toFixed(4)} <span className="text-xs font-normal text-emerald-300">HSK</span></span>
+                  <span className="text-xs font-normal text-neutral-400">
+                    (&asymp; ${((availableHskEarnings ?? 0) * (hskUsdRate && hskUsdRate > 0 ? hskUsdRate : 0.0894)).toFixed(2)} USD)
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -471,7 +493,7 @@ export default function ArcBridgeDrawer({
                 )}
                 <button
                   disabled={isZeroBalance}
-                  onClick={() => setSweepAmount(currentAvailable > 0 ? currentAvailable.toFixed(5) : "0.00000")}
+                  onClick={() => setSweepAmount(currentAvailable > 0 ? (currentAvailable < 0.001 ? currentAvailable.toFixed(6) : currentAvailable.toFixed(4)) : "0.0000")}
                   className="btn-secondary-apple text-xs font-semibold px-3 py-1.5 rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Sweep Max
@@ -497,7 +519,7 @@ export default function ArcBridgeDrawer({
             {/* Sweep Amount Input */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs">
-                <label className="font-medium text-neutral-300">Sweep Amount</label>
+                <label className="font-medium text-neutral-300">Sweep Amount (HSK)</label>
                 <span className="text-neutral-400 tabular-data">
                   {sourceAccountId.trim() ? `From: ${sourceAccountId.trim()}` : "From: (Enter ID above)"}
                 </span>
@@ -517,18 +539,18 @@ export default function ArcBridgeDrawer({
                   }`}
                   placeholder="0.00"
                 />
-                <span className="absolute right-4 top-2.5 text-xs font-semibold text-neutral-400">USDC</span>
+                <span className="absolute right-4 top-2.5 text-xs font-semibold text-emerald-400">HSK</span>
               </div>
               {isZeroBalance && (
                 <div className="p-2.5 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs flex items-center gap-2 mt-1">
                   <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
-                  <span>Current balance is $0.00 USDC. You cannot sweep if your balance is 0.</span>
+                  <span>Current balance is 0.0000 HSK. Sweeps unlock once your connected wallet holds an HSK balance on HashKey Chain.</span>
                 </div>
               )}
               {isExceedingBalance && (
                 <div className="p-2.5 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2 mt-1">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                  <span>Cannot sweep amount greater than the current balance (${currentAvailable.toFixed(5)} USDC).</span>
+                  <span>Cannot sweep amount greater than the current balance ({currentAvailable.toFixed(4)} HSK).</span>
                 </div>
               )}
             </div>
@@ -597,7 +619,7 @@ export default function ArcBridgeDrawer({
                 </div>
               </div>
               <div className="text-right text-[11px] text-neutral-400">
-                <div className="tabular-data">Rate: 1 USDC ≈ {quotePreview.rate.toFixed(6)}</div>
+                <div className="tabular-data">Rate: 1 HSK ≈ {quotePreview.rate < 0.001 ? quotePreview.rate.toFixed(6) : quotePreview.rate.toFixed(4)} {selectedToken}</div>
                 <div className="text-neutral-300">0.3% Pool Tier</div>
               </div>
             </div>
@@ -645,7 +667,7 @@ export default function ArcBridgeDrawer({
                 ) : isZeroBalance ? (
                   <>
                     <AlertCircle className="w-4 h-4 text-amber-300" />
-                    Cannot Sweep: Balance is $0.00 USDC
+                    Cannot Sweep: Balance is 0.0000 HSK
                   </>
                 ) : isExceedingBalance ? (
                   <>

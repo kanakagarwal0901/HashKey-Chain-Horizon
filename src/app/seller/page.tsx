@@ -1688,6 +1688,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         onClose={() => setShowBridgeDrawer(false)}
         availableUsdcEarnings={totalEarnedUsdc}
         availableHskEarnings={hskBalance}
+        hskUsdRate={hskUsdRate}
         sellerNodeAddress={walletAddress || ""}
         onSweepSuccess={() => {
           fetchSellerBalance(walletAddress || undefined);
