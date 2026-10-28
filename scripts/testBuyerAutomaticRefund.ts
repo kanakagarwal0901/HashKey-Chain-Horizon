@@ -119,7 +119,7 @@ async function runAutomaticRefundTests() {
       `Refund amount equals $${refund.refundAmountUsdc.toFixed(6)} USDC`
     );
     assert(
-      refund.explorerUrl.includes("testnet-explorer.hsk.xyz"),
+      refund.explorerUrl.includes("testnet-explorer.hskchain.net"),
       "REFUND-02.4",
       `Explorer URL points to HashKey Explorer: ${refund.explorerUrl}`
     );

@@ -777,7 +777,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-white tabular-data truncate max-w-[130px]">{walletAddress}</span>
                     <a
-                      href={`https://testnet-explorer.hsk.xyz/address/${walletAddress}`}
+                      href={`https://testnet-explorer.hskchain.net/address/${walletAddress}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-xs text-emerald-400 hover:underline flex items-center gap-0.5"
@@ -799,7 +799,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             </div>
 
             <a
-              href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+              href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
               target="_blank"
               rel="noreferrer"
               className="text-[11px] text-emerald-400 hover:underline flex items-center justify-center gap-1"
@@ -845,7 +845,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <span>
               Payout Node:{" "}
               <a
-                href={`https://testnet-explorer.hsk.xyz/address/${walletAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"}`}
+                href={`https://testnet-explorer.hskchain.net/address/${walletAddress || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-white hover:underline font-semibold tabular-data"
@@ -857,7 +857,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <span>
               HSP Contract:{" "}
               <a
-                href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+                href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
                 target="_blank"
                 rel="noreferrer"
                 className="text-emerald-400 hover:underline tabular-data"
@@ -1286,7 +1286,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                 </label>
                 {walletAddress && (
                   <a
-                    href={`https://testnet-explorer.hsk.xyz/address/${walletAddress}`}
+                    href={`https://testnet-explorer.hskchain.net/address/${walletAddress}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs text-emerald-400 hover:text-emerald-300 underline flex items-center gap-1 tabular-data font-semibold"

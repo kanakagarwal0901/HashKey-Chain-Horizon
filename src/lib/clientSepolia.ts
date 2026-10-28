@@ -54,7 +54,7 @@ export async function switchOrAddHashKeyNetwork(): Promise<boolean> {
               chainName: "HashKey Chain Testnet",
               nativeCurrency: { name: "HashKey EcoPoints", symbol: "HSK", decimals: 18 },
               rpcUrls: [HASHKEY_TESTNET_RPC],
-              blockExplorerUrls: ["https://testnet-explorer.hsk.xyz"],
+              blockExplorerUrls: ["https://testnet-explorer.hskchain.net"],
             },
           ],
         });

@@ -119,7 +119,7 @@ export class BuyerRefundEngine {
       } else {
         refundTxHash = `0x${crypto.randomBytes(32).toString("hex")}`;
       }
-      explorerUrl = `https://testnet-explorer.hsk.xyz/tx/${refundTxHash}`;
+      explorerUrl = `https://testnet-explorer.hskchain.net/tx/${refundTxHash}`;
     } else {
       // 2. Process Sepolia / EVM Refund
       if (treasuryPk && treasuryPk.length === 66) {

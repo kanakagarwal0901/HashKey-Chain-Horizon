@@ -341,12 +341,12 @@ export default function MarketplacePage() {
           </span>
         </div>
         <a
-          href={process.env.NEXT_PUBLIC_ARC_STUDIO_PROJECT_URL || "https://studio.arc.com/projects/shunyagrid-mumbai"}
+          href="/api/arc-discovery"
           target="_blank"
           rel="noreferrer"
           className="text-white hover:text-neutral-300 hover:underline flex items-center gap-1 font-medium"
         >
-          Arc Studio Genesis Project <ExternalLink className="w-3 h-3" />
+          View Discovery Schema <ExternalLink className="w-3 h-3" />
         </a>
       </div>
     </div>

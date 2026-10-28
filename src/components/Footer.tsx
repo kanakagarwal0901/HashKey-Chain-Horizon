@@ -117,13 +117,46 @@ export default function Footer() {
             <ul className="space-y-2.5">
               <li>
                 <a
-                  href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+                  href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
                   target="_blank"
                   rel="noreferrer"
                   className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold"
                 >
                   <span>HashKey Explorer (HSP)</span>
                   <ArrowUpRight className="w-3 h-3" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://hashkey-merchant.github.io/en/#/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
+                >
+                  <span>HashKey Merchant / HSP Docs</span>
+                  <ArrowUpRight className="w-3 h-3 text-zinc-400" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://hashfans.io/dev-onepager"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
+                >
+                  <span>HashFans Dev Portal</span>
+                  <ArrowUpRight className="w-3 h-3 text-zinc-400" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://docs.hashkeychain.net/docs/Build-on-HashKey-Chain/Token-Contracts"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
+                >
+                  <span>HashKey Chain Docs</span>
+                  <ArrowUpRight className="w-3 h-3 text-zinc-400" />
                 </a>
               </li>
               <li>
@@ -145,17 +178,6 @@ export default function Footer() {
                   className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
                 >
                   <span>GitHub Repository</span>
-                  <ArrowUpRight className="w-3 h-3 text-zinc-400" />
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://hashkey-merchant.github.io/#/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1"
-                >
-                  <span>HashKey Merchant / HSP</span>
                   <ArrowUpRight className="w-3 h-3 text-zinc-400" />
                 </a>
               </li>

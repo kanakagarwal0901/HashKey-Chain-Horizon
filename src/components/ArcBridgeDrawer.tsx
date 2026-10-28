@@ -244,7 +244,7 @@ export default function ArcBridgeDrawer({
       const scanUrl =
         data.explorerUrl ||
         bridgeTx.explorerUrl ||
-        `https://testnet-explorer.hsk.xyz/tx/${txHash}`;
+        `https://testnet-explorer.hskchain.net/tx/${txHash}`;
 
       setBridgeResult({
         txId: txHash,
@@ -318,7 +318,7 @@ export default function ArcBridgeDrawer({
               chainName: "HashKey Chain Testnet",
               nativeCurrency: { name: "HashKey EcoPoints", symbol: "HSK", decimals: 18 },
               rpcUrls: ["https://testnet.hsk.xyz"],
-              blockExplorerUrls: ["https://testnet-explorer.hsk.xyz"],
+              blockExplorerUrls: ["https://testnet-explorer.hskchain.net"],
             },
           ],
         });

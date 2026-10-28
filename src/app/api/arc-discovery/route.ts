@@ -97,7 +97,7 @@ export async function GET() {
         entityKey: l.id,
         ensName: l.ensName || "anonymous.shunyagrid.eth",
         ownerAddress: l.ownerAddress,
-        payoutAddress: l.hedaraPayoutAccount || l.ownerAddress,
+        payoutAddress: l.hskPayoutAddress || l.ownerAddress,
         availableTokens: l.availableTokens,
         pricePer1kMicroUsdc: l.pricePer1kMicroUsdc,
         humanVerified: l.humanVerified ?? true,
@@ -111,7 +111,7 @@ export async function GET() {
       name: "ShunyaGrid",
       tagline: "The Blind, Zero-Cutoff AI API Token Exchange",
       arcStudioProjectUrl:
-        process.env.NEXT_PUBLIC_ARC_STUDIO_PROJECT_URL || "https://studio.arc.com/projects/shunyagrid-mumbai",
+        process.env.NEXT_PUBLIC_ARC_STUDIO_PROJECT_URL || "https://github.com/kanakagarwal0901/HashKey-Chain-Horizon",
       arcRpcUrl: process.env.NEXT_PUBLIC_ARC_RPC_URL || "https://rpc.testnet.arc.io",
       settlementCurrencies: ["USDC", "EURC"],
       settlementChains: ["HashKey Chain Testnet (HSP)", "Arc (Circle CCTP)"],

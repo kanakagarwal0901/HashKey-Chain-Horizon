@@ -10,7 +10,7 @@ export async function GET() {
     protocol: "ShunyaGrid",
     version: "1.0.0",
     description: "Blind, Zero-Cutoff AI API Token Exchange initialized in Arc Studio",
-    arcStudioProject: "https://studio.arc.com/project/shunyagrid-mumbai-2026",
+    arcStudioProject: "https://github.com/kanakagarwal0901/HashKey-Chain-Horizon",
     networkSupport: ["Arc", "HashKey Chain Testnet", "0G Galileo", "Ethereum"],
     catalog: models.map((m) => ({
       modelId: m.modelId,

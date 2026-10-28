@@ -39,7 +39,7 @@ export const SUPPORTED_CHAINS: Record<string, ChainMetadata> = {
     chainId: 133,
     chainIdHex: "0x85",
     rpcUrl: "https://testnet.hsk.xyz",
-    explorerUrl: "https://testnet-explorer.hsk.xyz",
+    explorerUrl: "https://testnet-explorer.hskchain.net",
     nativeCurrency: { name: "HashKey EcoPoints", symbol: "HSK", decimals: 18 },
     uniswapRouterAddress: "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D", // HashKey Settlement Router
     uniswapQuoterAddress: "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae", // HSP Adapter

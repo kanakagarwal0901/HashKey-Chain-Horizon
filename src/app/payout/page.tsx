@@ -22,7 +22,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import SpatialCard from "@/components/SpatialCard";
 
-const HSK_TESTNET_EXPLORER = "https://testnet-explorer.hsk.xyz";
+const HSK_TESTNET_EXPLORER = "https://testnet-explorer.hskchain.net";
 const HSP_ADAPTER_CONTRACT = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
 const DEFAULT_SELLER_NODE = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 

@@ -270,8 +270,8 @@ export default function HowItWorksModal({
                   Contracts are live on HashKey Chain Testnet (Chain ID 133):
                 </p>
                 <div className="text-[11px] font-mono text-zinc-300 space-y-1 pt-1 break-all">
-                  <div>• HSPAdapter: <a href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae" target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae</a></div>
-                  <div>• Router: <a href="https://testnet-explorer.hsk.xyz/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D" target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D</a></div>
+                  <div>• HSPAdapter: <a href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae" target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae</a></div>
+                  <div>• Router: <a href="https://testnet-explorer.hskchain.net/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D" target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D</a></div>
                   <div>• CCIP Selector: <span className="text-zinc-400">7613811247471741961 (ethereum-mainnet-hashkey-1)</span></div>
                 </div>
               </div>
@@ -293,7 +293,7 @@ export default function HowItWorksModal({
             </button>
             {activeTab === "hashkey" && (
               <a
-                href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+                href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
                 target="_blank"
                 rel="noreferrer"
                 className="btn-primary-apple px-4 sm:px-5 py-2 rounded-full font-semibold text-xs flex items-center gap-2"

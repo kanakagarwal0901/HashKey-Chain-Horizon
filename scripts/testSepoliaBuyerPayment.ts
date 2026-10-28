@@ -81,7 +81,7 @@ async function runSepoliaPaymentTests() {
   );
 
   assert(
-    Boolean(settlement.blockscoutUrl?.includes("https://testnet-explorer.hsk.xyz/tx/")),
+    Boolean(settlement.blockscoutUrl?.includes("https://testnet-explorer.hskchain.net/tx/")),
     "SEP-06: HashKey settlement receipt includes direct HashKey Explorer URL",
     settlement.blockscoutUrl
   );

@@ -94,7 +94,7 @@ async function runLiveIntegrationTests() {
     `Seller payout in native HSK calculated: ${settlementResult.sellerPayoutHsk} HSK`
   );
   assert(
-    Boolean(settlementResult.blockscoutUrl.includes("https://testnet-explorer.hsk.xyz/tx/")),
+    Boolean(settlementResult.blockscoutUrl.includes("https://testnet-explorer.hskchain.net/tx/")),
     "HSP-03",
     `Settlement generated Blockscout Explorer URL: ${settlementResult.blockscoutUrl}`
   );

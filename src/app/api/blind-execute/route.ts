@@ -334,7 +334,7 @@ export async function POST(request: NextRequest) {
           amountUsdc: upfrontChargeMicroUsdc / 1_000_000,
           from: evmPaymentDetails?.from || buyerAddress,
           to: evmPaymentDetails?.to || hashKeyTreasury.hspAdapterAddress,
-          explorerUrl: evmPaymentDetails?.etherscanUrl || `https://testnet-explorer.hsk.xyz/tx/${paymentHeader}`,
+          explorerUrl: evmPaymentDetails?.etherscanUrl || `https://testnet-explorer.hskchain.net/tx/${paymentHeader}`,
         },
         hashKeySettlement: {
           network: "HashKey Chain Testnet",

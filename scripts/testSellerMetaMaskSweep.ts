@@ -1,4 +1,5 @@
 import { arcBridgeService } from "../packages/shunya-core/src/arcBridge";
+import { hashKeyTreasury } from "../packages/shunya-core/src/hashkeyTreasury";
 
 async function testLiveSellerSweep() {
   console.log("=================================================");
@@ -8,6 +9,22 @@ async function testLiveSellerSweep() {
   const recipientAddress = "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444";
   const sourceAccount = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
   const amountUsdc = 0.05;
+
+  const currentBal = hashKeyTreasury.getSellerBalance(sourceAccount);
+  if (currentBal.currentBalanceUsdc < amountUsdc) {
+    console.log("[Setup] Crediting seller balance via simulated HSP query settlement...");
+    await hashKeyTreasury.settleSellerPayoutOnHashKey({
+      mandateId: "0xmandate_test_sweep_topup_" + Date.now(),
+      sellerAddress: sourceAccount,
+      buyerAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      modelId: "claude-3-7-sonnet",
+      tUsed: 500000,
+      tMax: 500000,
+      sellerPayoutMicroUsdc: 7_500_000,
+      protocolFeeMicroUsdc: 500_000,
+      attestationHashHex: "0xattest_sweep_topup",
+    });
+  }
 
   console.log(`[Test] Initiating live sweep of $${amountUsdc} USD from ${sourceAccount} to MetaMask (${recipientAddress})...`);
 

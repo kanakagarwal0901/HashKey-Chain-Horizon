@@ -237,7 +237,7 @@ export class HashKeyTreasuryEngine {
       buyerRefundHsk,
       attestationHashHex: params.attestationHashHex,
       timestamp: new Date().toISOString(),
-      blockscoutUrl: `https://testnet-explorer.hsk.xyz/tx/${txHash}`,
+      blockscoutUrl: `https://testnet-explorer.hskchain.net/tx/${txHash}`,
       status: "SETTLED",
       isLiveOnChain,
     };
@@ -307,7 +307,7 @@ export class HashKeyTreasuryEngine {
       buyerRefundHsk,
       attestationHashHex: params.attestationHashHex,
       timestamp: new Date().toISOString(),
-      blockscoutUrl: `https://testnet-explorer.hsk.xyz/tx/${params.txHash}`,
+      blockscoutUrl: `https://testnet-explorer.hskchain.net/tx/${params.txHash}`,
       status: "SETTLED",
     };
 
@@ -373,7 +373,7 @@ export class HashKeyTreasuryEngine {
       recentSettlements: sellerSettlements.slice(0, 15),
       recentSweeps: sellerSweeps.slice(0, 15),
       hspAdapterAddress: this.hspAdapterAddress,
-      blockscoutAccountUrl: `https://testnet-explorer.hsk.xyz/address/${sellerAddress}`,
+      blockscoutAccountUrl: `https://testnet-explorer.hskchain.net/address/${sellerAddress}`,
     };
   }
 
@@ -475,14 +475,14 @@ export class HashKeyTreasuryEngine {
 
     const explorerUrl =
       chainKey === "hashkey-testnet"
-        ? `https://testnet-explorer.hsk.xyz/tx/${sweepTxHash}`
+        ? `https://testnet-explorer.hskchain.net/tx/${sweepTxHash}`
         : chainKey === "ethereum-sepolia"
         ? `https://sepolia.etherscan.io/tx/${sweepTxHash}`
         : chainKey === "arbitrum-sepolia"
         ? `https://sepolia.arbiscan.io/tx/${sweepTxHash}`
         : chainKey === "base-sepolia"
         ? `https://sepolia.basescan.org/tx/${sweepTxHash}`
-        : `https://testnet-explorer.hsk.xyz/tx/${sweepTxHash}`;
+        : `https://testnet-explorer.hskchain.net/tx/${sweepTxHash}`;
 
     // Deduct full swept amount from seller balance (transferred to Treasury account)
     state.currentUsdc = Math.max(0, state.currentUsdc - requestedUsdc);

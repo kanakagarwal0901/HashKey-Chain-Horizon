@@ -23,8 +23,8 @@ import { zeroGService } from "../../packages/shunya-core/src/zeroGEnclave";
 import { HSPClient } from "../../packages/shunya-core/src/hspClient";
 
 const HASHKEY_TESTNET_RPC = "https://testnet.hsk.xyz";
-const HASHKEY_EXPLORER_TX = "https://testnet-explorer.hsk.xyz/tx";
-const HASHKEY_EXPLORER_ADDR = "https://testnet-explorer.hsk.xyz/address";
+const HASHKEY_EXPLORER_TX = "https://testnet-explorer.hskchain.net/tx";
+const HASHKEY_EXPLORER_ADDR = "https://testnet-explorer.hskchain.net/address";
 
 // Load HashKey Chain Testnet Deployments
 const deploymentsPath = path.resolve(process.cwd(), "contracts", "hashkey-testnet-deployments.json");

@@ -49,7 +49,7 @@ async function runHashKeyHspTest() {
   console.log(`  • Lock Transaction Hash: ${lockReceipt.hash}`);
   console.log(`  • Block Number: ${lockReceipt.blockNumber}`);
   console.log(`  • Gas Used: ${lockReceipt.gasUsed.toString()}`);
-  console.log(`  • Explorer: https://testnet-explorer.hsk.xyz/tx/${lockReceipt.hash}`);
+  console.log(`  • Explorer: https://testnet-explorer.hskchain.net/tx/${lockReceipt.hash}`);
   console.log(`  ✔ [PASS] Mandate successfully locked in HSPAdapter on HashKey Chain!`);
 
   // Wait 2.5s for testnet RPC load-balancer propagation across public nodes
@@ -80,7 +80,7 @@ async function runHashKeyHspTest() {
   console.log(`  • Seller Payout: ${sellerPayoutHsk} HSK`);
   console.log(`  • Protocol Commission: ${protocolFeeHsk} HSK`);
   console.log(`  • Buyer Refund: ${buyerRefundHsk} HSK`);
-  console.log(`  • Explorer: https://testnet-explorer.hsk.xyz/tx/${settleReceipt.hash}`);
+  console.log(`  • Explorer: https://testnet-explorer.hskchain.net/tx/${settleReceipt.hash}`);
   console.log(`  ✔ [PASS] HSP Settlement executed with full Conservation of Value!`);
 
   console.log(`\n[5/5] Querying Final On-Chain Mandate Status...`);

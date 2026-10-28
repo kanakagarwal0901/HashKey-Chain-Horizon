@@ -731,7 +731,7 @@ contract VaultLending {
                 {hskBalance.toFixed(3)} HSK
               </span>
               <a
-                href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+                href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
                 target="_blank"
                 rel="noreferrer"
                 title="View HSP Adapter on Blockscout"
@@ -1660,7 +1660,7 @@ contract VaultLending {
                                 : paymentChain === "base-sepolia"
                                 ? `https://sepolia.basescan.org/tx/${buyerSepoliaTxHash}`
                                 : paymentChain === "hashkey-testnet"
-                                ? `https://testnet-explorer.hsk.xyz/tx/${buyerSepoliaTxHash}`
+                                ? `https://testnet-explorer.hskchain.net/tx/${buyerSepoliaTxHash}`
                                 : `https://sepolia.etherscan.io/tx/${buyerSepoliaTxHash}`)
                             }
                             target="_blank"
@@ -1698,7 +1698,7 @@ contract VaultLending {
                           Payout: +{Number(executionResult.hashKeySettlement?.sellerPayoutHsk || 0).toFixed(4)} HSK
                         </span>
                         <a
-                          href={executionResult.hashKeySettlement?.blockscoutUrl || "https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"}
+                          href={executionResult.hashKeySettlement?.blockscoutUrl || "https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-400 hover:underline flex items-center gap-1 font-semibold text-xs"
@@ -1744,8 +1744,8 @@ contract VaultLending {
                           <a
                             href={
                               executionResult.hashKeySettlement.paymentTxHash?.startsWith("0x")
-                                ? `https://testnet-explorer.hsk.xyz/tx/${executionResult.hashKeySettlement.paymentTxHash}`
-                                : `https://testnet-explorer.hsk.xyz/address/${executionResult.hashKeySettlement.hspAdapterAddress}`
+                                ? `https://testnet-explorer.hskchain.net/tx/${executionResult.hashKeySettlement.paymentTxHash}`
+                                : `https://testnet-explorer.hskchain.net/address/${executionResult.hashKeySettlement.hspAdapterAddress}`
                             }
                             target="_blank"
                             rel="noreferrer"

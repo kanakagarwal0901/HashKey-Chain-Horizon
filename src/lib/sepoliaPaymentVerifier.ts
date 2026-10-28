@@ -51,7 +51,7 @@ export const PAYMENT_CHAINS: Record<string, ChainPaymentConfig> = {
     name: "HashKey Chain Testnet",
     rpcUrl: "https://testnet.hsk.xyz",
     chainId: 133,
-    explorerBaseUrl: "https://testnet-explorer.hsk.xyz/tx/",
+    explorerBaseUrl: "https://testnet-explorer.hskchain.net/tx/",
     usdcAddress: "0x054ed45810DbBAb8B27668922D110669c9D88D0a",
     nativeSymbol: "HSK",
     nativeUsdPrice: 0.75,

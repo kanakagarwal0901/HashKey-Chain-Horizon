@@ -48,7 +48,7 @@ export async function calculateSellerBalance(rawAddress?: string | null): Promis
     totalSweptUsdc: balance.totalSweptUsdc,
     hspAdapterAddress: balance.hspAdapterAddress,
     blockscoutAccountUrl: balance.blockscoutAccountUrl,
-    blockscoutTokenUrl: `https://testnet-explorer.hsk.xyz/token/0x054ed45810DbBAb8B27668922D110669c9D88D0a`,
+    blockscoutTokenUrl: `https://testnet-explorer.hskchain.net/token/0x054ed45810DbBAb8B27668922D110669c9D88D0a`,
     recentSettlements: balance.recentSettlements,
     recentSweeps: balance.recentSweeps,
     timestamp: new Date().toISOString(),

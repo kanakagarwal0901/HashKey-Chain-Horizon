@@ -15,8 +15,8 @@ However, **traditional Web3 and Web2 payment rails break down in agentic commerc
 
 **ShunyaGrid** solves this by establishing a decentralized, zero-cutoff Agent-to-Agent (A2A) payment and compute settlement network native to **HashKey Chain**. Powered by the **HashKey Settlement Protocol (HSP)**, ShunyaGrid enables AI agents and developers to trade unused API token quotas with mathematical guarantees: **zero prompt visibility, zero mid-way cutoffs, and exact conservation-of-value settlement.**
 
-* **HSP Adapter Contract:** [`0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae`](https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae)
-* **Settlement Router Contract:** [`0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D`](https://testnet-explorer.hsk.xyz/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D)
+* **HSP Adapter Contract:** [`0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae`](https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae)
+* **Settlement Router Contract:** [`0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D`](https://testnet-explorer.hskchain.net/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D)
 * **Autonomous Agent CLI:** `npm run agent:hsk`
 * **Live Web Interface:** [http://localhost:3000](http://localhost:3000)
 * **Quick Navigation:** [Transaction Workflow](#4-transaction-workflow-how-transactions-are-made-using-hsk) • [Architecture](#2-the-three-architectural-pillars) • [Live Contracts](#5-live-deployed-contracts--supported-tokens) • [Quickstart Guide](#8-quickstart--verification-guide)
@@ -276,9 +276,9 @@ All contracts are deployed and verified on **HashKey Chain Testnet (Chain ID 133
 
 | Contract | Address | Network | Explorer |
 | :--- | :--- | :--- | :--- |
-| **`HSPAdapter`** | `0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae` | HashKey Testnet (133) | [HashKey Blockscout](https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae) |
-| **`HashKeySettlementRouter`** | `0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D` | HashKey Testnet (133) | [HashKey Blockscout](https://testnet-explorer.hsk.xyz/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D) |
-| **`Deployer / Operator`** | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` | HashKey Testnet (133) | [HashKey Blockscout](https://testnet-explorer.hsk.xyz/address/0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266) |
+| **`HSPAdapter`** | `0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae` | HashKey Testnet (133) | [HashKey Blockscout](https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae) |
+| **`HashKeySettlementRouter`** | `0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D` | HashKey Testnet (133) | [HashKey Blockscout](https://testnet-explorer.hskchain.net/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D) |
+| **`Deployer / Operator`** | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` | HashKey Testnet (133) | [HashKey Blockscout](https://testnet-explorer.hskchain.net/address/0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266) |
 
 ### Supported Tokens & Cross-Chain Configuration
 * **Native HSK:** `address(0)` — Native gas and primary settlement token

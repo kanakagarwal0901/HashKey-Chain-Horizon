@@ -98,6 +98,6 @@ All contracts have been broadcast live on-chain and verified via [`https://testn
 
 | Contract | Address | On-Chain Tx Hash | Blockscout Explorer |
 | :--- | :--- | :--- | :--- |
-| **`HSPAdapter`** | `0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae` | `0xca3ccb9e1d5f2bbe16c2349c18a986f9484d610501cc19866215ba0ec5eed614` | [Blockscout HSPAdapter](https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae) |
-| **`HashKeySettlementRouter`** | `0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D` | `0x0c7d3aca815f3c38520edd9b8ec843510771ce8117595f7d9f74540c8da50125` | [Blockscout Router](https://testnet-explorer.hsk.xyz/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D) |
+| **`HSPAdapter`** | `0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae` | `0xca3ccb9e1d5f2bbe16c2349c18a986f9484d610501cc19866215ba0ec5eed614` | [Blockscout HSPAdapter](https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae) |
+| **`HashKeySettlementRouter`** | `0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D` | `0x0c7d3aca815f3c38520edd9b8ec843510771ce8117595f7d9f74540c8da50125` | [Blockscout Router](https://testnet-explorer.hskchain.net/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D) |
 

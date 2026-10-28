@@ -8,7 +8,7 @@ export const HASHKEY_CONFIGS = {
     name: "HashKey Chain Testnet",
     chainId: 133,
     rpcUrl: process.env.HASHKEY_TESTNET_RPC || "https://testnet.hsk.xyz",
-    explorerUrl: "https://testnet-explorer.hsk.xyz",
+    explorerUrl: "https://testnet-explorer.hskchain.net",
     nativeSymbol: "HSK",
     usdcAddress: "0x054ed45810DbBAb8B27668922D110669c9D88D0a", // Mock/bridged on testnet
   },

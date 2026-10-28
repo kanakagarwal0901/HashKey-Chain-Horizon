@@ -104,7 +104,7 @@ export class ArcBridgeService {
       status: "minted_on_destination",
       txHash,
       timestamp: new Date().toISOString(),
-      explorerUrl: `https://testnet-explorer.hsk.xyz/tx/${txHash}`,
+      explorerUrl: `https://testnet-explorer.hskchain.net/tx/${txHash}`,
     };
 
     this.transactions.unshift(bridgeTx);
