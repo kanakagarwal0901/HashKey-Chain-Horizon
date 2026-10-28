@@ -113,7 +113,7 @@ export default function ArcBridgeDrawer({
           availableHskEarnings < 0.001 ? availableHskEarnings.toFixed(6) : availableHskEarnings.toFixed(4)
         );
       }
-      if (onRefresh) onRefresh();
+      if (onRefresh) { setTimeout(() => onRefresh(), 0); }
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen]);
@@ -203,16 +203,46 @@ export default function ArcBridgeDrawer({
   const [bridgeResult, setBridgeResult] = useState<{
     txId: string;
     explorerUrl: string;
-    settledAmount: number;
+    settledAmount: number | string;
     currency: string;
     swappedToken: string;
-    swappedAmount: number;
+    swappedAmount: number | string;
     dexRouter?: string;
-    dexRate?: number;
+    dexRate?: number | string;
     recipientAddress: string;
     blockNumber?: number;
   } | null>(null);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
+
+  const formatSwappedAmountDisplay = (amount: number | string | undefined, token: string) => {
+    if (amount === undefined || amount === null) return "";
+    if (typeof amount === "number") {
+      return `${amount < 0.001 ? amount.toFixed(6) : amount.toFixed(4)} ${token}`;
+    }
+    const str = String(amount).trim();
+    if (str.includes(token)) return str;
+    const num = parseFloat(str);
+    if (!isNaN(num)) {
+      return `${num < 0.001 ? num.toFixed(6) : num.toFixed(4)} ${token}`;
+    }
+    return `${str} ${token}`;
+  };
+
+  const formatSettledAmountDisplay = (amount: number | string | undefined) => {
+    if (amount === undefined || amount === null) return "0.0000";
+    if (typeof amount === "number") return amount.toFixed(4);
+    const num = parseFloat(String(amount));
+    return !isNaN(num) ? num.toFixed(4) : String(amount);
+  };
+
+  const formatDexRateDisplay = (rate: number | string | undefined, token: string) => {
+    if (!rate) return "";
+    if (typeof rate === "number") {
+      return `1 HSK ≈ ${rate < 0.001 ? rate.toFixed(6) : rate.toFixed(4)} ${token}`;
+    }
+    const str = String(rate);
+    return str.startsWith("1 ") ? str : `1 HSK ≈ ${str} ${token}`;
+  };
 
   if (!isOpen || !mounted) return null;
 
@@ -397,8 +427,8 @@ export default function ArcBridgeDrawer({
                 <h4 className="font-semibold text-white">Sweep & Swap Executed Successfully</h4>
               </div>
               <p className="text-xs text-neutral-300 leading-relaxed">
-                Swapped <strong className="text-white tabular-data">{bridgeResult.settledAmount.toFixed(4)} HSK</strong> to{" "}
-                <strong className="text-white tabular-data">{bridgeResult.swappedAmount.toFixed(6)} {bridgeResult.swappedToken}</strong>{" "}
+                Swapped <strong className="text-white tabular-data">{formatSettledAmountDisplay(bridgeResult.settledAmount)} HSK</strong> to{" "}
+                <strong className="text-white tabular-data">{formatSwappedAmountDisplay(bridgeResult.swappedAmount, bridgeResult.swappedToken)}</strong>{" "}
                 via <strong className="text-white">{bridgeResult.dexRouter || "Uniswap V3"}</strong> and delivered directly to your connected MetaMask wallet (
                 <code className="text-neutral-300 font-mono">
                   {bridgeResult.recipientAddress.slice(0, 8)}...{bridgeResult.recipientAddress.slice(-6)}
@@ -430,7 +460,7 @@ export default function ArcBridgeDrawer({
               <div className="flex items-center justify-between text-neutral-400">
                 <span>DEX Routing & Rate:</span>
                 <span className="text-neutral-200 tabular-data">
-                  1 HSK ≈ {bridgeResult.dexRate?.toFixed(6)} {bridgeResult.swappedToken}
+                  {formatDexRateDisplay(bridgeResult.dexRate, bridgeResult.swappedToken)}
                 </span>
               </div>
 
