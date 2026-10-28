@@ -19,6 +19,7 @@ However, **traditional Web3 and Web2 payment rails break down in agentic commerc
 * **Settlement Router Contract:** [`0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D`](https://testnet-explorer.hsk.xyz/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D)
 * **Autonomous Agent CLI:** `npm run agent:hsk`
 * **Live Web Interface:** [http://localhost:3000](http://localhost:3000)
+* **Quick Navigation:** [Transaction Workflow](#4-transaction-workflow-how-transactions-are-made-using-hsk) • [Architecture](#2-the-three-architectural-pillars) • [Live Contracts](#5-live-deployed-contracts--supported-tokens) • [Quickstart Guide](#8-quickstart--verification-guide)
 
 ---
 
@@ -142,43 +143,129 @@ Here is how every module and technology in this repository functions:
 
 ---
 
-## 4. End-to-End Workflow Diagram
+## 4. Transaction Workflow: How Transactions Are Made Using HSK
+
+ShunyaGrid is architected around **HashKey Chain (Chain ID 133 Testnet / 177 Mainnet)** as the native clearinghouse for all AI agent compute, inference mandates, and financial settlements. To make AI compute universally accessible, buyers are not restricted to holding native HSK—they can fund compute requests using multiple popular tokens across multiple EVM networks. 
+
+Here is the comprehensive, end-to-end breakdown of how transactions and settlements flow through the protocol:
 
 ```
- [ Buyer AI Agent ]                     [ HSPAdapter.sol ]                   [ Seller Compute Node ]
-(e.g. OpenClaw CLI)                   (HashKey Chain 133)                     (Confidential Enclave)
-        |                                       |                                       |
-        | 1. Query Model & Token Ceiling (T_max) |                                       |
-        |------------------------------------------------------------------------------>|
-        |                                       |                                       |
-        | 2. Sign EIP-712 Payment Mandate       |                                       |
-        |    (v, r, s, mandateId, maxDeposit)   |                                       |
-        |                                       |                                       |
-        | 3. lockHSPMandateWithSignature()      |                                       |
-        |    [Locks HSK upfront on HashKey]     |                                       |
-        |-------------------------------------->|                                       |
-        |                                       |-- emit HSPMessageEmitted ------------>|
-        |                                       |                                       |
-        | 4. Dispatch Sealed Ciphertext         |                                       |
-        |    (AES-256-GCM encrypted in RAM)     |                                       |
-        |------------------------------------------------------------------------------>|
-        |                                       |                                       |
-        |                                       |                               [ Executes in Enclave ]
-        |                                       |                               [ Zero data leakage   ]
-        |                                       |                               [ Actual: T_used tokens]
-        |                                       |                                       |
-        |                                       | 5. settleHSPMandate()                 |
-        |                                       |    (sellerPayout + fee + refund)      |
-        |                                       |<--------------------------------------|
-        |                                       |                                       |
-        |                                       |-- [Payout HSK to Seller Node] ------->|
-        |                                       |-- [Protocol Fee to Treasury] -------->|
-        |                                       |-- [Unused HSK Refunded to Buyer] ---->|
-        |                                       |                                       |
-        |<-- 6. Encrypted Output + Status: SETTLED -------------------------------------|
-        |                                       |                                       |
- [ Decrypt Output in Local Agent RAM ]
- [ Mathematical Conservation Verified ]
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                               THE COMPLETE HSK TRANSACTION PIPELINE                             │
+├─────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                 │
+│  [1. MULTI-CHAIN BUYER OPTIONS]                                                                 │
+│      Buyer chooses funding asset: Sepolia ETH/USDC, Arbitrum Sepolia ETH/USDC, or HSK           │
+│                                      │                                                          │
+│                                      ▼                                                          │
+│  [2. UNIVERSAL CONVERSION TO HSK]                                                               │
+│      Assets priced via oracle/pool feeds and denominated into equivalent HSK value              │
+│                                      │                                                          │
+│                                      ▼                                                          │
+│  [3. TREASURY DEPOSIT & LOCKING]                                                                │
+│      Upfront HSK deposit covering T_max is locked in the Protocol Treasury / HSPAdapter.sol     │
+│                                      │                                                          │
+│                                      ▼                                                          │
+│  [4. DYNAMIC USAGE SETTLEMENT]                                                                  │
+│      Inference completes; exact tokens (T_used) verified:                                       │
+│      • Seller Payout: Exact HSK corresponding to T_used transferred to seller                   │
+│      • Protocol Commission: Platform fee retained by Protocol Treasury                          │
+│      • Buyer Refund: Unused HSK returned directly to buyer                                      │
+│                                      │                                                          │
+│                                      ▼                                                          │
+│  [5. SELLER SWEEP & BALANCE UPDATE]                                                             │
+│      Seller sweeps earned revenue from Treasury:                                                │
+│      • HSK form of payment settles against the Treasury                                         │
+│      • Swept value updates the seller's live on-chain balance in real time                      │
+│                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Detailed Step-by-Step Breakdown
+
+#### Step 1: Multi-Chain & Multi-Token Payment Options
+Buyers have complete freedom in how they fund their compute requests. In the ShunyaGrid Buyer Studio (`/buyer`) or via the OpenClaw Agent CLI (`npm run agent:hsk`), buyers can choose from a wide selection of networks and tokens:
+* **Ethereum Sepolia:** Sepolia ETH or USDC
+* **Arbitrum Sepolia:** Arbitrum Sepolia ETH or USDC
+* **Base Sepolia:** Base Sepolia ETH or USDC
+* **HashKey Chain (Chain ID 133):** Native HSK, HashKey official USDC (`0x054e...`), or USDT (`0xF1B5...`)
+
+This multi-chain flexibility allows developers, autonomous AI agents, and institutions holding assets on major Layer-1 and Layer-2 networks to purchase high-performance confidential compute without manually bridging assets beforehand. The incoming transaction is verified using the platform's cross-chain verification layer (`sepoliaPaymentVerifier.ts` and Chainlink CCIP).
+
+#### Step 2: Universal Conversion into HSK Form
+Because ShunyaGrid's core compute verification, state machine, and settlement logic execute on **HashKey Chain**, every incoming payment is denominated and converted into **HSK**:
+* **Real-Time Pricing:** Real-time decentralized exchange liquidity feeds (Uniswap v3 / DEX pool oracles via `uniswapService.ts`) quote the exact exchange rate between the buyer's source token (e.g., Sepolia ETH or USDC) and native HSK.
+* **Deterministic Token Budget ($T_{\max}$):** The system calculates the maximum possible token ceiling ($T_{\max} = \text{Input Cap} + \text{Thinking Budget} + \text{Output Cap}$) and determines the upfront amount in HSK required to guarantee that the inference request will never crash midway due to quota exhaustion.
+
+#### Step 3: Upfront Holding & Locking in the Protocol Treasury
+Before any prompt data or encrypted payload is dispatched to a seller compute node, the upfront HSK deposit is transferred and locked directly into the **Protocol Treasury & HSPAdapter Contract** (`contracts/HSPAdapter.sol`) on HashKey Chain:
+* **Default Protection:** Locking the funds upfront in the Treasury eliminates payment default risk. The seller node has cryptographic proof that the escrow is fully funded before burning costly GPU cycles.
+* **Atomic Quota Reservation:** Concurrently, the seller node's active listing quota on the orderbook is atomically locked to prevent race conditions or overselling.
+
+#### Step 4: Token-Bounded Settlement & Commission Split
+The compute node processes the prompt inside an isolated hardware Enclave with zero prompt visibility. Once the AI model finishes reasoning, the authoritative token count of actual tokens consumed ($T_{\text{used}}$) is verified on-chain:
+1. **Seller Payout in HSK:** Corresponding strictly to the tokens used by the seller, the exact earned compensation is paid out to the seller in **HSK**:
+   ```
+   Seller Payout (HSK) = (T_used / 1000) × Price_rate
+   ```
+2. **Protocol Commission:** The protocol charges a platform routing fee retained by the Protocol Treasury for facilitating the decentralized orderbook and secure escrow:
+   ```
+   Protocol Commission (HSK) = Routing Fee retained by Treasury
+   ```
+3. **Buyer Refund & Conservation of Value:** Because inference rarely consumes the absolute maximum ceiling ($T_{\max}$), the remaining unconsumed balance is immediately returned to the buyer's wallet in the same transaction:
+   ```
+   Upfront Deposit = Seller Payout (T_used) + Protocol Commission + Buyer Refund
+   ```
+4. **Quota Rebalancing:** The unused token capacity ($T_{\max} - T_{\text{used}}$) is restored to the seller's active orderbook quota, allowing them to serve new requests immediately.
+
+#### Step 5: Seller Sweep & Live Balance Rebalancing
+When a seller node operator wishes to withdraw their earned proceeds:
+* **Treasury Settlement:** The seller initiates a sweep from the Seller Hub (`/seller` or `/payout`). The HSK form of the payment stored in the Treasury is settled and released.
+* **Flexible Payout Delivery:** Sellers can choose to receive their payout directly in native HSK or bridged cross-chain to any supported EVM destination (via Chainlink CCIP / CCTP / Uniswap liquidity routing).
+* **Live Balance Synchronization:** As soon as the sweep executes, the swept amount is debited against the Treasury records and the seller's live balance is dynamically updated in real time (`calculateSellerBalance()`), preventing double-sweeps and keeping financial records mathematically synchronized across the network.
+
+---
+
+### End-to-End Workflow Sequence Diagram
+
+```
+  [ Buyer AI Agent ]                     [ HSPAdapter.sol ]                   [ Seller Compute Node ]
+ (e.g. OpenClaw CLI)                   (HashKey Chain 133)                     (Confidential Enclave)
+         │                                       │                                       │
+         │ 1. Select Payment (Sepolia / HSK)     │                                       │
+         │    Calculate T_max Budget             │                                       │
+         │------------------------------------------------------------------------------>│
+         │                                       │                                       │
+         │ 2. Universal Conversion to HSK Form   │                                       │
+         │    Sign EIP-712 Payment Mandate       │                                       │
+         │                                       │                                       │
+         │ 3. lockHSPMandateWithSignature()      │                                       │
+         │    [Locks HSK Upfront in Treasury]    │                                       │
+         │--------------------------------------►│                                       │
+         │                                       │-- emit HSPMessageEmitted ------------►│
+         │                                       │                                       │
+         │ 4. Dispatch Sealed Ciphertext         │                                       │
+         │    (Client-Side AES-256-GCM)          │                                       │
+         │------------------------------------------------------------------------------>│
+         │                                       │                                       │
+         │                                       │                               [ Executes in Enclave ]
+         │                                       │                               [ Actual: T_used tokens]
+         │                                       │                                       │
+         │                                       │ 5. settleHSPMandate()                 │
+         │                                       │    (sellerPayout + fee + refund)      │
+         │                                       │◄──────────────────────────────────────│
+         │                                       │                                       │
+         │                                       │-- [Payout HSK for T_used] ----------->│
+         │                                       │-- [Protocol Commission to Treasury] ->│
+         │                                       │-- [Unused HSK Refunded to Buyer] ---->│
+         │                                       │                                       │
+         │◄── 6. Encrypted Response Delivered ───┴───────────────────────────────────────│
+         │                                                                               │
+         │ 7. Seller Initiates Sweep (/payout)                                           │
+         │    • HSK settled from Treasury & routed to target wallet                      │
+         │    • Seller's live platform balance updated in real time                      │
 ```
 
 ---
