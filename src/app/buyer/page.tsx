@@ -617,8 +617,12 @@ contract VaultLending {
           setRefundReceipt(errJson.refund);
           setShowRefundModal(true);
           refreshUsdcBalance();
-          const refundText = errJson.refund.refundAmountTokenFormatted || `$${errJson.refund.refundAmountUsdc.toFixed(4)} USDC`;
-          setExecutionStep(`API Rejected: 100% Refund of ${refundText} returned on-chain.`);
+          const tokenFormatted =
+            errJson.refund.refundAmountTokenFormatted ||
+            (errJson.refund.refundAmountToken
+              ? `${errJson.refund.refundAmountToken.toFixed(4)} ${errJson.refund.tokenSymbol || paymentCurrency || "HSK"}`
+              : `${(errJson.refund.refundAmountUsdc / 0.0894).toFixed(4)} ${paymentCurrency || "HSK"}`);
+          setExecutionStep(`API Rejected: 100% Refund of ${tokenFormatted} returned on-chain.`);
           return;
         }
         throw new Error(errJson.error || errJson.reason || "Enclave inference execution failed");
@@ -1494,7 +1498,13 @@ contract VaultLending {
                   <div className="p-3.5 rounded-xl bg-black/60 border border-white/[0.06]">
                     <span className="text-zinc-500 block text-[11px]">Amount Refunded</span>
                     <span className="text-emerald-400 font-bold text-sm block tabular-data">
-                      {refundReceipt.refundAmountTokenFormatted || `$${refundReceipt.refundAmountUsdc.toFixed(6)} USDC`}
+                      {refundReceipt.refundAmountTokenFormatted ||
+                        (refundReceipt.refundAmountToken
+                          ? `${refundReceipt.refundAmountToken.toFixed(4)} ${refundReceipt.tokenSymbol || paymentCurrency || "HSK"}`
+                          : `${(refundReceipt.refundAmountUsdc / 0.0894).toFixed(4)} ${paymentCurrency || "HSK"}`)}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 block pt-0.5 tabular-data">
+                      (${Number(refundReceipt.refundAmountUsdc || 0).toFixed(4)} USD value)
                     </span>
                   </div>
                   <div className="p-3.5 rounded-xl bg-black/60 border border-white/[0.06]">
@@ -1810,8 +1820,22 @@ contract VaultLending {
               <div className="p-4 rounded-2xl bg-black/60 border border-white/[0.08] space-y-2">
                 <div className="flex items-center justify-between text-zinc-300">
                   <span>Refunded Amount:</span>
-                  <span className="text-emerald-400 font-bold text-base tabular-data">
-                    {refundReceipt.refundAmountTokenFormatted || `$${refundReceipt.refundAmountUsdc.toFixed(6)} USDC`}
+                  <div className="text-right">
+                    <span className="text-emerald-400 font-bold text-base tabular-data block">
+                      {refundReceipt.refundAmountTokenFormatted ||
+                        (refundReceipt.refundAmountToken
+                          ? `${refundReceipt.refundAmountToken.toFixed(4)} ${refundReceipt.tokenSymbol || paymentCurrency || "HSK"}`
+                          : `${(refundReceipt.refundAmountUsdc / 0.0894).toFixed(4)} ${paymentCurrency || "HSK"}`)}
+                    </span>
+                    <span className="text-[11px] text-zinc-400 font-normal block tabular-data">
+                      (${Number(refundReceipt.refundAmountUsdc || 0).toFixed(4)} USD equivalent)
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span>Refunded Token:</span>
+                  <span className="text-emerald-400 font-semibold uppercase">
+                    {refundReceipt.tokenSymbol || paymentCurrency || "HSK"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-zinc-400">

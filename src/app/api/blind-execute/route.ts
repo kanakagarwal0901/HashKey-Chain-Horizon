@@ -105,10 +105,10 @@ export async function POST(request: NextRequest) {
 
     // Verify Payment: Either HashKey Chain or multi-chain EVM transfer
     let evmPaymentDetails: any = null;
+    const paymentChain = request.headers.get("x-payment-chain") || body.paymentChain || "hashkey-testnet";
+    const paymentToken = request.headers.get("x-payment-token") || body.paymentToken || body.paymentCurrency || (paymentChain.includes("hashkey") ? "HSK" : "ETH");
 
     if (paymentHeader.startsWith("0x")) {
-      const paymentChain = request.headers.get("x-payment-chain") || body.paymentChain || "hashkey-testnet";
-      const paymentToken = request.headers.get("x-payment-token") || body.paymentToken || body.paymentCurrency || "HSK";
 
       const verificationResult = await verifyUniversalBuyerPayment({
         txHash: paymentHeader,
@@ -141,6 +141,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const resolvedChain = evmPaymentDetails?.chainKey || paymentChain || "hashkey-testnet";
+    const resolvedToken = evmPaymentDetails?.tokenSymbol || paymentToken || (resolvedChain.includes("hashkey") ? "HSK" : "ETH");
+
     // Wrap downstream execution in Saga compensation: if any step throws, refund locked quota!
     try {
       // Step 2: Unwrap keys inside Sealed Enclave RAM
@@ -160,7 +163,8 @@ export async function POST(request: NextRequest) {
         const reasonMsg = `Cryptographic envelope decryption failed inside Enclave: ${unwrapErr instanceof Error ? unwrapErr.message : String(unwrapErr)}`;
         const refundRecipient = evmPaymentDetails?.from || buyerAddress;
         const refund = await buyerRefundEngine.executeRefund({
-          paymentRail: "hashkey",
+          paymentRail: resolvedChain,
+          tokenSymbol: resolvedToken,
           buyerAddress: refundRecipient,
           refundAmountMicroUsdc: upfrontChargeMicroUsdc,
           reason: reasonMsg,
@@ -192,7 +196,8 @@ export async function POST(request: NextRequest) {
         const reasonMsg = `Failed to unwrap Seller API key inside Enclave: ${unwrapKeyErr instanceof Error ? unwrapKeyErr.message : String(unwrapKeyErr)}`;
         const refundRecipient = evmPaymentDetails?.from || buyerAddress;
         const refund = await buyerRefundEngine.executeRefund({
-          paymentRail: "hashkey",
+          paymentRail: resolvedChain,
+          tokenSymbol: resolvedToken,
           buyerAddress: refundRecipient,
           refundAmountMicroUsdc: upfrontChargeMicroUsdc,
           reason: reasonMsg,
@@ -232,7 +237,8 @@ export async function POST(request: NextRequest) {
         const reasonMsg = aiErr instanceof Error ? aiErr.message : "Upstream AI provider rejected inference request";
         const refundRecipient = evmPaymentDetails?.from || buyerAddress;
         const refund = await buyerRefundEngine.executeRefund({
-          paymentRail: "hashkey",
+          paymentRail: resolvedChain,
+          tokenSymbol: resolvedToken,
           buyerAddress: refundRecipient,
           refundAmountMicroUsdc: upfrontChargeMicroUsdc,
           reason: `AI API call rejected: ${reasonMsg}`,
@@ -318,7 +324,8 @@ export async function POST(request: NextRequest) {
       if (buyerRefundMicroUsdc > 0 && resolvedBuyerAddress) {
         try {
           buyerRefundResult = await buyerRefundEngine.executeRefund({
-            paymentRail: evmPaymentDetails?.chainKey || "hashkey",
+            paymentRail: resolvedChain,
+            tokenSymbol: resolvedToken,
             buyerAddress: resolvedBuyerAddress,
             refundAmountMicroUsdc: buyerRefundMicroUsdc,
             reason: `Automatic refund for unused quota (${bounds.totalMaxTokens - aiResult.actualTokensUsed} tokens)`,
@@ -404,7 +411,8 @@ export async function POST(request: NextRequest) {
       let refund = null;
       try {
         refund = await buyerRefundEngine.executeRefund({
-          paymentRail: "hashkey",
+          paymentRail: resolvedChain,
+          tokenSymbol: resolvedToken,
           buyerAddress: refundRecipient,
           refundAmountMicroUsdc: upfrontChargeMicroUsdc,
           reason: `Execution failure: ${reasonMsg}`,

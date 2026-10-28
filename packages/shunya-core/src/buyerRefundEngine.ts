@@ -6,6 +6,7 @@ import { uniswapService } from "./uniswapService";
 
 export interface BuyerRefundParams {
   paymentRail: "sepolia" | "hashkey" | "arbitrum" | "base" | string;
+  tokenSymbol?: string;
   buyerAddress: string;
   refundAmountMicroUsdc: number;
   reason: string;
@@ -18,6 +19,9 @@ export interface BuyerRefundResult {
   refundTxHash: string;
   refundAmountMicroUsdc: number;
   refundAmountUsdc: number;
+  tokenSymbol: string;
+  refundAmountToken: number;
+  refundAmountTokenFormatted: string;
   recipientAccount: string;
   paymentRail: string;
   explorerUrl: string;
@@ -79,14 +83,51 @@ export class BuyerRefundEngine {
 
   /**
    * Execute an automated full refund back to the buyer's payment account
-   * when an AI API inference call is rejected or throws an error.
+   * in the original form of payment (HSK, ETH, USDC, etc.) when an AI API
+   * inference call is rejected or throws an error.
    */
   public async executeRefund(params: BuyerRefundParams): Promise<BuyerRefundResult> {
     const refundAmountUsdc = params.refundAmountMicroUsdc / 1_000_000;
     const recipient = params.buyerAddress.trim();
+    const cleanRail = (params.paymentRail || "hashkey").toLowerCase();
+
+    // Determine Token Symbol from params or infer from network
+    let tokenSymbol = (params.tokenSymbol || "").toUpperCase().trim();
+    if (!tokenSymbol) {
+      if (cleanRail.includes("hashkey")) {
+        tokenSymbol = "HSK";
+      } else if (cleanRail.includes("sepolia") || cleanRail.includes("arbitrum") || cleanRail.includes("base")) {
+        tokenSymbol = "ETH";
+      } else {
+        tokenSymbol = "USDC";
+      }
+    }
+
+    // Determine Token Amount & Formatted String
+    let refundAmountToken = refundAmountUsdc;
+    let refundAmountTokenFormatted = "";
+
+    if (tokenSymbol === "HSK") {
+      const hskRate = uniswapService.getHskUsdRate() || 0.0894;
+      refundAmountToken = Number((refundAmountUsdc / hskRate).toFixed(4));
+      refundAmountTokenFormatted = `${refundAmountToken.toFixed(4)} HSK`;
+    } else if (tokenSymbol === "ETH") {
+      const ethRate = 2600;
+      refundAmountToken = Number((refundAmountUsdc / ethRate).toFixed(6));
+      refundAmountTokenFormatted = `${refundAmountToken.toFixed(6)} ETH`;
+    } else if (tokenSymbol === "USDC") {
+      refundAmountToken = Number(refundAmountUsdc.toFixed(4));
+      refundAmountTokenFormatted = `${refundAmountToken.toFixed(4)} USDC`;
+    } else if (tokenSymbol === "USDT") {
+      refundAmountToken = Number(refundAmountUsdc.toFixed(4));
+      refundAmountTokenFormatted = `${refundAmountToken.toFixed(4)} USDT`;
+    } else {
+      refundAmountToken = Number(refundAmountUsdc.toFixed(4));
+      refundAmountTokenFormatted = `${refundAmountToken.toFixed(4)} ${tokenSymbol}`;
+    }
 
     console.log(
-      `[BuyerRefundEngine] Executing automated refund of $${refundAmountUsdc.toFixed(6)} USDC to ${recipient} on ${params.paymentRail}... Reason: ${params.reason}`
+      `[BuyerRefundEngine] Executing automated refund of ${refundAmountTokenFormatted} ($${refundAmountUsdc.toFixed(6)} USD) to ${recipient} on ${params.paymentRail}... Reason: ${params.reason}`
     );
 
     let refundTxHash = "";
@@ -105,8 +146,8 @@ export class BuyerRefundEngine {
       .map((k) => (k!.startsWith("0x") ? k! : "0x" + k!))
       .filter((k) => k.length === 66);
 
-    // 1. Process HashKey Chain Refund
-    if (params.paymentRail === "hashkey" || params.paymentRail === "hashkey-testnet") {
+    // 1. Process HashKey Chain Refund (Native HSK)
+    if (cleanRail.includes("hashkey")) {
       const hskRate = uniswapService.getHskUsdRate() || 0.0894;
       const hskAmount = refundAmountUsdc / hskRate;
       const weiAmount = ethers.parseEther(Math.max(0.0001, hskAmount).toFixed(6));
@@ -137,17 +178,17 @@ export class BuyerRefundEngine {
         refundTxHash = `0xledger_refund_${Date.now()}`;
       }
       explorerUrl = `https://testnet-explorer.hskchain.net/tx/${refundTxHash}`;
-    } else {
-      // 2. Process Sepolia / EVM Refund
-      const ethValue = Math.max(0.0001, refundAmountUsdc / 2600);
+    } else if (cleanRail.includes("arbitrum")) {
+      // Process Arbitrum Sepolia Refund
+      const ethValue = Math.max(0.00001, refundAmountUsdc / 2600);
       const weiEth = ethers.parseEther(ethValue.toFixed(6));
-      const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL, 11155111, { staticNetwork: true });
+      const provider = new ethers.JsonRpcProvider("https://sepolia-rollup.arbitrum.io/rpc", 421614, { staticNetwork: true });
 
       for (const pk of candidateKeys) {
         try {
           const wallet = new ethers.Wallet(pk, provider);
           const bal = await provider.getBalance(wallet.address).catch(() => 0n);
-          if (bal >= weiEth + ethers.parseEther("0.00005")) {
+          if (bal >= weiEth + ethers.parseEther("0.00002")) {
             const tx = await wallet.sendTransaction({
               to: recipient,
               value: weiEth,
@@ -160,7 +201,93 @@ export class BuyerRefundEngine {
             }
           }
         } catch (err: any) {
-          console.warn("[BuyerRefundEngine] Sepolia candidate key failed:", err.message);
+          console.warn("[BuyerRefundEngine] Arbitrum candidate key failed:", err.message);
+        }
+      }
+      if (!refundTxHash) {
+        refundTxHash = `0xledger_refund_${Date.now()}`;
+      }
+      explorerUrl = `https://sepolia.arbiscan.io/tx/${refundTxHash}`;
+    } else if (cleanRail.includes("base")) {
+      // Process Base Sepolia Refund
+      const ethValue = Math.max(0.00001, refundAmountUsdc / 2600);
+      const weiEth = ethers.parseEther(ethValue.toFixed(6));
+      const provider = new ethers.JsonRpcProvider("https://sepolia.base.org", 84532, { staticNetwork: true });
+
+      for (const pk of candidateKeys) {
+        try {
+          const wallet = new ethers.Wallet(pk, provider);
+          const bal = await provider.getBalance(wallet.address).catch(() => 0n);
+          if (bal >= weiEth + ethers.parseEther("0.00002")) {
+            const tx = await wallet.sendTransaction({
+              to: recipient,
+              value: weiEth,
+            });
+            const receipt = await tx.wait(1);
+            if (receipt && receipt.status === 1) {
+              refundTxHash = receipt.hash;
+              isLiveOnChain = true;
+              break;
+            }
+          }
+        } catch (err: any) {
+          console.warn("[BuyerRefundEngine] Base candidate key failed:", err.message);
+        }
+      }
+      if (!refundTxHash) {
+        refundTxHash = `0xledger_refund_${Date.now()}`;
+      }
+      explorerUrl = `https://sepolia.basescan.org/tx/${refundTxHash}`;
+    } else {
+      // 2. Process Ethereum Sepolia Refund (ETH or Circle USDC)
+      const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL, 11155111, { staticNetwork: true });
+
+      if (tokenSymbol === "USDC") {
+        const ERC20_ABI = ["function transfer(address to, uint256 amount) returns (bool)", "function balanceOf(address account) view returns (uint256)"];
+        const usdcUnits = ethers.parseUnits(refundAmountUsdc.toFixed(6), 6);
+        for (const pk of candidateKeys) {
+          try {
+            const wallet = new ethers.Wallet(pk, provider);
+            const contract = new ethers.Contract(SEPOLIA_CIRCLE_USDC_ADDRESS, ERC20_ABI, wallet);
+            const bal = await contract.balanceOf(wallet.address).catch(() => 0n);
+            if (bal >= usdcUnits) {
+              const tx = await contract.transfer(recipient, usdcUnits);
+              const receipt = await tx.wait(1);
+              if (receipt && receipt.status === 1) {
+                refundTxHash = receipt.hash;
+                isLiveOnChain = true;
+                break;
+              }
+            }
+          } catch (err: any) {
+            console.warn("[BuyerRefundEngine] Sepolia USDC candidate key failed:", err.message);
+          }
+        }
+      }
+
+      if (!refundTxHash) {
+        const ethValue = Math.max(0.0001, refundAmountUsdc / 2600);
+        const weiEth = ethers.parseEther(ethValue.toFixed(6));
+
+        for (const pk of candidateKeys) {
+          try {
+            const wallet = new ethers.Wallet(pk, provider);
+            const bal = await provider.getBalance(wallet.address).catch(() => 0n);
+            if (bal >= weiEth + ethers.parseEther("0.00005")) {
+              const tx = await wallet.sendTransaction({
+                to: recipient,
+                value: weiEth,
+              });
+              const receipt = await tx.wait(1);
+              if (receipt && receipt.status === 1) {
+                refundTxHash = receipt.hash;
+                isLiveOnChain = true;
+                break;
+              }
+            }
+          } catch (err: any) {
+            console.warn("[BuyerRefundEngine] Sepolia ETH candidate key failed:", err.message);
+          }
         }
       }
 
@@ -175,6 +302,9 @@ export class BuyerRefundEngine {
       refundTxHash,
       refundAmountMicroUsdc: params.refundAmountMicroUsdc,
       refundAmountUsdc,
+      tokenSymbol,
+      refundAmountToken,
+      refundAmountTokenFormatted,
       recipientAccount: recipient,
       paymentRail: params.paymentRail,
       explorerUrl,
@@ -187,7 +317,7 @@ export class BuyerRefundEngine {
     this.saveToDisk();
 
     console.log(
-      `[BuyerRefundEngine] Refund SUCCESS: $${refundAmountUsdc.toFixed(6)} USDC returned to ${recipient} (Tx: ${refundTxHash})`
+      `[BuyerRefundEngine] Refund SUCCESS: ${refundAmountTokenFormatted} ($${refundAmountUsdc.toFixed(6)} USD) returned to ${recipient} (Tx: ${refundTxHash})`
     );
 
     return result;
