@@ -160,24 +160,6 @@ export async function verifyUniversalBuyerPayment(params: {
   const expectedBuyerAddress = params.buyerAddress || "";
   const requiredMicroUsdc = params.requiredMicroUsdc;
 
-  // Test Harness Simulation Bypass
-  if (cleanTxHash.startsWith("0x_test_verified_") || cleanTxHash.startsWith("0x_test_sim_")) {
-    const defaultChain = params.chainKey || "ethereum-sepolia";
-    const cfg = PAYMENT_CHAINS[defaultChain] || PAYMENT_CHAINS["ethereum-sepolia"];
-    return {
-      verified: true,
-      txHash: cleanTxHash,
-      blockNumber: 7421890,
-      from: expectedBuyerAddress || "0x8fDE3F07fFF6432fF22FB805f34011785e0C8444",
-      to: SHUNYA_TREASURY_EVM_ADDRESS,
-      amountMicroUsdc: requiredMicroUsdc,
-      amountUsdc: requiredMicroUsdc / 1_000_000,
-      chainKey: defaultChain,
-      tokenSymbol: params.tokenSymbol || "USDC",
-      etherscanUrl: `${cfg.explorerBaseUrl}${cleanTxHash}`,
-    };
-  }
-
   if (!cleanTxHash.startsWith("0x") || cleanTxHash.length !== 66) {
     return { verified: false, error: "Invalid Ethereum transaction hash format (expected 66-character 0x... string)" };
   }
