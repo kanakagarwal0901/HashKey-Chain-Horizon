@@ -124,6 +124,7 @@ export class ArcBridgeService {
     targetCurrency?: string;
     targetToken?: string;
     availableBalance?: number;
+    sourceBurnTxId?: string;
   }): Promise<ArcBridgeTransaction> {
     const sellerAddress = (params.sourceAccount || "").trim();
     if (!sellerAddress || !sellerAddress.startsWith("0x")) {
@@ -139,6 +140,7 @@ export class ArcBridgeService {
       amountHsk: params.amountHsk,
       destinationChain,
       targetToken,
+      sourceBurnTxId: params.sourceBurnTxId,
     });
 
     const bridgeTx: ArcBridgeTransaction = {

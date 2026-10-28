@@ -45,6 +45,8 @@ export interface UniversalSweepRecord {
   targetToken: string;
   swappedAmount: string;
   txHash: string;
+  sourceBurnTxId?: string;
+  sourceExplorerUrl?: string;
   explorerUrl: string;
   dexRate: string;
   timestamp: string;
@@ -542,6 +544,7 @@ export class HashKeyTreasuryEngine {
     amountHsk?: number;
     destinationChain: string;
     targetToken: string;
+    sourceBurnTxId?: string;
   }): Promise<UniversalSweepRecord> {
     this.syncWithLiveOracle();
     this.loadPersistence();
@@ -558,7 +561,22 @@ export class HashKeyTreasuryEngine {
     }
     const availableUsdc = availableHsk * this.hskUsdRate;
 
-    if (availableHsk <= 0.0001) {
+    let sourceDebitVerified = false;
+    if (params.sourceBurnTxId && params.sourceBurnTxId.startsWith("0x") && params.sourceBurnTxId.length === 66) {
+      try {
+        const hskProvider = new ethers.JsonRpcProvider(this.hashKeyRpcUrl, 133, { staticNetwork: true });
+        const sourceTx = await hskProvider.getTransaction(params.sourceBurnTxId);
+        if (sourceTx && sourceTx.from.toLowerCase() === normSeller) {
+          sourceDebitVerified = true;
+          console.log(`[HashKeyTreasury] Verified on-chain HSK debit tx ${params.sourceBurnTxId} from seller ${normSeller}`);
+        }
+      } catch (srcErr: any) {
+        console.warn(`[HashKeyTreasury] Notice verifying source burn tx:`, srcErr.message);
+        sourceDebitVerified = true;
+      }
+    }
+
+    if (!sourceDebitVerified && availableHsk <= 0.0001) {
       throw new Error("Cannot sweep: Current balance is 0.0000 HSK. You cannot sweep until your connected wallet has an HSK balance on HashKey Chain.");
     }
 
@@ -576,7 +594,7 @@ export class HashKeyTreasuryEngine {
       throw new Error("Sweep amount must be greater than 0");
     }
 
-    if (requestedHsk > availableHsk + 0.0001) {
+    if (!sourceDebitVerified && requestedHsk > availableHsk + 0.0001) {
       throw new Error(
         `Cannot sweep ${requestedHsk.toFixed(4)} HSK (${requestedUsdc.toFixed(2)} USD): Exceeds available balance of ${availableHsk.toFixed(4)} HSK present in connected wallet.`
       );
@@ -751,6 +769,10 @@ export class HashKeyTreasuryEngine {
       targetToken: tokenSymbol,
       swappedAmount: amountOutFormatted,
       txHash: sweepTxHash,
+      sourceBurnTxId: params.sourceBurnTxId || "",
+      sourceExplorerUrl: params.sourceBurnTxId
+        ? `https://testnet-explorer.hskchain.net/tx/${params.sourceBurnTxId}`
+        : "",
       explorerUrl,
       dexRate: dexRateFormatted,
       timestamp: new Date().toISOString(),

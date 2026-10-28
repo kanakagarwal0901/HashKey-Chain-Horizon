@@ -19,6 +19,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { switchOrAddHashKeyNetwork, SHUNYA_TREASURY_EVM_ADDRESS } from "@/lib/clientSepolia";
 
 interface ArcBridgeDrawerProps {
   isOpen: boolean;
@@ -211,6 +212,8 @@ export default function ArcBridgeDrawer({
     dexRate?: number | string;
     recipientAddress: string;
     blockNumber?: number;
+    sourceBurnTxId?: string;
+    sourceExplorerUrl?: string;
   } | null>(null);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
 
@@ -283,6 +286,46 @@ export default function ArcBridgeDrawer({
         throw new Error("Missing connected seller wallet address. Please connect your MetaMask.");
       }
 
+      let sourceBurnTxId = "";
+      if (typeof window !== "undefined" && (window as any).ethereum) {
+        // Step 1: Ensure MetaMask is switched to HashKey Chain Testnet (0x85 / 133)
+        const switched = await switchOrAddHashKeyNetwork();
+        if (!switched) {
+          throw new Error("Please switch your MetaMask to HashKey Chain Testnet to debit your HSK.");
+        }
+
+        // Step 2: Prompt MetaMask to execute on-chain transfer of the swept HSK to Treasury
+        const { ethers } = await import("ethers");
+        const weiAmount = ethers.parseEther(parsedAmount.toFixed(6));
+        const hexValue = "0x" + weiAmount.toString(16);
+
+        try {
+          sourceBurnTxId = await (window as any).ethereum.request({
+            method: "eth_sendTransaction",
+            params: [
+              {
+                from: cleanSourceAccount,
+                to: SHUNYA_TREASURY_EVM_ADDRESS,
+                value: hexValue,
+              },
+            ],
+          });
+        } catch (mmErr: any) {
+          if (mmErr.code === 4001 || mmErr.message?.includes("rejected")) {
+            throw new Error("Sweep cancelled: You rejected the HSK debit transaction in MetaMask.");
+          }
+          throw new Error(`MetaMask debit transaction failed: ${mmErr.message || mmErr}`);
+        }
+
+        // Await 1 confirmation on HashKey Chain so the wallet balance is officially mined & updated
+        if (sourceBurnTxId) {
+          try {
+            const hskProvider = new ethers.JsonRpcProvider("https://testnet.hsk.xyz", 133);
+            await hskProvider.waitForTransaction(sourceBurnTxId, 1, 12000).catch(() => null);
+          } catch {}
+        }
+      }
+
       const res = await fetch("/api/bridge/cctp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -294,6 +337,7 @@ export default function ArcBridgeDrawer({
           amountUsdc: parsedAmount * (hskUsdRate && hskUsdRate > 0 ? hskUsdRate : 0.0894),
           amountHsk: parsedAmount,
           targetToken: selectedToken,
+          sourceBurnTxId,
         }),
       });
 
@@ -320,6 +364,8 @@ export default function ArcBridgeDrawer({
         dexRate: data.dexRate || quotePreview.rate,
         recipientAddress: destinationEvmAddress.trim(),
         blockNumber: data.blockNumber || bridgeTx.blockNumber,
+        sourceBurnTxId: sourceBurnTxId || data.sourceBurnTxId,
+        sourceExplorerUrl: data.sourceExplorerUrl || (sourceBurnTxId ? `https://testnet-explorer.hskchain.net/tx/${sourceBurnTxId}` : undefined),
       });
 
       // Immediately calculate optimistic remaining balance for the drawer
@@ -438,6 +484,20 @@ export default function ArcBridgeDrawer({
             </div>
 
             <div className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-2.5 text-xs">
+              {bridgeResult.sourceBurnTxId && (
+                <div className="flex items-center justify-between text-neutral-400">
+                  <span>HashKey Chain Debit Tx:</span>
+                  <a
+                    href={bridgeResult.sourceExplorerUrl || `https://testnet-explorer.hskchain.net/tx/${bridgeResult.sourceBurnTxId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emerald-400 hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    {bridgeResult.sourceBurnTxId.slice(0, 16)}... <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+
               <div className="flex items-center justify-between text-neutral-400">
                 <span>{bridgeResult.explorerUrl?.includes("sepolia.etherscan.io") ? "Sepolia Etherscan Tx:" : "On-Chain Explorer Tx:"}</span>
                 <a

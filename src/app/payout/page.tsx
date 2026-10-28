@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import SpatialCard from "@/components/SpatialCard";
+import { switchOrAddHashKeyNetwork, SHUNYA_TREASURY_EVM_ADDRESS } from "@/lib/clientSepolia";
 
 const HSK_TESTNET_EXPLORER = "https://testnet-explorer.hskchain.net";
 const HSP_ADAPTER_CONTRACT = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
@@ -327,6 +328,46 @@ export default function SellerPayoutPage() {
 
     setIsSweeping(true);
     try {
+      let sourceBurnTxId = "";
+      if (typeof window !== "undefined" && (window as any).ethereum) {
+        // Step 1: Ensure MetaMask is on HashKey Chain Testnet (0x85 / 133)
+        const switched = await switchOrAddHashKeyNetwork();
+        if (!switched) {
+          throw new Error("Please switch your MetaMask to HashKey Chain Testnet to debit your HSK.");
+        }
+
+        // Step 2: Prompt MetaMask to execute on-chain transfer of the swept HSK to Treasury
+        const { ethers } = await import("ethers");
+        const weiAmount = ethers.parseEther(parsedAmount.toFixed(6));
+        const hexValue = "0x" + weiAmount.toString(16);
+
+        try {
+          sourceBurnTxId = await (window as any).ethereum.request({
+            method: "eth_sendTransaction",
+            params: [
+              {
+                from: currentSellerNode,
+                to: SHUNYA_TREASURY_EVM_ADDRESS,
+                value: hexValue,
+              },
+            ],
+          });
+        } catch (mmErr: any) {
+          if (mmErr.code === 4001 || mmErr.message?.includes("rejected")) {
+            throw new Error("Sweep cancelled: You rejected the HSK debit transaction in MetaMask.");
+          }
+          throw new Error(`MetaMask debit transaction failed: ${mmErr.message || mmErr}`);
+        }
+
+        // Await 1 confirmation on HashKey Chain so the wallet balance is officially mined & updated
+        if (sourceBurnTxId) {
+          try {
+            const hskProvider = new ethers.JsonRpcProvider("https://testnet.hsk.xyz", 133);
+            await hskProvider.waitForTransaction(sourceBurnTxId, 1, 12000).catch(() => null);
+          } catch {}
+        }
+      }
+
       const res = await fetch("/api/bridge/cctp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -338,6 +379,7 @@ export default function SellerPayoutPage() {
           targetToken: selectedToken,
           destinationAddress: recipientAddress,
           recipientAddress,
+          sourceBurnTxId,
         }),
       });
 
@@ -347,8 +389,10 @@ export default function SellerPayoutPage() {
       }
 
       setSweepResult({
-        txId: data.bridgeTx?.txHash || data.sourceBurnTxId || data.txHash,
+        txId: data.bridgeTx?.txHash || data.txHash,
         explorerUrl: data.explorerUrl || data.blockscoutUrl || `${HSK_TESTNET_EXPLORER}/tx/${data.bridgeTx?.txHash || data.txHash || ""}`,
+        sourceBurnTxId: sourceBurnTxId || data.sourceBurnTxId,
+        sourceExplorerUrl: data.sourceExplorerUrl || (sourceBurnTxId ? `${HSK_TESTNET_EXPLORER}/tx/${sourceBurnTxId}` : undefined),
         settledAmount: parsedAmount,
         targetToken: selectedToken,
         recipientAddress,
@@ -786,6 +830,19 @@ export default function SellerPayoutPage() {
                 <code className="text-white tabular-data">{sweepResult.recipientAddress}</code> on {sweepResult.destinationChain}.
               </p>
               <div className="p-4 rounded-xl bg-black/60 border border-white/[0.08] space-y-1.5 text-xs text-zinc-300">
+                {sweepResult.sourceBurnTxId && (
+                  <div className="flex justify-between items-center pb-1 mb-1 border-b border-white/[0.06]">
+                    <span className="text-zinc-500">HashKey Chain Debit Tx:</span>
+                    <a
+                      href={sweepResult.sourceExplorerUrl || `${HSK_TESTNET_EXPLORER}/tx/${sweepResult.sourceBurnTxId}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-400 font-semibold hover:underline flex items-center gap-1 tabular-data"
+                    >
+                      {sweepResult.sourceBurnTxId.slice(0, 20)}... <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-500">Transaction ID:</span>
                   <a

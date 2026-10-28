@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     const amountHsk = body.amountHsk !== undefined ? Number(body.amountHsk) : undefined;
     const recipientAddress = (body.recipientAddress || body.destinationAddress || "").trim();
     const targetToken = (body.targetToken || body.targetCurrency || "HSK").trim();
+    const sourceBurnTxId = (body.sourceBurnTxId || body.sourceBurnTxHash || "").trim();
 
     if ((!amountUsdc || amountUsdc <= 0) && (!amountHsk || amountHsk <= 0)) {
       return NextResponse.json(
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
       amountHsk,
       destinationChain,
       targetToken,
+      sourceBurnTxId,
     });
 
     return NextResponse.json({
@@ -66,7 +68,8 @@ export async function POST(request: NextRequest) {
       message: `Successfully executed live on-chain sweep to ${recipientAddress} (${sweepRecord.swappedAmount} on ${sweepRecord.destinationChain})`,
       bridgeTx: sweepRecord,
       txHash: sweepRecord.txHash,
-      sourceBurnTxId: sweepRecord.txHash,
+      sourceBurnTxId: sweepRecord.sourceBurnTxId || sourceBurnTxId || sweepRecord.txHash,
+      sourceExplorerUrl: sweepRecord.sourceExplorerUrl || (sourceBurnTxId ? `https://testnet-explorer.hskchain.net/tx/${sourceBurnTxId}` : ""),
       explorerUrl: sweepRecord.explorerUrl,
       swappedAmount: sweepRecord.swappedAmount,
       targetToken: sweepRecord.targetToken,
