@@ -120,17 +120,6 @@ export default function Navbar() {
 
           {/* Top-Right Profile, Theme Switcher & Authentication */}
           <div className="flex items-center gap-3">
-            {/* HashKey Chain Horizon Track 2 Pill */}
-            <a
-              href="https://testnet-explorer.hsk.xyz/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
-              target="_blank"
-              rel="noreferrer"
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition"
-              title="HashKey Chain Testnet (Chain ID 133) • HSP Adapter Deployed"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-ring-emerald" />
-              <span>HashKey Horizon • Track 2 HSP</span>
-            </a>
 
             {/* Theme Toggle Button */}
             <button

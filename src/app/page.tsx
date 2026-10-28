@@ -60,14 +60,6 @@ export default function HomePage() {
     <div className="space-y-36 sm:space-y-48 pb-48 text-zinc-900 dark:text-zinc-100">
       {/* Hero Section */}
       <section className="pt-24 sm:pt-40 pb-16 text-center max-w-5xl mx-auto px-4 sm:px-6 antigravity-glow-hero scroll-mt-24">
-        {/* Track 2 Hackathon Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 mb-8 cursor-pointer hover:bg-emerald-500/20 transition"
-          onClick={() => openGuide("hashkey")}
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-ring-emerald" />
-          <span>HashKey Chain Horizon • Track 2: Agent Payments & A2A Settlement</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </div>
 
         {/* Declarative Apple / Nike Display Headline */}
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-zinc-950 dark:text-white leading-[1.12] max-w-4xl mx-auto mb-8">
