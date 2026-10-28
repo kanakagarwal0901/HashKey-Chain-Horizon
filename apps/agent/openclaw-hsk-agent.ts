@@ -73,8 +73,9 @@ export async function runHashKeyAutonomousAgent() {
 
   if (eligibleSellers.length === 0) {
     console.log(`  [Auto-Provision] Registering autonomous seller node on HashKey Chain...`);
+    const autoSellerWallet = ethers.Wallet.createRandom();
     arkivDb.createListing({
-      ownerAddress: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      ownerAddress: autoSellerWallet.address,
       ensName: "hsk-inference-node-01.hsk",
       model: modelId,
       provider: "anthropic",
@@ -83,13 +84,13 @@ export async function runHashKeyAutonomousAgent() {
       humanVerified: true,
       worldIdNullifier: "0xworld_id_nullifier_hsk_agent_seller",
       sealedApiKey: "ENCLAVE_SEALED:sk-ant-hashkey-agent-token-9981",
-      hedaraPayoutAccount: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      hedaraPayoutAccount: autoSellerWallet.address,
     });
     eligibleSellers = arkivDb.queryEligibleListings(modelId, bounds.totalMaxTokens);
   }
 
   const selectedSeller = eligibleSellers[0];
-  const sellerEvmAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+  const sellerEvmAddress = (selectedSeller as any).hedaraPayoutAccount || (selectedSeller as any).payoutAddress || selectedSeller.ownerAddress;
   console.log(`  Matched Seller Node:   ${selectedSeller.ensName}`);
   console.log(`  Seller Payout Target:  ${sellerEvmAddress}`);
   console.log(`  Available Quota:       ${selectedSeller.availableTokens.toLocaleString()} tokens`);

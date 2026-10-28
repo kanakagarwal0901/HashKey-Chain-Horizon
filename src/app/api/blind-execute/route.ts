@@ -292,10 +292,18 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const resolvedBuyerAddress = (buyerAddress || evmPaymentDetails?.from || "").trim();
+      if (!resolvedBuyerAddress || !ethers.isAddress(resolvedBuyerAddress)) {
+        return NextResponse.json(
+          { error: "Valid buyer EVM address is required for settlement and refunds" },
+          { status: 400 }
+        );
+      }
+
       const hspRecord = await hashKeyTreasury.settleSellerPayoutOnHashKey({
         mandateId: body.mandateId || ethers.hexlify(ethers.randomBytes(32)),
         sellerAddress: targetSellerAddress,
-        buyerAddress: buyerAddress || evmPaymentDetails?.from || "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        buyerAddress: resolvedBuyerAddress,
         modelId,
         tUsed: aiResult.actualTokensUsed,
         tMax: bounds.totalMaxTokens,
@@ -307,11 +315,11 @@ export async function POST(request: NextRequest) {
 
       // Issue automatic on-chain refund to buyer for unused deposit
       let buyerRefundResult = null;
-      if (buyerRefundMicroUsdc > 0 && (evmPaymentDetails?.from || buyerAddress)) {
+      if (buyerRefundMicroUsdc > 0 && resolvedBuyerAddress) {
         try {
           buyerRefundResult = await buyerRefundEngine.executeRefund({
             paymentRail: evmPaymentDetails?.chainKey || "hashkey",
-            buyerAddress: evmPaymentDetails?.from || buyerAddress,
+            buyerAddress: resolvedBuyerAddress,
             refundAmountMicroUsdc: buyerRefundMicroUsdc,
             reason: `Automatic refund for unused quota (${bounds.totalMaxTokens - aiResult.actualTokensUsed} tokens)`,
             originalPaymentTxId: paymentHeader,

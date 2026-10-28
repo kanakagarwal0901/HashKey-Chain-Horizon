@@ -18,7 +18,7 @@ async function runHashKeyHspTest() {
 
   console.log(`[1/5] Initializing Autonomous Buyer Agent & Seller Compute Node...`);
   const buyerAgentAddress = client.wallet!.address;
-  const sellerNode = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+  const sellerNode = process.env.TEST_SELLER_NODE || ethers.Wallet.createRandom().address;
   console.log(`  • Buyer Agent: ${buyerAgentAddress}`);
   console.log(`  • Seller Compute Node: ${sellerNode}`);
   console.log(`  • HSPAdapter Target: ${hspAdapterAddress}`);
