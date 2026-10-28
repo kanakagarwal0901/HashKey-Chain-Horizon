@@ -119,6 +119,7 @@ export class ArcBridgeService {
     sourceAccount?: string;
     recipientAddress: string;
     amountUsdc: number;
+    amountHsk?: number;
     destinationChain?: string;
     targetCurrency?: string;
     targetToken?: string;
@@ -135,6 +136,7 @@ export class ArcBridgeService {
       sellerAddress,
       recipientAddress: params.recipientAddress,
       amountUsdc: params.amountUsdc,
+      amountHsk: params.amountHsk,
       destinationChain,
       targetToken,
     });

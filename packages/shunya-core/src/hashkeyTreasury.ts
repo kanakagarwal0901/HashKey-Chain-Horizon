@@ -155,6 +155,75 @@ export class HashKeyTreasuryEngine {
     return (addr || "").toLowerCase().trim();
   }
 
+  private normalizeChainKey(input: string): string {
+    const s = (input || "").toLowerCase().trim();
+    if (
+      s === "ethereum-sepolia" ||
+      s === "sepolia" ||
+      s.includes("ethereum") ||
+      (s.includes("sepolia") && !s.includes("arb") && !s.includes("base") && !s.includes("op")) ||
+      s === "11155111"
+    ) {
+      return "ethereum-sepolia";
+    }
+    if (s === "arbitrum-sepolia" || s.includes("arbitrum") || s.includes("arb") || s === "421614") {
+      return "arbitrum-sepolia";
+    }
+    if (s === "base-sepolia" || s.includes("base") || s === "84532") {
+      return "base-sepolia";
+    }
+    if (s === "optimism-sepolia" || s.includes("optimism") || s.includes("op") || s === "11155420") {
+      return "optimism-sepolia";
+    }
+    if (s === "hashkey-testnet" || s.includes("hashkey") || s === "133" || s === "0x85") {
+      return "hashkey-testnet";
+    }
+    return SUPPORTED_CHAINS[s] ? s : "hashkey-testnet";
+  }
+
+  private getChainRpcUrls(chainKey: string): string[] {
+    const rpcs: Record<string, string[]> = {
+      "ethereum-sepolia": [
+        process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || "",
+        "https://ethereum-sepolia-rpc.publicnode.com",
+        "https://rpc.sepolia.org",
+        "https://1rpc.io/sepolia",
+      ].filter(Boolean),
+      "hashkey-testnet": [
+        process.env.HASHKEY_TESTNET_RPC || "",
+        "https://testnet.hsk.xyz",
+        "https://hashkeychain-testnet.alt.technology",
+      ].filter(Boolean),
+      "arbitrum-sepolia": [
+        "https://sepolia-rollup.arbitrum.io/rpc",
+        "https://arbitrum-sepolia-rpc.publicnode.com",
+      ],
+      "base-sepolia": [
+        "https://sepolia.base.org",
+        "https://base-sepolia-rpc.publicnode.com",
+      ],
+      "optimism-sepolia": [
+        "https://sepolia.optimism.io",
+      ],
+    };
+    return rpcs[chainKey] || [SUPPORTED_CHAINS[chainKey]?.rpcUrl || "https://testnet.hsk.xyz"];
+  }
+
+  private isNativeCurrency(chainKey: string, tokenSymbol: string): boolean {
+    const sym = tokenSymbol.toUpperCase().trim();
+    if (chainKey === "hashkey-testnet" && sym === "HSK") return true;
+    if (
+      (chainKey === "ethereum-sepolia" ||
+        chainKey === "arbitrum-sepolia" ||
+        chainKey === "base-sepolia" ||
+        chainKey === "optimism-sepolia") &&
+      sym === "ETH"
+    ) {
+      return true;
+    }
+    return false;
+  }
+
   private getCandidateTreasuryKeys(): string[] {
     const list = [
       process.env.SHUNYA_TREASURY_PRIVATE_KEY,
@@ -215,41 +284,48 @@ export class HashKeyTreasuryEngine {
 
     // Attempt live on-chain HSK transfer to Seller on HashKey Chain Testnet
     const candidateKeys = this.getCandidateTreasuryKeys();
+    const hskRpcs = this.getChainRpcUrls("hashkey-testnet");
     if (params.sellerAddress.startsWith("0x") && candidateKeys.length > 0) {
-      const provider = new ethers.JsonRpcProvider(this.hashKeyRpcUrl, 133, { staticNetwork: true });
       const weiPayout = ethers.parseEther(Math.max(0.0001, sellerPayoutHsk).toFixed(6));
 
-      for (const pk of candidateKeys) {
+      rpcLoop: for (const rpc of hskRpcs) {
         try {
-          const wallet = new ethers.Wallet(pk, provider);
-          const bal = await provider.getBalance(wallet.address);
-          if (bal >= weiPayout) {
-            console.log(
-              `[HashKeyTreasury] Broadcasting on-chain HSK payout of ${sellerPayoutHsk} HSK from ${wallet.address} to ${params.sellerAddress} on HashKey Chain...`
-            );
-            const tx = await wallet.sendTransaction({
-              to: params.sellerAddress,
-              value: weiPayout,
-            });
-            const receipt = await tx.wait(1);
-            if (receipt && receipt.status === 1) {
-              txHash = receipt.hash;
-              blockNumber = receipt.blockNumber;
-              isLiveOnChain = true;
-              console.log(
-                `[HashKeyTreasury] Delivered live HSK payout on HashKey block #${blockNumber}! Tx: ${txHash}`
-              );
-              break;
+          const provider = new ethers.JsonRpcProvider(rpc, 133, { staticNetwork: true });
+          for (const pk of candidateKeys) {
+            try {
+              const wallet = new ethers.Wallet(pk, provider);
+              const bal = await provider.getBalance(wallet.address).catch(() => 0n);
+              if (bal >= weiPayout + ethers.parseEther("0.00005")) {
+                console.log(
+                  `[HashKeyTreasury] Broadcasting on-chain HSK payout of ${sellerPayoutHsk} HSK from ${wallet.address} to ${params.sellerAddress} on HashKey Chain...`
+                );
+                const tx = await wallet.sendTransaction({
+                  to: params.sellerAddress,
+                  value: weiPayout,
+                });
+                const receipt = await tx.wait(1);
+                if (receipt && receipt.status === 1) {
+                  txHash = receipt.hash;
+                  blockNumber = receipt.blockNumber;
+                  isLiveOnChain = true;
+                  console.log(
+                    `[HashKeyTreasury] Delivered live HSK payout on HashKey block #${blockNumber}! Tx: ${txHash}`
+                  );
+                  break rpcLoop;
+                }
+              }
+            } catch (err: any) {
+              console.warn(`[HashKeyTreasury] Candidate key attempt failed (${err.message}), trying next...`);
             }
           }
-        } catch (err: any) {
-          console.warn(`[HashKeyTreasury] Candidate key attempt failed (${err.message}), trying next...`);
+        } catch (rpcErr: any) {
+          console.warn(`[HashKeyTreasury] HashKey RPC (${rpc}) failed, trying fallback...`);
         }
       }
     }
 
     if (!txHash) {
-      txHash = `0x${crypto.randomBytes(32).toString("hex")}`;
+      txHash = `0xledger_${Date.now()}_${params.mandateId.slice(2, 10)}`;
     }
 
     const record: HSPSettlementRecord = {
@@ -506,8 +582,8 @@ export class HashKeyTreasuryEngine {
       );
     }
 
-    const chainKey = params.destinationChain || "hashkey-testnet";
-    const tokenSymbol = params.targetToken || "HSK";
+    const chainKey = this.normalizeChainKey(params.destinationChain);
+    const tokenSymbol = (params.targetToken || (chainKey === "hashkey-testnet" ? "HSK" : "USDC")).toUpperCase().trim();
     const chainConfig = SUPPORTED_CHAINS[chainKey] || SUPPORTED_CHAINS["hashkey-testnet"];
 
     // Calculate dex conversion rate using Uniswap service
@@ -522,47 +598,118 @@ export class HashKeyTreasuryEngine {
     const dexRateFormatted = `1 USDC ≈ ${quote.rate.toFixed(4)} ${tokenSymbol}`;
 
     let sweepTxHash = "";
-    let blockNumber = 34978250;
+    let blockNumber = 0;
     let isLiveOnChain = false;
+    let failureReason = "";
 
-    // Attempt live on-chain delivery on destination chain from Treasury
+    const isNative = this.isNativeCurrency(chainKey, tokenSymbol);
     const candidateKeys = this.getCandidateTreasuryKeys();
-    if (params.recipientAddress.startsWith("0x") && candidateKeys.length > 0) {
-      const provider = new ethers.JsonRpcProvider(chainConfig.rpcUrl, chainConfig.chainId, { staticNetwork: true });
-      if (tokenSymbol === "ETH" || tokenSymbol === "HSK") {
-        const weiAmount = ethers.parseEther(Math.max(0.0001, quote.expectedAmountOut).toFixed(6));
-        for (const pk of candidateKeys) {
-          try {
-            const wallet = new ethers.Wallet(pk, provider);
-            const bal = await provider.getBalance(wallet.address).catch(() => 0n);
-            if (bal >= weiAmount) {
-              console.log(
-                `[HashKeyTreasury] Broadcasting on-chain native ${tokenSymbol} sweep from ${wallet.address} to ${params.recipientAddress} on ${chainConfig.name}...`
-              );
-              const tx = await wallet.sendTransaction({
-                to: params.recipientAddress,
-                value: weiAmount,
-              });
-              const receipt = await tx.wait(1);
-              if (receipt && receipt.status === 1) {
-                sweepTxHash = receipt.hash;
-                blockNumber = receipt.blockNumber;
-                isLiveOnChain = true;
+    const rpcUrls = this.getChainRpcUrls(chainKey);
+
+    const ERC20_ABI = [
+      "function transfer(address to, uint256 amount) returns (bool)",
+      "function balanceOf(address account) view returns (uint256)",
+      "function decimals() view returns (uint8)",
+    ];
+
+    if (!params.recipientAddress.startsWith("0x") || params.recipientAddress.length !== 42) {
+      throw new Error(`Invalid recipient EVM address: ${params.recipientAddress}`);
+    }
+
+    if (candidateKeys.length === 0) {
+      throw new Error("No EVM Treasury keys available to execute on-chain sweep transfer");
+    }
+
+    // Live On-Chain Broadcast Loop across available RPCs and Treasury Keys
+    rpcAttemptLoop: for (const rpcUrl of rpcUrls) {
+      try {
+        const provider = new ethers.JsonRpcProvider(rpcUrl, chainConfig.chainId, { staticNetwork: true });
+
+        if (isNative) {
+          const weiAmount = ethers.parseEther(Math.max(0.000001, quote.expectedAmountOut).toFixed(18));
+          for (const pk of candidateKeys) {
+            try {
+              const wallet = new ethers.Wallet(pk, provider);
+              const bal = await provider.getBalance(wallet.address).catch(() => 0n);
+              if (bal >= weiAmount + ethers.parseEther("0.00005")) {
                 console.log(
-                  `[HashKeyTreasury] Delivered live ${tokenSymbol} on block #${blockNumber}! Tx: ${sweepTxHash}`
+                  `[HashKeyTreasury] Broadcasting live native ${tokenSymbol} sweep of ${quote.expectedAmountOut.toFixed(6)} from ${wallet.address} to ${params.recipientAddress} on ${chainConfig.name} (${rpcUrl})...`
                 );
-                break;
+                const tx = await wallet.sendTransaction({
+                  to: params.recipientAddress,
+                  value: weiAmount,
+                });
+                const receipt = await tx.wait(1);
+                if (receipt && receipt.status === 1) {
+                  sweepTxHash = receipt.hash;
+                  blockNumber = receipt.blockNumber;
+                  isLiveOnChain = true;
+                  console.log(
+                    `[HashKeyTreasury] Live native ${tokenSymbol} sweep confirmed in block #${blockNumber}! Tx: ${sweepTxHash}`
+                  );
+                  break rpcAttemptLoop;
+                }
               }
+            } catch (kErr: any) {
+              console.warn(`[HashKeyTreasury] Candidate key sweep attempt failed on ${chainConfig.name}:`, kErr.message);
+              failureReason = kErr.message;
             }
-          } catch (liveErr: any) {
-            console.warn(`[HashKeyTreasury] Candidate key sweep attempt failed on ${chainConfig.name}:`, liveErr.message);
+          }
+        } else {
+          // ERC20 Token (e.g. USDC, USDT, DAI)
+          const tokenMeta = SUPPORTED_TOKENS[tokenSymbol];
+          const tokenAddress = tokenMeta?.addresses?.[chainKey];
+          if (!tokenAddress || tokenAddress === "0x0000000000000000000000000000000000000000") {
+            throw new Error(`Token ${tokenSymbol} has no deployed contract address configured on ${chainConfig.name}`);
+          }
+          const decimals = tokenMeta.decimals || 6;
+          const tokenUnits = ethers.parseUnits(
+            Math.max(0.000001, quote.expectedAmountOut).toFixed(decimals),
+            decimals
+          );
+
+          for (const pk of candidateKeys) {
+            try {
+              const wallet = new ethers.Wallet(pk, provider);
+              const erc20 = new ethers.Contract(tokenAddress, ERC20_ABI, wallet);
+              const tokenBal: bigint = await erc20.balanceOf(wallet.address).catch(() => 0n);
+              const gasBal: bigint = await provider.getBalance(wallet.address).catch(() => 0n);
+
+              if (tokenBal >= tokenUnits && gasBal > 0n) {
+                console.log(
+                  `[HashKeyTreasury] Broadcasting live ERC20 ${tokenSymbol} (${tokenAddress}) sweep of ${quote.expectedAmountOut.toFixed(decimals)} from ${wallet.address} to ${params.recipientAddress} on ${chainConfig.name}...`
+                );
+                const tx = await erc20.transfer(params.recipientAddress, tokenUnits);
+                const receipt = await tx.wait(1);
+                if (receipt && receipt.status === 1) {
+                  sweepTxHash = receipt.hash;
+                  blockNumber = receipt.blockNumber;
+                  isLiveOnChain = true;
+                  console.log(
+                    `[HashKeyTreasury] Live ERC20 ${tokenSymbol} sweep confirmed in block #${blockNumber}! Tx: ${sweepTxHash}`
+                  );
+                  break rpcAttemptLoop;
+                }
+              } else {
+                console.warn(
+                  `[HashKeyTreasury] Candidate ${wallet.address} insufficient token (${ethers.formatUnits(tokenBal, decimals)} ${tokenSymbol} < ${quote.expectedAmountOut}) or gas (${ethers.formatEther(gasBal)} ETH)`
+                );
+              }
+            } catch (ercErr: any) {
+              console.warn(`[HashKeyTreasury] Candidate key ERC20 attempt failed on ${chainConfig.name}:`, ercErr.message);
+              failureReason = ercErr.message;
+            }
           }
         }
+      } catch (rpcErr: any) {
+        console.warn(`[HashKeyTreasury] RPC ${rpcUrl} connection failed, trying next RPC...`);
       }
     }
 
-    if (!sweepTxHash) {
-      sweepTxHash = ethers.hexlify(ethers.randomBytes(32));
+    if (!isLiveOnChain || !sweepTxHash) {
+      throw new Error(
+        `Live on-chain sweep failed: Unable to deliver ${amountOutFormatted} to ${params.recipientAddress} on ${chainConfig.name}. Ensure Treasury has sufficient ${tokenSymbol} liquidity and native gas. (Detail: ${failureReason || "Insufficient balance on candidate wallets"})`
+      );
     }
 
     const explorerUrl =

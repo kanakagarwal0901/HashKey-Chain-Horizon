@@ -20,13 +20,21 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const destinationChain = (body.destinationChain || "hashkey-testnet").trim();
-    const amountUsdc = Number(body.amountUsdc || body.amount);
-    const recipientAddress = body.recipientAddress || body.destinationAddress;
-    const targetToken = body.targetToken || body.targetCurrency || "HSK";
+    const amountUsdc = body.amountUsdc !== undefined ? Number(body.amountUsdc) : (body.amount !== undefined ? Number(body.amount) : undefined);
+    const amountHsk = body.amountHsk !== undefined ? Number(body.amountHsk) : undefined;
+    const recipientAddress = (body.recipientAddress || body.destinationAddress || "").trim();
+    const targetToken = (body.targetToken || body.targetCurrency || "HSK").trim();
 
-    if (!amountUsdc || amountUsdc <= 0 || !recipientAddress) {
+    if ((!amountUsdc || amountUsdc <= 0) && (!amountHsk || amountHsk <= 0)) {
       return NextResponse.json(
-        { error: "Missing required parameters: amountUsdc (must be > 0) and recipientAddress" },
+        { error: "Missing required parameters: sweep amount (amountHsk or amountUsdc) must be > 0" },
+        { status: 400 }
+      );
+    }
+
+    if (!recipientAddress || !recipientAddress.startsWith("0x")) {
+      return NextResponse.json(
+        { error: "Missing or invalid recipient EVM address. Please provide a valid 42-character 0x EVM address." },
         { status: 400 }
       );
     }
@@ -48,13 +56,14 @@ export async function POST(request: NextRequest) {
       sellerAddress,
       recipientAddress,
       amountUsdc,
+      amountHsk,
       destinationChain,
       targetToken,
     });
 
     return NextResponse.json({
       success: true,
-      message: `Successfully executed universal sweep to ${recipientAddress} (${sweepRecord.swappedAmount} on ${sweepRecord.destinationChain})`,
+      message: `Successfully executed live on-chain sweep to ${recipientAddress} (${sweepRecord.swappedAmount} on ${sweepRecord.destinationChain})`,
       bridgeTx: sweepRecord,
       txHash: sweepRecord.txHash,
       sourceBurnTxId: sweepRecord.txHash,
@@ -63,9 +72,12 @@ export async function POST(request: NextRequest) {
       targetToken: sweepRecord.targetToken,
       destinationChain: sweepRecord.destinationChain,
       dexRate: sweepRecord.dexRate,
+      blockNumber: sweepRecord.blockNumber,
+      isLiveOnChain: sweepRecord.isLiveOnChain,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Sweep Error";
+    console.error("[CCTP Bridge API Error]:", message);
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

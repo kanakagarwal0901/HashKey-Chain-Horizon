@@ -347,8 +347,8 @@ export default function SellerPayoutPage() {
       }
 
       setSweepResult({
-        txId: data.bridgeTx?.txHash || data.sourceBurnTxId || "0x" + Math.random().toString(16).slice(2, 66),
-        explorerUrl: data.explorerUrl || data.blockscoutUrl || `${HSK_TESTNET_EXPLORER}/tx/${data.bridgeTx?.txHash || ""}`,
+        txId: data.bridgeTx?.txHash || data.sourceBurnTxId || data.txHash,
+        explorerUrl: data.explorerUrl || data.blockscoutUrl || `${HSK_TESTNET_EXPLORER}/tx/${data.bridgeTx?.txHash || data.txHash || ""}`,
         settledAmount: parsedAmount,
         targetToken: selectedToken,
         recipientAddress,
