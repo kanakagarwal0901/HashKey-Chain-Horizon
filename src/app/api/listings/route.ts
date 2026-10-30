@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import fs from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
@@ -12,7 +15,14 @@ import {
   verifyApiKeyWithProvider,
   getModelMetadata,
   cleanApiKey,
+  remoteOrderbookSync,
 } from "@shunya/core";
+
+const noCacheHeaders = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+  Pragma: "no-cache",
+  Expires: "0",
+};
 
 function sanitizeListings(listings: any[]) {
   return listings.map((l) => {
@@ -22,6 +32,11 @@ function sanitizeListings(listings: any[]) {
 }
 
 export async function GET(request: NextRequest) {
+  try {
+    await arkivDb.syncWithRemote();
+  } catch (syncErr) {
+    console.warn("[GET /api/listings] Cloud orderbook sync notice:", syncErr);
+  }
   const { searchParams } = new URL(request.url);
   const model = searchParams.get("model");
   const tMaxStr = searchParams.get("tMax");
@@ -34,23 +49,29 @@ export async function GET(request: NextRequest) {
   if (model && tMaxStr) {
     const tMax = parseInt(tMaxStr, 10);
     const eligible = arkivDb.queryEligibleListings(model, tMax);
-    return NextResponse.json({
-      success: true,
-      query: { model, tMax },
-      currentBlock: arkivDb.getCurrentBlock(),
-      count: eligible.length,
-      listings: sanitizeListings(eligible),
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        query: { model, tMax },
+        currentBlock: arkivDb.getCurrentBlock(),
+        count: eligible.length,
+        listings: sanitizeListings(eligible),
+      },
+      { headers: noCacheHeaders }
+    );
   }
 
   // Return all listings (sealedApiKey stripped for public orderbook privacy)
   const all = arkivDb.getAllListings();
-  return NextResponse.json({
-    success: true,
-    currentBlock: arkivDb.getCurrentBlock(),
-    count: all.length,
-    listings: sanitizeListings(all),
-  });
+  return NextResponse.json(
+    {
+      success: true,
+      currentBlock: arkivDb.getCurrentBlock(),
+      count: all.length,
+      listings: sanitizeListings(all),
+    },
+    { headers: noCacheHeaders }
+  );
 }
 
 export async function DELETE(request: NextRequest) {
@@ -75,12 +96,15 @@ export async function DELETE(request: NextRequest) {
       console.error("Error reloading listings from disk:", e);
     }
     const all = arkivDb.getAllListings();
-    return NextResponse.json({
-      success: true,
-      message: "Arkiv orderbook reloaded from disk",
-      count: all.length,
-      listings: sanitizeListings(all),
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Arkiv orderbook reloaded from disk",
+        count: all.length,
+        listings: sanitizeListings(all),
+      },
+      { headers: noCacheHeaders }
+    );
   }
 
   if (deleteId) {
@@ -88,12 +112,15 @@ export async function DELETE(request: NextRequest) {
       (arkivDb as any).deleteListing(deleteId);
     }
     const all = arkivDb.getAllListings();
-    return NextResponse.json({
-      success: true,
-      message: `Deleted listing ${deleteId}`,
-      count: all.length,
-      listings: sanitizeListings(all),
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        message: `Deleted listing ${deleteId}`,
+        count: all.length,
+        listings: sanitizeListings(all),
+      },
+      { headers: noCacheHeaders }
+    );
   }
 
   if (typeof (arkivDb as any)?.clearOrderbook === "function") {
@@ -122,12 +149,19 @@ export async function DELETE(request: NextRequest) {
     console.error("Error clearing on-disk orderbook files:", err);
   }
 
-  return NextResponse.json({
-    success: true,
-    message: "Orderbook cleared successfully",
-    count: 0,
-    listings: [],
-  });
+  try {
+    await remoteOrderbookSync.pushRemoteListings([]);
+  } catch {}
+
+  return NextResponse.json(
+    {
+      success: true,
+      message: "Orderbook cleared successfully",
+      count: 0,
+      listings: [],
+    },
+    { headers: noCacheHeaders }
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -282,11 +316,20 @@ export async function POST(request: NextRequest) {
       payoutAddress: resolvedPayout,
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Listing entity created successfully with 1-hour block expiration",
-      listing,
-    });
+    try {
+      await remoteOrderbookSync.publishListing(listing);
+    } catch (syncErr) {
+      console.warn("[POST /api/listings] Remote sync notice:", syncErr);
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Listing entity created successfully with 1-hour block expiration",
+        listing,
+      },
+      { headers: noCacheHeaders }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal Server Error";
     return NextResponse.json({ error: message }, { status: 500 });

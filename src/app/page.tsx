@@ -57,7 +57,10 @@ export default function HomePage() {
   const [modalTab, setModalTab] = useState<"buyer" | "seller" | "technology">("buyer");
 
   useEffect(() => {
-    fetch("/api/listings")
+    fetch(`/api/listings?_t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.listings) setActiveListings(data.listings);

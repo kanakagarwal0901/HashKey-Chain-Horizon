@@ -229,7 +229,10 @@ export default function BuyerStudioPage() {
 
   const fetchAllOrderbookListings = async () => {
     try {
-      const res = await fetch("/api/listings");
+      const res = await fetch(`/api/listings?_t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+      });
       const data = await res.json();
       if (data.success && Array.isArray(data.listings)) {
         const seen = new Set<string>();
@@ -339,34 +342,61 @@ contract VaultLending {
 
   // Fetch eligible sellers when model or bounds change
   useEffect(() => {
-    setLoadingSellers(true);
-    fetch(`/api/listings?model=${selectedModel}&tMax=${bounds.totalMaxTokens}`)
-      .then((res) => res.json())
-      .then((data) => {
-        const list = data.listings || [];
-        const seen = new Set<string>();
-        const unique = list.filter((s: any) => {
-          const key = s.ensName ? s.ensName.toLowerCase() : s.id;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        setEligibleSellers(unique);
-        if (selectedSeller && !unique.find((s: any) => s.id === selectedSeller.id)) {
-          setSelectedSeller(null);
-        } else if (!selectedSeller && unique.length > 0) {
-          const myNode = walletAddress ? unique.find((s: any) => (s.payoutAddress || s.ownerAddress)?.toLowerCase() === walletAddress.toLowerCase()) : null;
-          setSelectedSeller(myNode || unique[0]);
-        }
-        setLoadingSellers(false);
-      })
-      .catch((err) => {
-        console.error("Failed to query orderbook:", err);
-        setLoadingSellers(false);
-      });
+    let isCancelled = false;
 
-    fetchAllOrderbookListings();
-  }, [selectedModel, bounds.totalMaxTokens]);
+    const fetchSellers = (showSpinner: boolean = true) => {
+      if (showSpinner) setLoadingSellers(true);
+      fetch(`/api/listings?model=${selectedModel}&tMax=${bounds.totalMaxTokens}&_t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (isCancelled) return;
+          const list = data.listings || [];
+          const seen = new Set<string>();
+          const unique = list.filter((s: any) => {
+            const key = s.ensName ? s.ensName.toLowerCase() : s.id;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setEligibleSellers(unique);
+          if (selectedSeller && !unique.find((s: any) => s.id === selectedSeller.id)) {
+            setSelectedSeller(null);
+          } else if (!selectedSeller && unique.length > 0) {
+            const myNode = walletAddress
+              ? unique.find(
+                  (s: any) =>
+                    (s.payoutAddress || s.ownerAddress)?.toLowerCase() === walletAddress.toLowerCase()
+                )
+              : null;
+            setSelectedSeller(myNode || unique[0]);
+          }
+          if (showSpinner) setLoadingSellers(false);
+        })
+        .catch((err) => {
+          if (isCancelled) return;
+          console.error("Failed to query orderbook:", err);
+          if (showSpinner) setLoadingSellers(false);
+        });
+
+      fetchAllOrderbookListings();
+    };
+
+    fetchSellers(true);
+    const interval = setInterval(() => fetchSellers(false), 6000);
+    const onFocus = () => fetchSellers(false);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("visibilitychange", onFocus);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [selectedModel, bounds.totalMaxTokens, walletAddress]);
 
   const handleProviderChange = (newProvider: string) => {
     setSelectedProvider(newProvider);

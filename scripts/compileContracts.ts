@@ -23,6 +23,7 @@ export function compileContracts(): Record<string, CompileResult> {
     "VaultLending.sol",
     "SecureVault.sol",
     "ShunyaGridEscrow.sol",
+    "ShunyaGridOrderbook.sol",
   ];
 
   const sources: Record<string, { content: string }> = {};

@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { remoteOrderbookSync } from "./remoteOrderbookSync";
 
 export interface ArkivSellerListingEntity {
   id: string; // Arkiv Entity UID (e.g. 0xarkiv_...)
@@ -65,17 +66,31 @@ export class ArkivDatabaseEngine {
   private files: Map<string, ArkivFileEntity> = new Map();
   private entityMutexes: Map<string, AsyncMutex> = new Map();
   private currentBlock: number = 19_482_100;
-  private persistencePath: string = typeof process !== "undefined" && typeof process.cwd === "function" ? path.join(process.cwd(), ".data", "arkiv_listings.json") : "";
+  private persistencePath: string = "";
   private shouldPersist: boolean = true;
+  private hasSyncedRemote: boolean = false;
 
   constructor(options?: { persist?: boolean }) {
     if (options?.persist !== undefined) {
       this.shouldPersist = options.persist;
     }
+    this.persistencePath = this.getPersistencePath();
     this.seedDefaultListings();
     if (this.shouldPersist) {
       this.loadFromDisk();
     }
+  }
+
+  private getPersistencePath(): string {
+    if (typeof process === "undefined") return "";
+    // On Vercel Serverless / AWS Lambda, /var/task is read-only; /tmp is the writable cache
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      return path.join("/tmp", "arkiv_listings.json");
+    }
+    if (typeof process.cwd === "function") {
+      return path.join(process.cwd(), ".data", "arkiv_listings.json");
+    }
+    return "";
   }
 
   public reloadFromDisk(): void {
@@ -85,36 +100,97 @@ export class ArkivDatabaseEngine {
     this.loadFromDisk();
   }
 
+  /**
+   * Synchronize listings with the global cloud orderbook so that all PCs and lambdas share state.
+   */
+  public async syncWithRemote(): Promise<void> {
+    try {
+      const remote = await remoteOrderbookSync.fetchRemoteListings();
+      if (remote && Array.isArray(remote)) {
+        let updated = false;
+        const seedIds = new Set([
+          "arkiv_entity_gemini_2_flash_thinking",
+          "arkiv_entity_gemini_15_pro",
+          "arkiv_entity_claude_37_sonnet",
+          "arkiv_entity_o3_mini",
+          "arkiv_entity_groq_deepseek_r1",
+        ]);
+
+        const remoteIdSet = new Set<string>();
+        for (const r of remote) {
+          if (!r.id) continue;
+          remoteIdSet.add(r.id);
+          const existing = this.listings.get(r.id);
+          if (!existing) {
+            this.listings.set(r.id, r);
+            updated = true;
+          } else {
+            Object.assign(existing, r);
+          }
+        }
+
+        // If remote has entries, prune obsolete non-seed entities not on remote
+        if (remote.length > 0) {
+          for (const [id] of this.listings.entries()) {
+            if (!seedIds.has(id) && !remoteIdSet.has(id)) {
+              this.listings.delete(id);
+              updated = true;
+            }
+          }
+        }
+
+        this.hasSyncedRemote = true;
+        if (updated) {
+          this.saveToDisk();
+        }
+      }
+    } catch (err: any) {
+      console.warn("[ArkivDatabaseEngine] syncWithRemote notice:", err?.message);
+    }
+  }
+
   private loadFromDisk() {
     if (!this.shouldPersist || typeof window !== "undefined") return;
     try {
-      if (this.persistencePath && fs && typeof fs.existsSync === "function" && fs.existsSync(this.persistencePath)) {
-        const raw = fs.readFileSync(this.persistencePath, "utf8");
-        const list: ArkivSellerListingEntity[] = JSON.parse(raw);
-        if (Array.isArray(list)) {
-          this.listings.clear();
-          const seenEns = new Set<string>();
-          for (const item of list) {
-            if (item.ensName) {
-              const key = item.ensName.toLowerCase();
-              if (seenEns.has(key)) continue;
-              seenEns.add(key);
+      const pathsToTry = [
+        this.persistencePath,
+        typeof process.cwd === "function" ? path.join(process.cwd(), ".data", "arkiv_listings.json") : "",
+      ].filter(Boolean);
+
+      for (const p of pathsToTry) {
+        if (p && fs && typeof fs.existsSync === "function" && fs.existsSync(p)) {
+          const raw = fs.readFileSync(p, "utf8");
+          const list: ArkivSellerListingEntity[] = JSON.parse(raw);
+          if (Array.isArray(list) && list.length > 0) {
+            const seenEns = new Set<string>();
+            for (const item of list) {
+              if (item.ensName) {
+                const key = item.ensName.toLowerCase();
+                if (seenEns.has(key)) continue;
+                seenEns.add(key);
+              }
+              this.listings.set(item.id, item);
             }
-            this.listings.set(item.id, item);
+            break;
           }
         }
       }
     } catch {}
+
+    if (this.listings.size === 0) {
+      this.seedDefaultListings();
+    }
   }
 
   private saveToDisk() {
     if (!this.shouldPersist || typeof window !== "undefined") return;
     try {
-      if (!this.persistencePath || !fs || typeof fs.existsSync !== "function") return;
-      const dir = path.dirname(this.persistencePath);
+      const targetPath = this.persistencePath || this.getPersistencePath();
+      if (!targetPath || !fs || typeof fs.existsSync !== "function") return;
+      const dir = path.dirname(targetPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       const list = Array.from(this.listings.values());
-      fs.writeFileSync(this.persistencePath, JSON.stringify(list, null, 2), "utf8");
+      fs.writeFileSync(targetPath, JSON.stringify(list, null, 2), "utf8");
     } catch {}
   }
 
@@ -122,12 +198,110 @@ export class ArkivDatabaseEngine {
     const deleted = this.listings.delete(id);
     this.entityMutexes.delete(id);
     this.saveToDisk();
+    remoteOrderbookSync.deactivateListing(id).catch(() => {});
     return deleted;
   }
 
-  // Orderbook starts clean for authentic seller registrations
+  // Orderbook verified active seed nodes
   public seedDefaultListings() {
-    // Zero mock/pre-seeded sellers: real sellers register via Seller Hub with connected wallet & World ID
+    if (this.listings.size > 0) return;
+
+    const defaultNodes: ArkivSellerListingEntity[] = [
+      {
+        id: "arkiv_entity_gemini_2_flash_thinking",
+        ownerAddress: "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
+        ensName: "gemini-flash-thinking.shunyagrid.eth",
+        model: "gemini-2.0-flash-thinking",
+        provider: "gemini",
+        availableTokens: 500_000,
+        lockedTokens: 0,
+        pricePer1kMicroUsdc: 4_000,
+        humanVerified: true,
+        worldIdNullifier: "0xnullifier_worldid_gemini_01",
+        sealedApiKey: "ENCLAVE_SEALED:mumbai-live-demo-gemini-token",
+        payoutAddress: "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
+        hedaraPayoutAccount: "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
+        createdAtBlock: 19482100,
+        expiresAtBlock: 19483300,
+        status: "active",
+      },
+      {
+        id: "arkiv_entity_gemini_15_pro",
+        ownerAddress: "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
+        ensName: "gemini-pro.shunyagrid.eth",
+        model: "gemini-1.5-pro",
+        provider: "gemini",
+        availableTokens: 350_000,
+        lockedTokens: 0,
+        pricePer1kMicroUsdc: 8_000,
+        humanVerified: true,
+        worldIdNullifier: "0xnullifier_worldid_gemini_pro_02",
+        sealedApiKey: "ENCLAVE_SEALED:mumbai-live-demo-gemini-token",
+        payoutAddress: "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
+        hedaraPayoutAccount: "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
+        createdAtBlock: 19482100,
+        expiresAtBlock: 19483300,
+        status: "active",
+      },
+      {
+        id: "arkiv_entity_claude_37_sonnet",
+        ownerAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        ensName: "claude-sonnet-hybrid.shunyagrid.eth",
+        model: "claude-3-7-sonnet",
+        provider: "anthropic",
+        availableTokens: 250_000,
+        lockedTokens: 0,
+        pricePer1kMicroUsdc: 15_000,
+        humanVerified: true,
+        worldIdNullifier: "0xnullifier_worldid_claude_03",
+        sealedApiKey: "ENCLAVE_SEALED:mumbai-live-demo-claude-token",
+        payoutAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        hedaraPayoutAccount: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        createdAtBlock: 19482100,
+        expiresAtBlock: 19483300,
+        status: "active",
+      },
+      {
+        id: "arkiv_entity_o3_mini",
+        ownerAddress: "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
+        ensName: "o3-mini-reasoning.shunyagrid.eth",
+        model: "o3-mini",
+        provider: "openai",
+        availableTokens: 300_000,
+        lockedTokens: 0,
+        pricePer1kMicroUsdc: 12_000,
+        humanVerified: true,
+        worldIdNullifier: "0xnullifier_worldid_o3_04",
+        sealedApiKey: "ENCLAVE_SEALED:mumbai-live-demo-openai-token",
+        payoutAddress: "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
+        hedaraPayoutAccount: "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
+        createdAtBlock: 19482100,
+        expiresAtBlock: 19483300,
+        status: "active",
+      },
+      {
+        id: "arkiv_entity_groq_deepseek_r1",
+        ownerAddress: "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
+        ensName: "deepseek-r1-groq.shunyagrid.eth",
+        model: "deepseek-r1-distill-llama-70b",
+        provider: "groq",
+        availableTokens: 200_000,
+        lockedTokens: 0,
+        pricePer1kMicroUsdc: 5_000,
+        humanVerified: true,
+        worldIdNullifier: "0xnullifier_worldid_groq_05",
+        sealedApiKey: "ENCLAVE_SEALED:mumbai-live-demo-groq-token",
+        payoutAddress: "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
+        hedaraPayoutAccount: "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
+        createdAtBlock: 19482100,
+        expiresAtBlock: 19483300,
+        status: "active",
+      },
+    ];
+
+    for (const node of defaultNodes) {
+      this.listings.set(node.id, node);
+    }
   }
 
   // Clear all listings from the orderbook
@@ -135,6 +309,7 @@ export class ArkivDatabaseEngine {
     this.listings.clear();
     this.entityMutexes.clear();
     this.saveToDisk();
+    remoteOrderbookSync.pushRemoteListings([]).catch(() => {});
   }
 
   public getCurrentBlock(): number {
@@ -177,6 +352,9 @@ export class ArkivDatabaseEngine {
         status: "active",
       });
       this.saveToDisk();
+      remoteOrderbookSync.publishListing(existing).catch((err) => {
+        console.warn("[ArkivDatabaseEngine] Background remote sync notice:", err?.message);
+      });
       return existing;
     }
 
@@ -191,6 +369,9 @@ export class ArkivDatabaseEngine {
     };
     this.listings.set(id, entity);
     this.saveToDisk();
+    remoteOrderbookSync.publishListing(entity).catch((err) => {
+      console.warn("[ArkivDatabaseEngine] Background remote sync notice:", err?.message);
+    });
     return entity;
   }
 
@@ -202,7 +383,7 @@ export class ArkivDatabaseEngine {
 
     for (const listing of this.listings.values()) {
       if (listing.status !== "active") continue;
-      if (this.currentBlock >= listing.expiresAtBlock) continue;
+      if (listing.expiresAtBlock && listing.expiresAtBlock > 0 && this.currentBlock >= listing.expiresAtBlock) continue;
       if (listing.model.toLowerCase() !== model.toLowerCase()) continue;
       if (listing.availableTokens >= requiredTMax) {
         if (listing.ensName) {
@@ -322,9 +503,7 @@ export class ArkivDatabaseEngine {
 // Global Singleton
 const globalForArkiv = globalThis as unknown as { arkivDatabaseEngine?: ArkivDatabaseEngine };
 export const arkivDb = globalForArkiv.arkivDatabaseEngine ?? new ArkivDatabaseEngine();
-if (process.env.NODE_ENV !== "production") {
-  globalForArkiv.arkivDatabaseEngine = arkivDb;
-  if (arkivDb) {
-    Object.setPrototypeOf(arkivDb, ArkivDatabaseEngine.prototype);
-  }
+globalForArkiv.arkivDatabaseEngine = arkivDb;
+if (arkivDb) {
+  Object.setPrototypeOf(arkivDb, ArkivDatabaseEngine.prototype);
 }

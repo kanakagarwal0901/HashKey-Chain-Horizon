@@ -29,6 +29,7 @@
     "test:hsp": "tsx scripts/testHashKeyHspSettlement.ts",
     "test:hashkey": "tsx scripts/testHashKeyPaymentFlow.ts",
     "test:seller-flow": "tsx scripts/verifySellerFlow.ts",
+    "test:sync": "tsx scripts/testCrossDeviceOrderbookSync.ts",
     "contracts:compile": "tsx scripts/compileContracts.ts",
     "contracts:deploy": "tsx scripts/deployHashKey.ts",
     "orderbook:clear": "tsx scripts/clearOrderbook.ts"

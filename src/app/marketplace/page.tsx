@@ -23,10 +23,16 @@ export default function MarketplacePage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedProvider, setSelectedProvider] = useState<string>("all");
 
-  const fetchDiscovery = async () => {
-    setLoading(true);
+  const fetchDiscovery = async (showLoadingState: boolean = true) => {
+    if (showLoadingState) setLoading(true);
     try {
-      const res = await fetch("/api/arc-discovery");
+      const res = await fetch(`/api/arc-discovery?_t=${Date.now()}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
       const data = await res.json();
       if (data.pools) {
         setPools(data.pools);
@@ -34,12 +40,25 @@ export default function MarketplacePage() {
     } catch (err) {
       console.error("Failed to load discovery pools:", err);
     } finally {
-      setLoading(false);
+      if (showLoadingState) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchDiscovery();
+    const interval = setInterval(() => {
+      fetchDiscovery(false);
+    }, 6000);
+
+    const onFocus = () => fetchDiscovery(false);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("visibilitychange", onFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("visibilitychange", onFocus);
+    };
   }, []);
 
   const filteredPools = pools.filter((p) => {
@@ -90,7 +109,7 @@ export default function MarketplacePage() {
 
           <div className="flex items-center gap-3.5 self-start lg:self-center">
             <button
-              onClick={fetchDiscovery}
+              onClick={() => fetchDiscovery(true)}
               disabled={loading}
               className="btn-secondary-apple px-5 py-2.5 rounded-full flex items-center gap-2 text-xs font-medium"
               title="Refresh orderbook pools"

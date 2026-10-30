@@ -11,6 +11,10 @@
     "HashKeySettlementRouter": {
       "address": "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D",
       "explorerUrl": "https://testnet-explorer.hskchain.net/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D"
+    },
+    "ShunyaGridOrderbook": {
+      "address": "0x26291175Fa0Ea3C8583fEdEB56805eA68289b105",
+      "explorerUrl": "https://testnet-explorer.hskchain.net/address/0x26291175Fa0Ea3C8583fEdEB56805eA68289b105"
     }
   },
   "tokens": {
