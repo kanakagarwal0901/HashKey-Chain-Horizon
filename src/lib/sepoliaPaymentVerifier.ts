@@ -190,7 +190,15 @@ export async function verifyUniversalBuyerPayment(params: {
     const cfg = PAYMENT_CHAINS[key];
     try {
       const p = new ethers.JsonRpcProvider(cfg.rpcUrl, cfg.chainId, { staticNetwork: true });
-      const r = await p.getTransactionReceipt(cleanTxHash);
+      let r = await p.getTransactionReceipt(cleanTxHash);
+      if (!r) {
+        // Allow up to 3 retries (1.2s each) for multi-node testnet load balancer propagation
+        for (let attempt = 0; attempt < 3; attempt++) {
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          r = await p.getTransactionReceipt(cleanTxHash);
+          if (r) break;
+        }
+      }
       if (r) {
         receipt = r;
         matchedChainKey = key;
