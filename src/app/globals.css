@@ -3,33 +3,63 @@
 @tailwind utilities;
 
 :root {
-  --background: #fbfbfd;
-  --foreground: #111827;
-  --surface-1: #ffffff;
-  --surface-2: #f4f5f8;
-  --surface-3: #e5e7eb;
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.16);
-  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.62) 50%, rgba(246, 248, 252, 0.78) 100%); /* taste-skill-ignore */
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-border-top: rgba(255, 255, 255, 0.95);
-  --glass-shadow: inset 0 1.5px 0 0 #ffffff, inset 0 -1px 2px 0 rgba(0, 0, 0, 0.02), inset 0 0 28px 0 rgba(255, 255, 255, 0.45), 0 20px 40px -15px rgba(0, 0, 0, 0.05); /* taste-skill-ignore */
-  --glass-hover-border: rgba(0, 0, 0, 0.14);
-  --glass-hover-shadow: inset 0 1.5px 0 0 #ffffff, inset 0 0 32px 0 rgba(255, 255, 255, 0.65), 0 26px 52px -12px rgba(0, 0, 0, 0.08); /* taste-skill-ignore */
-  --interactive-glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.52) 50%, rgba(246, 248, 252, 0.70) 100%); /* taste-skill-ignore */
-  --interactive-glass-border: rgba(0, 0, 0, 0.07);
-  --interactive-glass-border-top: rgba(255, 255, 255, 0.92);
-  --interactive-glass-shadow: inset 0 1px 0 0 #ffffff, inset 0 0 16px 0 rgba(255, 255, 255, 0.35), 0 8px 20px -6px rgba(0, 0, 0, 0.04); /* taste-skill-ignore */
-  --interactive-glass-hover-bg: rgba(255, 255, 255, 0.96);
-  --interactive-glass-hover-border: rgba(0, 0, 0, 0.12);
-  --interactive-glass-hover-shadow: inset 0 1.5px 0 0 #ffffff, inset 0 0 20px 0 rgba(255, 255, 255, 0.5), 0 16px 32px -8px rgba(0, 0, 0, 0.07); /* taste-skill-ignore */
-  --pill-bg: rgba(255, 255, 255, 0.82);
-  --pill-border: rgba(0, 0, 0, 0.09);
-  --pill-border-top: rgba(255, 255, 255, 0.95);
-  --pill-shadow: inset 0 1px 0 0 #ffffff, 0 4px 12px -2px rgba(0, 0, 0, 0.04); /* taste-skill-ignore */
-  --navbar-bg: rgba(251, 251, 253, 0.86);
-  --navbar-border: rgba(0, 0, 0, 0.07);
-  --navbar-shadow: inset 0 -1px 0 0 rgba(0, 0, 0, 0.03), 0 12px 28px -12px rgba(0, 0, 0, 0.04); /* taste-skill-ignore */
+  --background: #f4f6fa;
+  --foreground: #09090b;
+  --surface-1: rgba(255, 255, 255, 0.85);
+  --surface-2: rgba(241, 245, 249, 0.9);
+  --surface-3: #e2e8f0;
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
+
+  /* Apple Pro Liquid Glass (Light Mode) */
+  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.68) 50%, rgba(246, 248, 253, 0.82) 100%);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-border-top: rgba(255, 255, 255, 1);
+  --glass-shadow: 
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    inset 0 -1px 1px 0 rgba(15, 23, 42, 0.03),
+    0 1px 3px 0 rgba(15, 23, 42, 0.03),
+    0 12px 32px -4px rgba(15, 23, 42, 0.06);
+
+  --glass-hover-border: rgba(15, 23, 42, 0.16);
+  --glass-hover-shadow: 
+    inset 0 2px 1.5px 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8),
+    0 4px 8px 0 rgba(15, 23, 42, 0.04),
+    0 20px 44px -8px rgba(15, 23, 42, 0.1);
+
+  --interactive-glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.72) 50%, rgba(245, 248, 253, 0.84) 100%);
+  --interactive-glass-border: rgba(15, 23, 42, 0.07);
+  --interactive-glass-border-top: rgba(255, 255, 255, 1);
+  --interactive-glass-shadow: 
+    inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.5),
+    0 1px 2px 0 rgba(15, 23, 42, 0.03),
+    0 4px 14px -2px rgba(15, 23, 42, 0.04);
+
+  --interactive-glass-hover-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.84) 50%, rgba(248, 250, 254, 0.92) 100%);
+  --interactive-glass-hover-border: rgba(15, 23, 42, 0.16);
+  --interactive-glass-hover-shadow: 
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.75),
+    0 4px 14px -2px rgba(15, 23, 42, 0.06),
+    0 16px 36px -6px rgba(15, 23, 42, 0.08);
+
+  --pill-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.75) 100%);
+  --pill-border: rgba(15, 23, 42, 0.08);
+  --pill-border-top: rgba(255, 255, 255, 1);
+  --pill-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 1),
+    0 1px 2px 0 rgba(15, 23, 42, 0.03),
+    0 4px 12px -2px rgba(15, 23, 42, 0.05);
+
+  --navbar-bg: rgba(255, 255, 255, 0.82);
+  --navbar-border: rgba(15, 23, 42, 0.07);
+  --navbar-shadow: 
+    inset 0 -1px 0 0 rgba(15, 23, 42, 0.05),
+    0 1px 3px 0 rgba(15, 23, 42, 0.03),
+    0 8px 24px -4px rgba(15, 23, 42, 0.04);
 }
 
 .dark {
@@ -221,7 +251,7 @@ body {
   box-shadow: var(--interactive-glass-hover-shadow);
 }
 
-.antigravity-glass-interactive:hover {
+.dark .antigravity-glass-interactive:hover {
   background: rgba(20, 22, 28, 0.85);
   transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.18);
@@ -249,7 +279,9 @@ body {
   transform: translateX(-50%);
   width: 600px;
   height: 350px;
-  background: radial-gradient(circle, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.005) 40%, transparent 70%); /* taste-skill-ignore */
+  width: 900px;
+  height: 480px;
+  background: radial-gradient(ellipse 700px 350px at 50% 30%, rgba(16, 185, 129, 0.08) 0%, rgba(56, 189, 248, 0.06) 40%, rgba(139, 92, 246, 0.03) 70%, transparent 100%); /* taste-skill-ignore */
   border-radius: 9999px;
   pointer-events: none;
   z-index: -1;
@@ -399,23 +431,20 @@ body {
   animation: antigravity-ring 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Light Mode Optical Polish */
-html:not(.dark) input:not([type="checkbox"]):not([type="radio"]),
-html:not(.dark) textarea,
-html:not(.dark) select {
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #111827;
-  border-color: rgba(0, 0, 0, 0.1);
-}
+/* ==========================================================================
+   LIGHT MODE DESIGN TASTE REFINEMENT (Strict Anti-Slop / WCAG AA 4.5:1+)
+   Architectural depth, crisp Swiss contrast, tactile surfaces.
+   (Leaves dark mode 100% untouched)
+   ========================================================================== */
 
-html:not(.dark) input::placeholder,
-html:not(.dark) textarea::placeholder {
-  color: #9ca3af;
-}
-
-html:not(.dark) .liquid-glass,
-html:not(.dark) .liquid-glass-interactive {
-  color: #111827;
+/* Universal Light Mode Typography Hierarchy */
+html:not(.dark) h1,
+html:not(.dark) h2,
+html:not(.dark) h3,
+html:not(.dark) h4,
+html:not(.dark) h5,
+html:not(.dark) h6 {
+  color: #09090b !important;
 }
 
 html:not(.dark) .liquid-glass h1,
@@ -426,62 +455,199 @@ html:not(.dark) .liquid-glass-interactive h1,
 html:not(.dark) .liquid-glass-interactive h2,
 html:not(.dark) .liquid-glass-interactive h3,
 html:not(.dark) .liquid-glass-interactive h4 {
-  color: #09090b;
+  color: #09090b !important;
 }
 
-html:not(.dark) .liquid-glass .text-white,
-html:not(.dark) .liquid-glass-interactive .text-white {
-  color: #09090b;
-}
-
-html:not(.dark) .liquid-glass .text-zinc-100,
-html:not(.dark) .liquid-glass-interactive .text-zinc-100,
-html:not(.dark) .liquid-glass .text-zinc-200,
-html:not(.dark) .liquid-glass-interactive .text-zinc-200 {
-  color: #18181b;
-}
-
-html:not(.dark) .liquid-glass .text-zinc-300,
-html:not(.dark) .liquid-glass-interactive .text-zinc-300,
-html:not(.dark) .liquid-glass .text-zinc-400,
-html:not(.dark) .liquid-glass-interactive .text-zinc-400 {
-  color: #52525b;
-}
-
-html:not(.dark) .liquid-glass .border-white\/10,
-html:not(.dark) .liquid-glass .border-white\/15,
-html:not(.dark) .liquid-glass .border-white\/20,
-html:not(.dark) .liquid-glass .border-white\/\[0\.06\],
-html:not(.dark) .liquid-glass .border-white\/\[0\.08\],
-html:not(.dark) .liquid-glass-interactive .border-white\/10,
-html:not(.dark) .liquid-glass-interactive .border-white\/\[0\.06\] {
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-html:not(.dark) .liquid-glass .bg-zinc-900,
-html:not(.dark) .liquid-glass .bg-black,
-html:not(.dark) .liquid-glass .bg-black\/50,
-html:not(.dark) .liquid-glass .bg-black\/60,
-html:not(.dark) .liquid-glass .bg-black\/70,
-html:not(.dark) .liquid-glass .bg-black\/80 {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
+/* Elements with dark background in light mode MUST have white text (Passes contrast 18:1) */
+html:not(.dark) .bg-zinc-950,
+html:not(.dark) .bg-zinc-950 *,
+html:not(.dark) .bg-black,
+html:not(.dark) .bg-black *,
 html:not(.dark) .btn-primary-apple,
-html:not(.dark) .btn-liquid-glass {
+html:not(.dark) .btn-primary-apple *,
+html:not(.dark) .btn-liquid-glass,
+html:not(.dark) .btn-liquid-glass * {
   color: #ffffff !important;
 }
 
-html:not(.dark) [data-ui="table-wrapper"] thead {
-  background-color: rgba(0, 0, 0, 0.02) !important;
-  color: #52525b !important;
-  border-color: rgba(0, 0, 0, 0.06) !important;
+
+/* Neutral text and badges in Light Mode */
+html:not(.dark) .text-neutral-300 {
+  color: #1e293b !important;
 }
-html:not(.dark) [data-ui="table-wrapper"] tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.02) !important;
+
+html:not(.dark) .text-neutral-400,
+html:not(.dark) .text-neutral-500 {
+  color: #475569 !important;
 }
-html:not(.dark) [data-ui="table-wrapper"] tbody td {
-  border-color: rgba(0, 0, 0, 0.04) !important;
+
+html:not(.dark) .bg-neutral-900 {
+  background-color: #f1f5f9 !important;
+  color: #09090b !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html:not(.dark) .bg-neutral-900 * {
+  color: #09090b !important;
+}
+
+/* Standalone text-white on light surfaces becomes dark ink */
+html:not(.dark) .text-white:not(.bg-zinc-950):not(.bg-zinc-950 *):not(.bg-black):not(.bg-black *):not(.btn-primary-apple):not(.btn-primary-apple *):not(.btn-liquid-glass):not(.btn-liquid-glass *) {
+  color: #09090b !important;
+}
+
+/* High-contrast body copy and secondary labels */
+html:not(.dark) .text-zinc-100,
+html:not(.dark) .text-zinc-200 {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .text-zinc-300 {
+  color: #1e293b !important;
+}
+
+html:not(.dark) .text-zinc-400 {
+  color: #334155 !important;
+}
+
+html:not(.dark) .text-zinc-500 {
+  color: #475569 !important;
+}
+
+html:not(.dark) .text-zinc-600 {
+  color: #334155 !important;
+}
+
+/* Emerald accents in Light Mode: rich, crisp, authoritative forest-emerald */
+html:not(.dark) .text-emerald-400,
+html:not(.dark) .text-emerald-500,
+html:not(.dark) .text-emerald-600 {
+  color: #047857 !important;
+}
+
+html:not(.dark) .text-emerald-300 {
+  color: #065f46 !important;
+}
+
+
+/* Nested Sub-Cards and Dark Background Fallbacks in Light Mode */
+html:not(.dark) .bg-black\/60,
+html:not(.dark) .bg-black\/50,
+html:not(.dark) .bg-black\/40 {
+  background-color: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.09) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03) !important;
+}
+
+html:not(.dark) .border-white\/\[0\.08\],
+html:not(.dark) .border-white\/\[0\.06\],
+html:not(.dark) .border-white\/10,
+html:not(.dark) .border-white\/20 {
+  border-color: rgba(15, 23, 42, 0.09) !important;
+}
+
+html:not(.dark) .bg-emerald-950\/20,
+html:not(.dark) .bg-emerald-950\/30 {
+  background-color: #f0fdf4 !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Emerald Pill / Status Backgrounds */
+html:not(.dark) .bg-emerald-950\/40,
+html:not(.dark) .bg-emerald-950\/50,
+html:not(.dark) .bg-emerald-950\/60 {
+  background-color: #ecfdf5 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: #047857 !important;
+}
+
+/* Inputs, Textareas, Selects in Light Mode */
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]),
+html:not(.dark) textarea,
+html:not(.dark) select {
+  background-color: #ffffff !important;
+  color: #09090b !important;
+  border: 1px solid rgba(15, 23, 42, 0.16) !important;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04) !important;
+}
+
+html:not(.dark) input:focus,
+html:not(.dark) textarea:focus,
+html:not(.dark) select:focus {
+  border-color: #09090b !important;
+  outline: 2px solid rgba(15, 23, 42, 0.14) !important;
+  outline-offset: 1px !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Dark nested panels inside cards converted to crisp, tactile light surfaces */
+html:not(.dark) .bg-zinc-900:not(.btn-primary-apple):not(.btn-liquid-glass):not(.bg-zinc-950),
+html:not(.dark) .bg-zinc-900\/80:not(.btn-primary-apple):not(.btn-liquid-glass):not(.bg-zinc-950),
+html:not(.dark) .bg-black\/50,
+html:not(.dark) .bg-black\/60,
+html:not(.dark) .bg-black\/70,
+html:not(.dark) .bg-black\/80 {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0f172a !important;
+}
+
+/* Border overrides for light mode */
+html:not(.dark) .border-white\/10,
+html:not(.dark) .border-white\/15,
+html:not(.dark) .border-white\/20,
+html:not(.dark) .border-white\/\[0\.06\],
+html:not(.dark) .border-white\/\[0\.08\] {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Buttons in Light Mode */
+html:not(.dark) .btn-primary-apple,
+html:not(.dark) .btn-liquid-glass {
+  background: #09090b !important;
+  color: #ffffff !important;
+  border: 1px solid #09090b !important;
+  box-shadow: 0 2px 6px 0 rgba(9, 9, 11, 0.2) !important;
+}
+
+html:not(.dark) .btn-primary-apple:hover,
+html:not(.dark) .btn-liquid-glass:hover {
+  background: #18181b !important;
+}
+
+html:not(.dark) .btn-secondary-apple {
+  background-color: #ffffff !important;
+  color: #09090b !important;
+  border: 1px solid rgba(15, 23, 42, 0.14) !important;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04) !important;
+}
+
+html:not(.dark) .btn-secondary-apple:hover {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(15, 23, 42, 0.24) !important;
+}
+
+/* Table styling in Light Mode */
+html:not(.dark) [data-ui="table-wrapper"] thead,
+html:not(.dark) table thead {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+html:not(.dark) [data-ui="table-wrapper"] tbody tr:hover,
+html:not(.dark) table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+html:not(.dark) [data-ui="table-wrapper"] tbody td,
+html:not(.dark) table tbody td {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  color: #1e293b !important;
 }
 
 /* Accessibility: Reduced Motion Override */

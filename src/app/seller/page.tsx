@@ -683,11 +683,11 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           </span>
         </div>
         <div className="space-y-3.5 sm:space-y-4">
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight flex items-center gap-3.5">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-zinc-950 dark:text-white leading-tight flex items-center gap-3.5">
             <ShunyaLogo size={40} animated={true} />
             Seller Hub: Earn from Unused AI Quota
           </h1>
-          <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-3xl leading-relaxed">
             Turn your unused monthly AI limits into passive income. Your API keys are encrypted securely in your browser, and you get paid automatically to your crypto wallet for every token consumed.
           </p>
         </div>
@@ -745,7 +745,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           <div className="flex items-center gap-3">
             <Shield className="w-5 h-5 text-emerald-400 shrink-0" />
             <div>
-              <h3 className="text-base font-bold text-white tracking-tight">
+              <h3 className="text-base font-bold text-zinc-950 dark:text-white tracking-tight">
                 Quick 3-Step Setup for Sellers
               </h3>
               <p className="text-xs text-zinc-400 mt-0.5">
@@ -936,7 +936,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           </div>
 
           <div className="flex items-baseline gap-4">
-            <h3 className="text-4xl sm:text-5xl font-bold text-white tracking-tight tabular-data">
+            <h3 className="text-4xl sm:text-5xl font-bold text-zinc-950 dark:text-white tracking-tight tabular-data">
               {hskBalance.toFixed(4)}{" "}
               <span className="text-emerald-400 text-base font-normal">HSK</span>
             </h3>
@@ -1033,7 +1033,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
             <div>
               <span className="text-xs text-zinc-400 font-medium block">Stage 3 of 3</span>
-              <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5 flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-zinc-950 dark:text-white tracking-tight mt-0.5 flex items-center gap-2">
                 Create Your AI Model Listing
               </h2>
               <p className="text-xs sm:text-sm text-zinc-400 mt-2.5 leading-relaxed">
@@ -1068,8 +1068,8 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                         onClick={() => handleProviderChange(p.id)}
                         className={`p-3.5 rounded-2xl border text-left transition flex flex-col justify-between gap-2 ${
                           isCurrent
-                            ? "bg-white text-black font-semibold border-white shadow-sm"
-                            : "bg-[#121316] border-white/10 text-zinc-400 hover:text-white hover:border-white/20 hover:bg-white/[0.04]"
+                            ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold border-zinc-950 dark:border-white shadow-sm"
+                            : "bg-slate-100 dark:bg-[#121316] border-black/10 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:border-black/20 dark:hover:border-white/20 hover:bg-slate-200/60 dark:hover:bg-white/[0.04]"
                         }`}
                       >
                         <span className="text-sm font-semibold">{p.name}</span>
@@ -1385,8 +1385,8 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                       onClick={() => setEnsMode("subname")}
                       className={`px-3 py-1 rounded-full transition ${
                         ensMode === "subname"
-                          ? "bg-white text-black font-semibold"
-                          : "text-zinc-400 hover:text-white"
+                          ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold shadow-sm"
+                          : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                       }`}
                     >
                       Subname
@@ -1396,8 +1396,8 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                       onClick={() => setEnsMode("real")}
                       className={`px-3 py-1 rounded-full transition flex items-center gap-1 ${
                         ensMode === "real"
-                          ? "bg-white text-black font-semibold"
-                          : "text-zinc-400 hover:text-white"
+                          ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold shadow-sm"
+                          : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                       }`}
                     >
                       <Globe className="w-3 h-3" />
@@ -1596,7 +1596,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
       {/* Active Listings Table */}
       <SpatialCard maxTilt={1.5} className="p-8 sm:p-12 space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
+          <h2 className="text-xl font-bold text-zinc-950 dark:text-white flex items-center gap-2 tracking-tight">
             <Database className="w-5 h-5 text-white" />
             Live Seller Listings
             <span className="text-xs font-normal text-zinc-400 px-3 py-1 rounded-full bg-zinc-900 border border-white/10">

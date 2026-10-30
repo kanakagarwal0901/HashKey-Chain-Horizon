@@ -82,7 +82,7 @@ export default function HowItWorksModal({
               Platform Architecture &amp; Protocol Guide
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight break-words">
+          <h2 className="text-xl sm:text-2xl font-bold text-zinc-950 dark:text-white tracking-tight break-words">
             How ShunyaGrid works
           </h2>
           <p className="text-xs sm:text-sm text-neutral-400 break-words leading-relaxed">
@@ -96,8 +96,8 @@ export default function HowItWorksModal({
             onClick={() => setActiveTab("buyer")}
             className={`w-full py-2 px-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 min-w-0 ${
               activeTab === "buyer"
-                ? "bg-white text-black font-semibold"
-                : "text-neutral-400 hover:text-white"
+                ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold shadow-sm"
+                : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-950 dark:hover:text-white"
             }`}
           >
             <Cpu className="w-3.5 h-3.5 shrink-0" />
@@ -107,8 +107,8 @@ export default function HowItWorksModal({
             onClick={() => setActiveTab("seller")}
             className={`w-full py-2 px-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 min-w-0 ${
               activeTab === "seller"
-                ? "bg-white text-black font-semibold"
-                : "text-neutral-400 hover:text-white"
+                ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold shadow-sm"
+                : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-950 dark:hover:text-white"
             }`}
           >
             <Coins className="w-3.5 h-3.5 shrink-0" />
@@ -118,8 +118,8 @@ export default function HowItWorksModal({
             onClick={() => setActiveTab("technology")}
             className={`w-full py-2 px-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 min-w-0 ${
               activeTab === "technology"
-                ? "bg-white text-black font-semibold"
-                : "text-neutral-400 hover:text-white"
+                ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold shadow-sm"
+                : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-950 dark:hover:text-white"
             }`}
           >
             <Shield className="w-3.5 h-3.5 shrink-0" />

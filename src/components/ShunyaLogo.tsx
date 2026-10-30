@@ -222,10 +222,10 @@ export default function ShunyaLogo({
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <span className="font-bold text-base sm:text-lg tracking-tight text-zinc-950 dark:text-white leading-tight font-sans">
-              Shunya<span className="text-emerald-500 dark:text-emerald-400">Grid</span>
+              Shunya<span className="text-emerald-700 dark:text-emerald-400">Grid</span>
             </span>
             {badgeText && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-500/25">
                 {badgeText}
               </span>
             )}

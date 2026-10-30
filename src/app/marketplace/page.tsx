@@ -155,11 +155,11 @@ export default function MarketplacePage() {
               </span>
             </div>
             <div className="space-y-3.5 sm:space-y-4">
-              <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white flex items-center gap-3.5">
+              <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-zinc-950 dark:text-white flex items-center gap-3.5">
                 <ShunyaLogo size={44} animated={true} />
                 Explore Available AI Models
               </h1>
-              <p className="text-sm sm:text-base text-zinc-400 max-w-2xl leading-relaxed">
+              <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-2xl leading-relaxed">
                 Browse live AI models provided by verified sellers across all connected devices. Pick any model and start querying with complete privacy and zero monthly commitments.
               </p>
             </div>
@@ -244,8 +244,8 @@ export default function MarketplacePage() {
                 onClick={() => setSelectedProvider(prov.id)}
                 className={`px-3 py-1.5 rounded-full transition font-medium ${
                   selectedProvider === prov.id
-                    ? "bg-white text-black font-semibold"
-                    : "text-neutral-400 hover:text-white"
+                    ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold shadow-sm"
+                    : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-950 dark:hover:text-white"
                 }`}
               >
                 {prov.label}
@@ -254,7 +254,7 @@ export default function MarketplacePage() {
           </div>
 
           <span className="text-xs text-neutral-400 ml-auto sm:ml-2">
-            Showing <strong className="text-white tabular-data">{filteredPools.length}</strong> pools (<span className="tabular-data">{totalActiveNodes}</span> nodes online)
+            Showing <strong className="text-zinc-950 dark:text-white tabular-data">{filteredPools.length}</strong> pools (<span className="text-zinc-800 dark:text-neutral-300 tabular-data font-medium">{totalActiveNodes}</span> nodes online)
           </span>
         </div>
       </div>
@@ -268,7 +268,7 @@ export default function MarketplacePage() {
       ) : filteredPools.length === 0 ? (
         <div className="p-12 text-center text-neutral-400 space-y-3 apple-surface rounded-3xl border border-[var(--border-subtle)]">
           <Filter className="w-8 h-8 mx-auto text-neutral-500" />
-          <h3 className="text-base font-bold text-white">No Matching Token Pools Found</h3>
+          <h3 className="text-base font-bold text-zinc-950 dark:text-white">No Matching Token Pools Found</h3>
           <p className="text-xs text-neutral-400 max-w-md mx-auto">
             Try adjusting your search query or provider filter. You can also publish new seller entities in the Seller Hub.
           </p>
@@ -304,7 +304,7 @@ export default function MarketplacePage() {
                           ? "Groq LPU"
                           : pool.provider}
                       </span>
-                      <h3 className="font-bold text-white text-base mt-0.5">{pool.displayName}</h3>
+                      <h3 className="font-bold text-zinc-950 dark:text-white text-base mt-0.5">{pool.displayName}</h3>
                     </div>
                     <span
                       className={`text-[10px] px-2.5 py-0.5 rounded-full border shrink-0 ${
@@ -444,7 +444,7 @@ export default function MarketplacePage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-ring-emerald" />
-              <h2 className="text-2xl font-bold text-white tracking-tight">
+              <h2 className="text-2xl font-bold text-zinc-950 dark:text-white tracking-tight">
                 Live Decentralized Orderbook: All Active Seller Nodes
               </h2>
             </div>
@@ -547,7 +547,7 @@ export default function MarketplacePage() {
           <Database className="w-4 h-4 text-neutral-300 shrink-0" />
           <span>
             Discoverable by autonomous AI agents via{" "}
-            <code className="text-white bg-neutral-900 px-2 py-0.5 rounded border border-[var(--border-subtle)] font-mono text-[11px]">GET /api/arc-discovery</code>
+            <code className="text-zinc-900 dark:text-white bg-black/[0.05] dark:bg-neutral-900 px-2 py-0.5 rounded border border-black/10 dark:border-[var(--border-subtle)] font-mono text-[11px]">GET /api/arc-discovery</code>
           </span>
         </div>
         <a

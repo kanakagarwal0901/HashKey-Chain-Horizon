@@ -763,11 +763,11 @@ contract VaultLending {
           </span>
         </div>
         <div className="space-y-3.5 sm:space-y-4">
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight flex items-center gap-3.5">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-zinc-950 dark:text-white leading-tight flex items-center gap-3.5">
             <ShunyaLogo size={40} animated={true} />
             AI Playground &amp; Studio
           </h1>
-          <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-3xl leading-relaxed">
             Ask frontier AI models anything with total privacy and zero monthly commitments. Your prompts and files are encrypted directly in your browser before leaving your device.
           </p>
         </div>
@@ -856,7 +856,7 @@ contract VaultLending {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
           <div>
             <span className="text-xs text-zinc-400 font-medium block">Stage 1 of 3</span>
-            <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5">
+            <h2 className="text-2xl font-bold text-zinc-950 dark:text-white tracking-tight mt-0.5">
               Target Model & Reasoning Depth
             </h2>
           </div>
@@ -885,8 +885,8 @@ contract VaultLending {
                   onClick={() => handleProviderChange(p.id)}
                   className={`p-5 sm:p-6 rounded-2xl border text-left transition flex flex-col justify-between gap-3 ${
                     isCurrent
-                      ? "bg-white text-black font-semibold border-white"
-                      : "liquid-glass-interactive border-white/[0.08] text-zinc-400 hover:text-white hover:border-white/20"
+                      ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold border-zinc-950 dark:border-white shadow-sm"
+                      : "liquid-glass-interactive border-black/[0.08] dark:border-white/[0.08] text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:border-black/20 dark:hover:border-white/20"
                   }`}
                 >
                   <span className="text-sm font-semibold">{p.name}</span>
@@ -918,8 +918,8 @@ contract VaultLending {
                     onClick={() => selectModelDirectly(item.provider, item.modelId)}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition flex items-center gap-1.5 ${
                       isSelected
-                        ? "bg-white text-black font-semibold shadow-sm"
-                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10"
+                        ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold shadow-sm border-zinc-950 dark:border-white"
+                        : "bg-black/[0.04] dark:bg-zinc-900 hover:bg-black/[0.08] dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-black/10 dark:border-white/10"
                     }`}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -999,8 +999,8 @@ contract VaultLending {
                     onClick={() => handleThinkingChange(lvl.id)}
                     className={`py-3 px-3 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-1 ${
                       thinkingLevel === lvl.id
-                        ? "bg-white text-black font-semibold border-white"
-                        : "liquid-glass-interactive border-white/[0.08] text-zinc-400 hover:text-white hover:border-white/20"
+                        ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold border-zinc-950 dark:border-white shadow-sm"
+                        : "liquid-glass-interactive border-black/[0.08] dark:border-white/[0.08] text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:border-black/20 dark:hover:border-white/20"
                     }`}
                   >
                     <span className="text-xs capitalize font-medium">{lvl.label}</span>
@@ -1050,7 +1050,7 @@ contract VaultLending {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
           <div>
             <span className="text-xs text-zinc-400 font-medium block">Stage 2 of 3</span>
-            <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5">
+            <h2 className="text-2xl font-bold text-zinc-950 dark:text-white tracking-tight mt-0.5">
               Available AI Providers
               <span className="ml-2 text-sm font-normal text-zinc-400">
                 ({eligibleSellers.length} qualified)
@@ -1178,7 +1178,7 @@ contract VaultLending {
 
                       <td className="py-5 px-6 sm:px-7 text-right whitespace-nowrap">
                         {isCurrent ? (
-                          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-black font-semibold text-xs">
+                          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold text-xs shadow-sm">
                             <Check className="w-3.5 h-3.5" />
                             Selected
                           </span>
@@ -1209,7 +1209,7 @@ contract VaultLending {
               <Lock className="w-7 h-7 text-zinc-400" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-bold text-white">
+              <h3 className="text-xl font-bold text-zinc-950 dark:text-white">
                 Confidential Prompt Studio
               </h3>
               <p className="text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
@@ -1411,8 +1411,8 @@ contract VaultLending {
                     }}
                     className={`p-3 rounded-xl border text-xs font-medium text-center transition ${
                       paymentCurrency === token.symbol
-                        ? "bg-white text-black font-semibold border-white"
-                        : "bg-[#121316] border-white/[0.08] text-zinc-400 hover:text-white"
+                        ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold border-zinc-950 dark:border-white shadow-sm"
+                        : "bg-slate-100 dark:bg-[#121316] border-black/[0.08] dark:border-white/[0.08] text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                     }`}
                   >
                     <div className="font-bold">{token.symbol}</div>
@@ -1623,7 +1623,7 @@ contract VaultLending {
               <div className="p-6 sm:p-8 rounded-3xl bg-[#0c0d11] border border-white/20 space-y-6 mt-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
                   <div>
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-zinc-950 dark:text-white flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                       Your AI Response (Private & Decrypted)
                     </h3>
@@ -1897,7 +1897,7 @@ contract VaultLending {
                   <span className="text-[11px] font-semibold text-emerald-400 block">
                     Zero-Cutoff Escrow Protection
                   </span>
-                  <h3 className="text-xl font-bold text-white">100% Automatic Refund Issued</h3>
+                  <h3 className="text-xl font-bold text-zinc-950 dark:text-white">100% Automatic Refund Issued</h3>
                 </div>
               </div>
               <button

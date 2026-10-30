@@ -40,3 +40,6 @@ scratch/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Taste Skill inspection artifacts
+.taste-skill/

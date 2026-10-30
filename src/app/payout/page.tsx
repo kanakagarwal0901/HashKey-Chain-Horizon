@@ -446,11 +446,11 @@ export default function SellerPayoutPage() {
           </span>
         </div>
         <div className="space-y-3.5 sm:space-y-4">
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight flex items-center gap-3.5">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-zinc-950 dark:text-white leading-tight flex items-center gap-3.5">
             <ShunyaLogo size={40} animated={true} />
             Seller Payout &amp; Universal Sweeper
           </h1>
-          <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-3xl leading-relaxed">
             Inspect accumulated token revenues settled on-chain via HashKey Settlement Protocol (HSP) on HashKey Chain Testnet (Chain ID 133). 
             Sweep accumulated earnings natively or cross-chain to any supported EVM network in any token via the HashKey Settlement Router.
           </p>
@@ -488,7 +488,7 @@ export default function SellerPayoutPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
           <div>
             <span className="text-xs text-zinc-400 font-medium block">Stage 1 of 3</span>
-            <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5">
+            <h2 className="text-2xl font-bold text-zinc-950 dark:text-white tracking-tight mt-0.5">
               Your Earnings & Payout Wallet
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
@@ -633,7 +633,7 @@ export default function SellerPayoutPage() {
           <div className="flex items-center justify-between pb-2">
             <div>
               <span className="text-xs text-zinc-400 font-medium block">Stage 2 of 3</span>
-              <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5 flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-zinc-950 dark:text-white tracking-tight mt-0.5 flex items-center gap-2">
                 <Coins className="w-5 h-5 text-zinc-400" />
                 Universal Multi-Chain / Multi-Token Sweeper
               </h2>
@@ -764,8 +764,8 @@ export default function SellerPayoutPage() {
                     onClick={() => setSelectedToken(token.symbol)}
                     className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
                       selectedToken === token.symbol
-                        ? "bg-white text-black font-semibold border-white"
-                        : "liquid-glass-interactive border-white/[0.08] hover:border-white/20 text-zinc-300"
+                        ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold border-zinc-950 dark:border-white shadow-sm"
+                        : "liquid-glass-interactive border-black/[0.08] dark:border-white/[0.08] hover:border-black/20 dark:hover:border-white/20 text-zinc-700 dark:text-zinc-300"
                     }`}
                   >
                     <div>
@@ -896,7 +896,7 @@ export default function SellerPayoutPage() {
         {/* Sidebar Protocol Details */}
         <div className="space-y-6">
           <SpatialCard maxTilt={1.5} className="p-8 border border-white/10 space-y-3">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-zinc-950 dark:text-white flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-400" />
               HashKey Settlement Protocol (HSP)
             </h3>

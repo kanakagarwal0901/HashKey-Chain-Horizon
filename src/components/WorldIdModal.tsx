@@ -325,7 +325,7 @@ export default function WorldIdModal({
             <UserCheck className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Verify You're a Real Human</h3>
+            <h3 className="text-lg font-bold text-zinc-950 dark:text-white">Verify You're a Real Human</h3>
             <p className="text-xs text-neutral-400">Quick one-time check to protect the platform from bots</p>
           </div>
         </div>
@@ -363,8 +363,8 @@ export default function WorldIdModal({
             onClick={() => setActiveTab("local")}
             className={`py-2 px-3 rounded-full font-semibold transition flex items-center justify-center gap-2 ${
               activeTab === "local"
-                ? "bg-white text-black font-semibold"
-                : "text-neutral-400 hover:text-white"
+                ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold shadow-sm"
+                : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-950 dark:hover:text-white"
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
@@ -375,8 +375,8 @@ export default function WorldIdModal({
             onClick={() => setActiveTab("official")}
             className={`py-2 px-3 rounded-full font-semibold transition flex items-center justify-center gap-2 ${
               activeTab === "official"
-                ? "bg-white text-black font-semibold"
-                : "text-neutral-400 hover:text-white"
+                ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold shadow-sm"
+                : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-950 dark:hover:text-white"
             }`}
           >
             <Globe className="w-3.5 h-3.5" />

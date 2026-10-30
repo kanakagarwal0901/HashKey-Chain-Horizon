@@ -111,7 +111,7 @@ export default function Footer() {
                   href="https://testnet-explorer.hskchain.net/address/0x26291175Fa0Ea3C8583fEdEB56805eA68289b105"
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold"
+                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-semibold"
                 >
                   <span>Orderbook Contract (0x2629)</span>
                   <ArrowUpRight className="w-3 h-3" />
@@ -122,7 +122,7 @@ export default function Footer() {
                   href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold"
+                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-semibold"
                 >
                   <span>HashKey Explorer (HSP)</span>
                   <ArrowUpRight className="w-3 h-3" />
@@ -187,7 +187,7 @@ export default function Footer() {
           <div className="flex items-center gap-4 text-[11px]">
             <span>Non-custodial confidential AI inference network.</span>
             <span className="text-zinc-400 dark:text-zinc-600">•</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-medium">All systems operational</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-medium">All systems operational</span>
           </div>
         </div>
       </div>
