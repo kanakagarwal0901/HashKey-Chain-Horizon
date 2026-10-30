@@ -9,11 +9,13 @@ async function main() {
   console.log("   Endpoint: http://localhost:3000/api/blind-execute                  ");
   console.log("=" .repeat(78) + "\n");
 
-  // Step 1: Discover Gemini Flash Listing
+  // Step 1: Discover Gemini Flash Listing (target pratah-4c4a or any real registered seller)
   console.log("[STEP 1: DISCOVERY] Querying Orderbook for Gemini Flash Seller Node...");
   const listingsRes = await fetch("http://localhost:3000/api/listings");
   const listingsData = await listingsRes.json();
-  const geminiListing = listingsData.listings.find((l: any) => l.model.includes("gemini") && l.model.includes("flash"));
+  // Find pratah-4c4a seller listing specifically (which has real sealed Gemini key)
+  const geminiListing = listingsData.listings.find((l: any) => l.ensName?.includes("pratah") && l.model.includes("flash")) 
+    || listingsData.listings.find((l: any) => l.model.includes("gemini") && l.model.includes("flash"));
 
   if (!geminiListing) {
     throw new Error("No Gemini Flash listing found on orderbook");
@@ -53,8 +55,12 @@ async function main() {
   console.log(`  • Agent HSK Balance:   ${parseFloat(ethers.formatEther(balance)).toFixed(4)} HSK`);
   console.log(`  • Protocol Treasury:   ${SHUNYA_TREASURY_EVM_ADDRESS}`);
 
-  // Send real on-chain transaction to Treasury (covers upfront T_max escrow for Gemini Flash Thinking)
-  const paymentHsk = "1.25"; // 1.25 HSK upfront escrow (~$0.1118, covers the required 104,768 micro-USDC = $0.1048)
+  // Send real on-chain transaction to Treasury (covers upfront T_max escrow for seller's rate)
+  const tMaxTokens = geminiListing.model.includes("thinking") ? 26192 : 12000;
+  const requiredUsdc = (tMaxTokens / 1000) * (geminiListing.pricePer1kMicroUsdc / 1_000_000);
+  const hskUsdRate = 0.0894;
+  const paymentHsk = (Math.ceil((requiredUsdc / hskUsdRate) * 1.05 * 100) / 100).toFixed(2); // 5% buffer
+  console.log(`  • T_max Bound:         ${tMaxTokens.toLocaleString()} tokens ($${requiredUsdc.toFixed(4)} USDC)`);
   console.log(`  • Sending ${paymentHsk} HSK to Treasury...`);
   const tx = await agentWallet.sendTransaction({
     to: SHUNYA_TREASURY_EVM_ADDRESS,
