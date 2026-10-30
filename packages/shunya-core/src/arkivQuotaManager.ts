@@ -34,31 +34,8 @@ export interface ArkivFileEntity {
   ciphertextRef: string;
 }
 
-// Asynchronous Mutex for Strict Linearizable Concurrency Control
-export class AsyncMutex {
-  private queue: (() => void)[] = [];
-  private locked: boolean = false;
-
-  public async acquire(): Promise<() => void> {
-    return new Promise((resolve) => {
-      const release = () => {
-        if (this.queue.length > 0) {
-          const next = this.queue.shift()!;
-          next();
-        } else {
-          this.locked = false;
-        }
-      };
-
-      if (!this.locked) {
-        this.locked = true;
-        resolve(release);
-      } else {
-        this.queue.push(() => resolve(release));
-      }
-    });
-  }
-}
+export { AsyncMutex } from "./asyncMutex";
+import { AsyncMutex } from "./asyncMutex";
 
 // In-Memory State Cache for Arkiv Decentralized Entities
 export class ArkivDatabaseEngine {
@@ -162,14 +139,10 @@ export class ArkivDatabaseEngine {
           const raw = fs.readFileSync(p, "utf8");
           const list: ArkivSellerListingEntity[] = JSON.parse(raw);
           if (Array.isArray(list) && list.length > 0) {
-            const seenEns = new Set<string>();
             for (const item of list) {
-              if (item.ensName) {
-                const key = item.ensName.toLowerCase();
-                if (seenEns.has(key)) continue;
-                seenEns.add(key);
+              if (item && item.id) {
+                this.listings.set(item.id, item);
               }
-              this.listings.set(item.id, item);
             }
             break;
           }
@@ -335,12 +308,12 @@ export class ArkivDatabaseEngine {
   public createListing(params: Omit<ArkivSellerListingEntity, "id" | "createdAtBlock" | "expiresAtBlock" | "lockedTokens" | "status">): ArkivSellerListingEntity {
     this.loadFromDisk();
 
-    // Prevent duplicate entries for the same seller ENS or (owner + model)
+    // Prevent duplicate entries for the SAME owner + SAME model + SAME ENS
     const existing = Array.from(this.listings.values()).find(
       (l) =>
-        (params.ensName && l.ensName?.toLowerCase() === params.ensName.toLowerCase()) ||
-        (l.ownerAddress.toLowerCase() === params.ownerAddress.toLowerCase() &&
-          l.model.toLowerCase() === params.model.toLowerCase())
+        l.ownerAddress.toLowerCase() === params.ownerAddress.toLowerCase() &&
+        l.model.toLowerCase() === params.model.toLowerCase() &&
+        (!params.ensName || l.ensName?.toLowerCase() === params.ensName.toLowerCase())
     );
 
     if (existing) {
@@ -379,18 +352,15 @@ export class ArkivDatabaseEngine {
   public queryEligibleListings(model: string, requiredTMax: number): ArkivSellerListingEntity[] {
     this.loadFromDisk();
     const results: ArkivSellerListingEntity[] = [];
-    const seenEns = new Set<string>();
+    const seenIds = new Set<string>();
 
     for (const listing of this.listings.values()) {
-      if (listing.status !== "active") continue;
+      if (listing.status && listing.status !== "active") continue;
       if (listing.expiresAtBlock && listing.expiresAtBlock > 0 && this.currentBlock >= listing.expiresAtBlock) continue;
       if (listing.model.toLowerCase() !== model.toLowerCase()) continue;
       if (listing.availableTokens >= requiredTMax) {
-        if (listing.ensName) {
-          const key = listing.ensName.toLowerCase();
-          if (seenEns.has(key)) continue;
-          seenEns.add(key);
-        }
+        if (seenIds.has(listing.id)) continue;
+        seenIds.add(listing.id);
         results.push(listing);
       }
     }
@@ -401,14 +371,12 @@ export class ArkivDatabaseEngine {
   // Query all listings for UI
   public getAllListings(): ArkivSellerListingEntity[] {
     this.loadFromDisk();
-    const seenEns = new Set<string>();
+    const seenIds = new Set<string>();
     const unique: ArkivSellerListingEntity[] = [];
     for (const listing of this.listings.values()) {
-      if (listing.ensName) {
-        const key = listing.ensName.toLowerCase();
-        if (seenEns.has(key)) continue;
-        seenEns.add(key);
-      }
+      if (listing.status && listing.status !== "active") continue;
+      if (seenIds.has(listing.id)) continue;
+      seenIds.add(listing.id);
       unique.push(listing);
     }
     return unique;

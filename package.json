@@ -12,6 +12,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
     "lan": "tsx scripts/lan-info.ts",
+    "test:master-e2e": "tsx scripts/testMasterEndToEndSuite.ts",
     "test:feasibility": "tsx scripts/testFeasibility.ts",
     "test:concurrency": "tsx scripts/testBackendConcurrency.ts",
     "test:integrations": "tsx scripts/testLiveIntegrations.ts",

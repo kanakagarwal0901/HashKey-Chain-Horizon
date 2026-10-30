@@ -15,17 +15,24 @@ export async function GET() {
   // 1. Gather all active listings from synchronized memory + persistence cache
   let allListings = arkivDb.getAllListings();
 
-  // Deduplicate active listings by ENS domain
-  const seenEns = new Set<string>();
+  // Ensure unique active listings by entity ID
+  const seenIds = new Set<string>();
   allListings = allListings.filter((l: any) => {
-    if (!l.ensName) return true;
-    const key = l.ensName.toLowerCase();
-    if (seenEns.has(key)) return false;
-    seenEns.add(key);
+    if (!l.id) return true;
+    if (seenIds.has(l.id)) return false;
+    seenIds.add(l.id);
     return true;
   });
 
   const catalogEntries = Object.entries(MODEL_TOKEN_CATALOG);
+
+  const seedIds = new Set([
+    "arkiv_entity_gemini_2_flash_thinking",
+    "arkiv_entity_gemini_15_pro",
+    "arkiv_entity_claude_37_sonnet",
+    "arkiv_entity_o3_mini",
+    "arkiv_entity_groq_deepseek_r1",
+  ]);
 
   // Discover pools for each model
   const poolsByModel = catalogEntries.map(([catalogKey, bounds]) => {
@@ -50,9 +57,17 @@ export async function GET() {
       return isMatch && available >= bounds.totalMaxTokens;
     });
 
+    // Prioritize user-created active listings over seed demo entities
+    const sortedEligible = [...eligibleListings].sort((a: any, b: any) => {
+      const aIsSeed = seedIds.has(a.id) ? 1 : 0;
+      const bIsSeed = seedIds.has(b.id) ? 1 : 0;
+      if (aIsSeed !== bIsSeed) return aIsSeed - bIsSeed;
+      return (a.pricePer1kMicroUsdc || 10000) - (b.pricePer1kMicroUsdc || 10000);
+    });
+
     const cheapestRate =
-      eligibleListings.length > 0
-        ? Math.min(...eligibleListings.map((l: any) => l.pricePer1kMicroUsdc || 10000))
+      sortedEligible.length > 0
+        ? Math.min(...sortedEligible.map((l: any) => l.pricePer1kMicroUsdc || 10000))
         : bounds.defaultPricePer1kMicroUsdc || 10000;
 
     const upfrontCharge = Math.ceil((bounds.totalMaxTokens / 1000) * cheapestRate);
@@ -77,14 +92,14 @@ export async function GET() {
       outputCap: bounds.maxOutputTokens,
       contextWindow: bounds.contextWindow,
       supportsVision,
-      availablePoolsCount: eligibleListings.length,
+      availablePoolsCount: sortedEligible.length,
       cheapestRatePer1kMicroUsdc: cheapestRate,
       upfrontBuyerChargeMicroUsdc: upfrontCharge,
-      activeSellers: eligibleListings.map((l: any) => ({
+      activeSellers: sortedEligible.map((l: any) => ({
         entityKey: l.id,
         ensName: l.ensName || "anonymous.shunyagrid.eth",
         ownerAddress: l.ownerAddress,
-        payoutAddress: l.hskPayoutAddress || l.ownerAddress,
+        payoutAddress: l.payoutAddress || l.hskPayoutAddress || l.ownerAddress,
         availableTokens: l.availableTokens,
         pricePer1kMicroUsdc: l.pricePer1kMicroUsdc,
         humanVerified: l.humanVerified ?? true,

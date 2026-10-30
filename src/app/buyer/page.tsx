@@ -237,9 +237,9 @@ export default function BuyerStudioPage() {
       if (data.success && Array.isArray(data.listings)) {
         const seen = new Set<string>();
         const unique = data.listings.filter((s: any) => {
-          const key = s.ensName ? s.ensName.toLowerCase() : s.id;
-          if (seen.has(key)) return false;
-          seen.add(key);
+          if (!s.id) return true;
+          if (seen.has(s.id)) return false;
+          seen.add(s.id);
           return true;
         });
         setAllOrderbookListings(unique);
@@ -354,13 +354,34 @@ contract VaultLending {
         .then((data) => {
           if (isCancelled) return;
           const list = data.listings || [];
+          const seedIds = new Set([
+            "arkiv_entity_gemini_2_flash_thinking",
+            "arkiv_entity_gemini_15_pro",
+            "arkiv_entity_claude_37_sonnet",
+            "arkiv_entity_o3_mini",
+            "arkiv_entity_groq_deepseek_r1",
+          ]);
           const seen = new Set<string>();
           const unique = list.filter((s: any) => {
-            const key = s.ensName ? s.ensName.toLowerCase() : s.id;
-            if (seen.has(key)) return false;
-            seen.add(key);
+            if (!s.id) return true;
+            if (seen.has(s.id)) return false;
+            seen.add(s.id);
             return true;
           });
+
+          // Prioritize: connected wallet node first, then user-created nodes, then best price
+          unique.sort((a: any, b: any) => {
+            const aIsMine = walletAddress && (a.payoutAddress || a.ownerAddress)?.toLowerCase() === walletAddress.toLowerCase() ? -1 : 0;
+            const bIsMine = walletAddress && (b.payoutAddress || b.ownerAddress)?.toLowerCase() === walletAddress.toLowerCase() ? -1 : 0;
+            if (aIsMine !== bIsMine) return aIsMine - bIsMine;
+
+            const aIsSeed = seedIds.has(a.id) ? 1 : 0;
+            const bIsSeed = seedIds.has(b.id) ? 1 : 0;
+            if (aIsSeed !== bIsSeed) return aIsSeed - bIsSeed;
+
+            return (a.pricePer1kMicroUsdc || 10000) - (b.pricePer1kMicroUsdc || 10000);
+          });
+
           setEligibleSellers(unique);
           if (selectedSeller && !unique.find((s: any) => s.id === selectedSeller.id)) {
             setSelectedSeller(null);
@@ -875,6 +896,41 @@ contract VaultLending {
             })}
           </div>
         </div>
+
+        {/* Quick Active Model Switcher Chips */}
+        {activeOrderbookModels.length > 0 && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-black/40 border border-white/[0.08] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-ring-emerald" />
+                Active Models Online ({activeOrderbookModels.reduce((acc, m) => acc + m.count, 0)} Verified Nodes Across Devices)
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2 pt-0.5">
+              {activeOrderbookModels.map((item) => {
+                const isSelected = selectedModel === item.modelId;
+                return (
+                  <button
+                    key={item.modelId}
+                    type="button"
+                    onClick={() => selectModelDirectly(item.provider, item.modelId)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition flex items-center gap-1.5 ${
+                      isSelected
+                        ? "bg-white text-black font-semibold shadow-sm"
+                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10"
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>{item.modelName}</span>
+                    <span className={`text-[10px] tabular-data ${isSelected ? "text-zinc-700 font-bold" : "text-zinc-500"}`}>
+                      ({item.count} online)
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Model Selection & Thinking Budget Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 pt-2">

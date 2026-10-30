@@ -15,3 +15,4 @@ export * from "./buyerRefundEngine";
 export * from "./hspClient";
 export * from "./hashkeyTreasury";
 export * from "./remoteOrderbookSync";
+export * from "./asyncMutex";

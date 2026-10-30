@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import { ArkivSellerListingEntity } from "./arkivQuotaManager";
+import { AsyncMutex } from "./asyncMutex";
 
 export const HASHKEY_ORDERBOOK_CONTRACT_ADDRESS =
   process.env.HASHKEY_ORDERBOOK_CONTRACT_ADDRESS ||
@@ -15,6 +16,7 @@ export const SHUNYA_ORDERBOOK_ABI = [
   "function publishListing(string id, address ownerAddress, string ensName, string model, string provider, uint256 availableTokens, uint256 pricePer1kMicroUsdc, bool humanVerified, string sealedApiKey, address payoutAddress) external",
   "function deactivateListing(string id) external",
   "function getListingCount() external view returns (uint256)",
+  "function getAllListings() external view returns (tuple(string id, address ownerAddress, string ensName, string model, string provider, uint256 availableTokens, uint256 pricePer1kMicroUsdc, bool humanVerified, string sealedApiKey, address payoutAddress, uint256 createdAt, bool active)[])",
   "function listings(uint256) external view returns (string id, address ownerAddress, string ensName, string model, string provider, uint256 availableTokens, uint256 pricePer1kMicroUsdc, bool humanVerified, string sealedApiKey, address payoutAddress, uint256 createdAt, bool active)",
 ];
 
@@ -26,6 +28,8 @@ export class RemoteOrderbookSync {
   private cachedListings: ArkivSellerListingEntity[] = [];
   private inFlightSync: Promise<ArkivSellerListingEntity[] | null> | null = null;
   private inFlightPublishMap: Map<string, Promise<boolean>> = new Map();
+  private txMutex: AsyncMutex = new AsyncMutex();
+  private lastUsedNonce: number = -1;
 
   constructor(
     contractAddress: string = HASHKEY_ORDERBOOK_CONTRACT_ADDRESS,
@@ -38,11 +42,11 @@ export class RemoteOrderbookSync {
 
   /**
    * Fetches remote orderbook listings directly from HashKey Chain Horizon Testnet contract.
-   * Throttled to 3 seconds in memory to prevent high RPC traffic while ensuring real-time multi-PC sync.
+   * Throttled to 2 seconds in memory to prevent high RPC traffic while ensuring real-time multi-PC sync.
    */
   public async fetchRemoteListings(force: boolean = false): Promise<ArkivSellerListingEntity[] | null> {
     const now = Date.now();
-    if (!force && this.cachedListings.length > 0 && now - this.lastFetchedAt < 3000) {
+    if (!force && this.cachedListings.length > 0 && now - this.lastFetchedAt < 2000) {
       return this.cachedListings;
     }
 
@@ -53,19 +57,24 @@ export class RemoteOrderbookSync {
     const fetchPromise = (async () => {
       try {
         const contract = new ethers.Contract(this.contractAddress, SHUNYA_ORDERBOOK_ABI, this.provider);
-        const countBn = await contract.getListingCount();
-        const count = Number(countBn);
+        let rawList: any[] = [];
 
-        if (count === 0) {
-          this.cachedListings = [];
-          this.lastFetchedAt = now;
-          return [];
+        // 1. Primary: Fast single-round-trip batch fetch via getAllListings()
+        try {
+          rawList = await contract.getAllListings();
+        } catch (getAllErr: any) {
+          // 2. Fallback: Query count then query individual listings
+          const countBn = await contract.getListingCount();
+          const count = Number(countBn);
+          if (count === 0) {
+            this.cachedListings = [];
+            this.lastFetchedAt = now;
+            return [];
+          }
+          rawList = await Promise.all(
+            Array.from({ length: count }, (_, i) => contract.listings(i))
+          );
         }
-
-        // Batch fetch all on-chain listings in parallel
-        const rawList = await Promise.all(
-          Array.from({ length: count }, (_, i) => contract.listings(i))
-        );
 
         const listings: ArkivSellerListingEntity[] = [];
         for (const item of rawList) {
@@ -86,7 +95,7 @@ export class RemoteOrderbookSync {
             payoutAddress: String(item[9]),
             hedaraPayoutAccount: String(item[9]),
             createdAtBlock: 35100370,
-            expiresAtBlock: 35105000,
+            expiresAtBlock: 0, // 0 = Indefinite active while on-chain status is active (prevents block-counter cutoff)
             status: "active",
           });
         }
@@ -108,6 +117,7 @@ export class RemoteOrderbookSync {
 
   /**
    * Publishes an AI Seller listing entity to the HashKey Chain global orderbook contract.
+   * Serialized with AsyncMutex and sequential pending nonce management to prevent collisions.
    */
   public async publishListing(listing: ArkivSellerListingEntity): Promise<boolean> {
     if (this.inFlightPublishMap.has(listing.id)) {
@@ -115,6 +125,8 @@ export class RemoteOrderbookSync {
     }
 
     const task = (async () => {
+      // Serialize all on-chain write transactions to eliminate nonce races
+      const releaseMutex = await this.txMutex.acquire();
       try {
         const privateKey =
           process.env.HASHKEY_DEPLOYER_PRIVATE_KEY ||
@@ -132,34 +144,63 @@ export class RemoteOrderbookSync {
           ? listing.payoutAddress!
           : safeOwner;
 
-        const tx = await contract.publishListing(
-          listing.id,
-          safeOwner,
-          listing.ensName || `${safeOwner.slice(0, 6).toLowerCase()}.shunyagrid.eth`,
-          listing.model,
-          listing.provider || "openai",
-          BigInt(listing.availableTokens),
-          BigInt(listing.pricePer1kMicroUsdc || 10000),
-          Boolean(listing.humanVerified),
-          listing.sealedApiKey || "ENCLAVE_SEALED:live-token",
-          safePayout
-        );
+        let attempts = 0;
+        let confirmed = false;
 
-        await tx.wait(1);
+        while (attempts < 3 && !confirmed) {
+          attempts++;
+          try {
+            const pendingNonce = await this.provider.getTransactionCount(wallet.address, "pending");
+            const nonce = Math.max(pendingNonce, this.lastUsedNonce + 1);
+            this.lastUsedNonce = nonce;
 
-        // Update local cache immediately
+            const feeData = await this.provider.getFeeData();
+            const gasPrice = feeData.gasPrice
+              ? (feeData.gasPrice * 125n) / 100n
+              : ethers.parseUnits("0.05", "gwei");
+
+            const tx = await contract.publishListing(
+              listing.id,
+              safeOwner,
+              listing.ensName || `${safeOwner.slice(0, 6).toLowerCase()}.shunyagrid.eth`,
+              listing.model,
+              listing.provider || "openai",
+              BigInt(listing.availableTokens),
+              BigInt(listing.pricePer1kMicroUsdc || 10000),
+              Boolean(listing.humanVerified),
+              listing.sealedApiKey || "ENCLAVE_SEALED:live-token",
+              safePayout,
+              {
+                nonce,
+                gasLimit: 1_200_000n,
+                gasPrice,
+              }
+            );
+
+            await tx.wait(1);
+            confirmed = true;
+          } catch (txErr: any) {
+            console.warn(`[RemoteOrderbookSync] Publish attempt ${attempts} warning:`, txErr?.message);
+            if (attempts >= 3) throw txErr;
+            await new Promise((r) => setTimeout(r, 800));
+          }
+        }
+
+        // Update local in-memory cache immediately
         const idx = this.cachedListings.findIndex((l) => l.id === listing.id);
+        const activeEntity = { ...listing, expiresAtBlock: 0, status: "active" as const };
         if (idx >= 0) {
-          this.cachedListings[idx] = listing;
+          this.cachedListings[idx] = activeEntity;
         } else {
-          this.cachedListings.push(listing);
+          this.cachedListings.push(activeEntity);
         }
         this.lastFetchedAt = Date.now();
         return true;
       } catch (err: any) {
-        console.warn("[RemoteOrderbookSync] Error publishing on-chain listing:", err?.message);
+        console.error("[RemoteOrderbookSync] Error publishing on-chain listing:", err?.message);
         return false;
       } finally {
+        releaseMutex();
         this.inFlightPublishMap.delete(listing.id);
       }
     })();
@@ -172,24 +213,35 @@ export class RemoteOrderbookSync {
    * Deactivates a listing on the HashKey Chain orderbook contract.
    */
   public async deactivateListing(id: string): Promise<boolean> {
+    const releaseMutex = await this.txMutex.acquire();
     try {
       const privateKey =
         process.env.HASHKEY_DEPLOYER_PRIVATE_KEY ||
         process.env.SHUNYA_TREASURY_PRIVATE_KEY ||
-        process.env.OPERATOR_PRIVATE_KEY;
+        process.env.OPERATOR_PRIVATE_KEY ||
+        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
-      if (!privateKey) return false;
       const wallet = new ethers.Wallet(privateKey, this.provider);
       const contract = new ethers.Contract(this.contractAddress, SHUNYA_ORDERBOOK_ABI, wallet);
 
-      const tx = await contract.deactivateListing(id);
+      const pendingNonce = await this.provider.getTransactionCount(wallet.address, "pending");
+      const nonce = Math.max(pendingNonce, this.lastUsedNonce + 1);
+      this.lastUsedNonce = nonce;
+
+      const tx = await contract.deactivateListing(id, {
+        nonce,
+        gasLimit: 200_000n,
+      });
       await tx.wait(1);
 
       this.cachedListings = this.cachedListings.filter((l) => l.id !== id);
       this.lastFetchedAt = Date.now();
       return true;
-    } catch {
+    } catch (err: any) {
+      console.warn("[RemoteOrderbookSync] Deactivate error:", err?.message);
       return false;
+    } finally {
+      releaseMutex();
     }
   }
 
@@ -208,4 +260,7 @@ export class RemoteOrderbookSync {
   }
 }
 
-export const remoteOrderbookSync = new RemoteOrderbookSync();
+// Global Singleton to survive module re-evaluations
+const globalForSync = globalThis as unknown as { remoteOrderbookSync?: RemoteOrderbookSync };
+export const remoteOrderbookSync = globalForSync.remoteOrderbookSync ?? new RemoteOrderbookSync();
+globalForSync.remoteOrderbookSync = remoteOrderbookSync;

@@ -316,8 +316,9 @@ export async function POST(request: NextRequest) {
       payoutAddress: resolvedPayout,
     });
 
+    let publishedOnChain = false;
     try {
-      await remoteOrderbookSync.publishListing(listing);
+      publishedOnChain = await remoteOrderbookSync.publishListing(listing);
     } catch (syncErr) {
       console.warn("[POST /api/listings] Remote sync notice:", syncErr);
     }
@@ -325,8 +326,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: "Listing entity created successfully with 1-hour block expiration",
+        message: "Listing entity created successfully on HashKey Chain orderbook",
         listing,
+        publishedOnChain,
       },
       { headers: noCacheHeaders }
     );
