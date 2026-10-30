@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import ShunyaLogo from "@/components/ShunyaLogo";
 
 export default function Navbar() {
   const {
@@ -76,18 +77,8 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo & Brand Identity */}
           <div className="flex items-center gap-3.5">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-black flex items-center justify-center transition group-hover:scale-95 shadow-sm">
-                <span className="font-black text-sm tracking-tighter">SG</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-base tracking-tight text-zinc-900 dark:text-white leading-tight">
-                  ShunyaGrid
-                </span>
-                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal tracking-normal">
-                  Private Pay-As-You-Go AI
-                </span>
-              </div>
+            <Link href="/" className="flex items-center group">
+              <ShunyaLogo size={36} showWordmark={true} />
             </Link>
 
             <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full liquid-glass-pill text-[11px] text-zinc-600 dark:text-zinc-400 border border-black/[0.04] dark:border-white/[0.06]">

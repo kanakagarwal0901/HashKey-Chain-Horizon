@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import SpatialCard from "@/components/SpatialCard";
+import ShunyaLogo from "@/components/ShunyaLogo";
 import { switchOrAddHashKeyNetwork, SHUNYA_TREASURY_EVM_ADDRESS } from "@/lib/clientSepolia";
 
 const HSK_TESTNET_EXPLORER = "https://testnet-explorer.hskchain.net";
@@ -445,8 +446,9 @@ export default function SellerPayoutPage() {
           </span>
         </div>
         <div className="space-y-3.5 sm:space-y-4">
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-            Seller Payout & Universal Sweeper
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight flex items-center gap-3.5">
+            <ShunyaLogo size={40} animated={true} />
+            Seller Payout &amp; Universal Sweeper
           </h1>
           <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
             Inspect accumulated token revenues settled on-chain via HashKey Settlement Protocol (HSP) on HashKey Chain Testnet (Chain ID 133). 

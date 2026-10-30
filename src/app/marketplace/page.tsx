@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import SpatialCard from "@/components/SpatialCard";
 import AntigravityStagger from "@/components/AntigravityStagger";
+import ShunyaLogo from "@/components/ShunyaLogo";
 
 function formatModelDisplayName(rawNameOrId?: string): string {
   if (!rawNameOrId) return "";
@@ -154,10 +155,8 @@ export default function MarketplacePage() {
               </span>
             </div>
             <div className="space-y-3.5 sm:space-y-4">
-              <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white flex items-center gap-3">
-                <span className="p-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-white inline-flex">
-                  <Layers className="w-7 h-7" />
-                </span>
+              <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white flex items-center gap-3.5">
+                <ShunyaLogo size={44} animated={true} />
                 Explore Available AI Models
               </h1>
               <p className="text-sm sm:text-base text-zinc-400 max-w-2xl leading-relaxed">

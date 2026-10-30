@@ -10,6 +10,7 @@ import {
   ArrowRight,
   X,
 } from "lucide-react";
+import ShunyaLogo from "@/components/ShunyaLogo";
 
 interface HowItWorksModalProps {
   isOpen: boolean;
@@ -75,10 +76,10 @@ export default function HowItWorksModal({
 
         {/* Modal Title */}
         <div className="space-y-2.5 pb-4 border-b border-[var(--border-subtle)] shrink-0 pr-10">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+          <div className="flex items-center gap-2.5">
+            <ShunyaLogo size={22} animated={false} />
             <span className="text-xs text-neutral-400 font-medium">
-              Platform guide
+              Platform Architecture &amp; Protocol Guide
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight break-words">

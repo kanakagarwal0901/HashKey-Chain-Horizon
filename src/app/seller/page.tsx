@@ -37,6 +37,7 @@ import ArcBridgeDrawer from "@/components/ArcBridgeDrawer";
 import HowItWorksModal from "@/components/HowItWorksModal";
 import SpatialCard from "@/components/SpatialCard";
 import AntigravityStagger from "@/components/AntigravityStagger";
+import ShunyaLogo from "@/components/ShunyaLogo";
 import {
   PROVIDERS,
   SUPPORTED_MODELS,
@@ -682,7 +683,8 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           </span>
         </div>
         <div className="space-y-3.5 sm:space-y-4">
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight flex items-center gap-3.5">
+            <ShunyaLogo size={40} animated={true} />
             Seller Hub: Earn from Unused AI Quota
           </h1>
           <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">

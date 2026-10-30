@@ -23,6 +23,7 @@ import LoginGateway from "@/components/LoginGateway";
 import HowItWorksModal from "@/components/HowItWorksModal";
 import SpatialCard from "@/components/SpatialCard";
 import AntigravityStagger from "@/components/AntigravityStagger";
+import ShunyaLogo from "@/components/ShunyaLogo";
 
 function formatModelDisplayName(rawNameOrId?: string): string {
   if (!rawNameOrId) return "";
@@ -82,7 +83,14 @@ export default function HomePage() {
   return (
     <div className="space-y-36 sm:space-y-48 pb-48 text-zinc-900 dark:text-zinc-100">
       {/* Hero Section */}
-      <section className="pt-20 sm:pt-36 pb-16 text-center max-w-5xl mx-auto px-4 sm:px-6 antigravity-glow-hero scroll-mt-24">
+      <section className="pt-16 sm:pt-28 pb-16 text-center max-w-5xl mx-auto px-4 sm:px-6 antigravity-glow-hero scroll-mt-24">
+        {/* Living Protocol Emblem Hero Showcase */}
+        <div className="flex justify-center mb-8">
+          <div className="relative group cursor-pointer p-4 rounded-full transition-transform duration-500 hover:scale-105">
+            <ShunyaLogo size={92} showWordmark={false} animated={true} />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-cyan-500/15 via-teal-500/10 to-emerald-500/15 blur-2xl -z-10 group-hover:opacity-100 opacity-60 transition-opacity pointer-events-none" />
+          </div>
+        </div>
 
         {/* Live HashKey Horizon Testnet Telemetry Pill */}
         <div className="inline-flex items-center gap-2 sm:gap-2.5 px-4 py-2 rounded-full liquid-glass-pill mb-8 border border-black/10 dark:border-white/10 text-xs text-zinc-700 dark:text-zinc-300 shadow-sm">

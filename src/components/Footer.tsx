@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Shield, Lock, CheckCircle2, Globe, Cpu, Layers, Database, Coins } from "lucide-react";
 import AnonRpcStatusBadge from "@/components/AnonRpcStatusBadge";
+import ShunyaLogo from "@/components/ShunyaLogo";
 
 export default function Footer() {
   return (
@@ -12,18 +13,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
           {/* Column 1 & 2: Brand Thesis & Network Telemetry */}
           <div className="lg:col-span-2 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-black flex items-center justify-center font-black text-sm tracking-tighter">
-                SG
-              </div>
-              <div>
-                <span className="font-bold text-base tracking-tight text-zinc-950 dark:text-white block leading-tight">
-                  ShunyaGrid
-                </span>
-                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal">
-                  Zero-Cutoff Confidential AI Exchange
-                </span>
-              </div>
+            <div className="flex items-center">
+              <ShunyaLogo size={42} showWordmark={true} badgeText="HORIZON 133" />
             </div>
 
             <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-sm leading-relaxed">

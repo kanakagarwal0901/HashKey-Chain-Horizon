@@ -45,6 +45,7 @@ import HowItWorksModal from "@/components/HowItWorksModal";
 import SpatialCard from "@/components/SpatialCard";
 import AnonRpcStatusBadge from "@/components/AnonRpcStatusBadge";
 import AntigravityStagger from "@/components/AntigravityStagger";
+import ShunyaLogo from "@/components/ShunyaLogo";
 import {
   CIRCLE_FAUCET_URL,
   switchOrAddSepoliaNetwork,
@@ -762,8 +763,9 @@ contract VaultLending {
           </span>
         </div>
         <div className="space-y-3.5 sm:space-y-4">
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-            AI Playground & Studio
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight flex items-center gap-3.5">
+            <ShunyaLogo size={40} animated={true} />
+            AI Playground &amp; Studio
           </h1>
           <p className="text-sm sm:text-base text-zinc-400 max-w-3xl leading-relaxed">
             Ask frontier AI models anything with total privacy and zero monthly commitments. Your prompts and files are encrypted directly in your browser before leaving your device.
