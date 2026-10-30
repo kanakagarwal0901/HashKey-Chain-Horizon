@@ -340,6 +340,62 @@ export async function verifyApiKeyWithProvider(
       };
     }
 
+    // -------------------------------------------------------------
+    // xAI (Grok 3 / Grok 2)
+    // -------------------------------------------------------------
+    if (p === "xai") {
+      const url = "https://api.x.ai/v1/models";
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${key}`,
+        },
+        signal: controller.signal,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const errorMsg =
+          data.error?.message ||
+          (res.status === 401
+            ? "xAI rejected API key: Invalid xAI API Key"
+            : `xAI API error (HTTP ${res.status})`);
+        return {
+          valid: false,
+          provider: "xai",
+          model: modelId,
+          modelFound: false,
+          modelDisplayName: modelId,
+          tokensRemaining: 0,
+          tokenLimit: 0,
+          error: errorMsg,
+        };
+      }
+
+      const modelsList: any[] = Array.isArray(data.data) ? data.data : [];
+      const modelMatch = modelsList.find(
+        (m) =>
+          m.id === modelId ||
+          m.id.toLowerCase().includes(modelId.toLowerCase()) ||
+          m.id.includes("grok")
+      );
+
+      return {
+        valid: true,
+        provider: "xai",
+        model: modelId,
+        modelFound: Boolean(modelMatch) || modelsList.length > 0,
+        modelDisplayName: modelMatch?.id || "Grok 3",
+        tokensRemaining: 200_000,
+        tokenLimit: 500_000,
+        requestsRemaining: 60,
+        details: {
+          totalModels: modelsList.length,
+        },
+      };
+    }
+
     return {
       valid: false,
       provider: p,

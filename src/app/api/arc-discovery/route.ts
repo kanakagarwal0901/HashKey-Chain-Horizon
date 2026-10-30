@@ -28,10 +28,20 @@ export async function GET() {
 
   const seedIds = new Set([
     "arkiv_entity_gemini_2_flash_thinking",
+    "arkiv_entity_gemini_2_pro",
     "arkiv_entity_gemini_15_pro",
     "arkiv_entity_claude_37_sonnet",
+    "arkiv_entity_claude_opus_4",
     "arkiv_entity_o3_mini",
+    "arkiv_entity_o3_flagship",
+    "arkiv_entity_gpt_45",
     "arkiv_entity_groq_deepseek_r1",
+    "arkiv_entity_deepseek_r1_full",
+    "arkiv_entity_deepseek_v3",
+    "arkiv_entity_llama_33_70b",
+    "arkiv_entity_llama_31_405b",
+    "arkiv_entity_grok_3",
+    "arkiv_entity_grok_2",
   ]);
 
   // Discover pools for each model
@@ -47,11 +57,20 @@ export async function GET() {
         listingModel === normalizedModel ||
         (normalizedModel.includes("claude-3-7-sonnet") && listingModel.includes("claude-3-7-sonnet")) ||
         (normalizedModel.includes("claude-3-5-sonnet") && listingModel.includes("claude-3-5-sonnet")) ||
+        (normalizedModel.includes("claude-opus-4") && listingModel.includes("claude-opus-4")) ||
         (normalizedModel.includes("gemini-2.0-flash-thinking") && listingModel.includes("gemini-2.0-flash-thinking")) ||
         (normalizedModel === "gemini-2.0-flash" && listingModel === "gemini-2.0-flash") ||
         (normalizedModel.includes("gemini-2.0-pro") && listingModel.includes("gemini-2.0-pro")) ||
         (normalizedModel.includes("gemini-1.5-pro") && listingModel.includes("gemini-1.5-pro")) ||
-        (normalizedModel.includes("deepseek-r1") && listingModel.includes("deepseek-r1"));
+        (normalizedModel === "o3" && listingModel === "o3") ||
+        (normalizedModel.includes("o3-mini") && listingModel.includes("o3-mini")) ||
+        (normalizedModel.includes("gpt-4.5") && listingModel.includes("gpt-4.5")) ||
+        (normalizedModel.includes("deepseek-r1-distill") && listingModel.includes("deepseek-r1-distill")) ||
+        (normalizedModel === "deepseek-r1" && listingModel === "deepseek-r1") ||
+        (normalizedModel.includes("deepseek-v3") && listingModel.includes("deepseek-v3")) ||
+        (normalizedModel.includes("llama-3.1-405b") && listingModel.includes("llama-3.1-405b")) ||
+        (normalizedModel.includes("grok-3") && listingModel.includes("grok-3")) ||
+        (normalizedModel.includes("grok-2") && listingModel.includes("grok-2"));
 
       const available = Number(listing.availableTokens) || 0;
       return isMatch && available >= bounds.totalMaxTokens;

@@ -1,5 +1,5 @@
 export type ThinkingLevel = "none" | "low" | "medium" | "high";
-export type SupportedProvider = "openai" | "anthropic" | "gemini" | "groq";
+export type SupportedProvider = "openai" | "anthropic" | "gemini" | "groq" | "xai";
 
 export interface ModelTokenBounds {
   catalogKey: string;

@@ -52,12 +52,15 @@ function formatModelDisplayName(rawNameOrId?: string): string {
   const meta = getModelMetadata(rawNameOrId);
   const fullName = meta?.name || rawNameOrId;
   return fullName
-    .replace(/\s*\((Anthropic|OpenAI|Google|Groq|Groq LPU)\)/gi, "")
+    .replace(/\s*\((Anthropic|OpenAI|Google|Groq|Groq LPU|xAI)\)/gi, "")
+    .replace(/^claude-opus-4.*/i, "Claude Opus 4")
     .replace(/^claude-3-7-sonnet.*/i, "Claude 3.7 Sonnet")
     .replace(/^claude-3-5-sonnet.*/i, "Claude 3.5 Sonnet")
     .replace(/^claude-3-5-haiku.*/i, "Claude 3.5 Haiku")
     .replace(/^o3-mini.*/i, "o3-mini Reasoning")
+    .replace(/^o3(?!\-).*/i, "o3 Reasoning Flagship")
     .replace(/^o1.*/i, "o1 Deep Reasoning")
+    .replace(/^gpt-4\.5.*/i, "GPT-4.5 Knowledge Flagship")
     .replace(/^gpt-4o-mini.*/i, "GPT-4o Mini")
     .replace(/^gpt-4o.*/i, "GPT-4o Omnimodal")
     .replace(/^gemini-2\.0-flash-thinking.*/i, "Gemini 2.0 Flash Thinking")
@@ -65,7 +68,12 @@ function formatModelDisplayName(rawNameOrId?: string): string {
     .replace(/^gemini-2\.0-pro.*/i, "Gemini 2.0 Pro Experimental")
     .replace(/^gemini-1\.5-pro.*/i, "Gemini 1.5 Pro")
     .replace(/^deepseek-r1-distill-llama-70b.*/i, "DeepSeek R1 (70B)")
+    .replace(/^deepseek-r1(?!\-distill).*/i, "DeepSeek R1 (671B Full MoE)")
+    .replace(/^deepseek-v3.*/i, "DeepSeek V3 (671B MoE)")
+    .replace(/^llama-3\.1-405b.*/i, "Llama 3.1 405B Reasoning")
     .replace(/^llama-3\.3-70b-versatile.*/i, "Llama 3.3 70B Versatile")
+    .replace(/^grok-3.*/i, "Grok 3 (Big Brain)")
+    .replace(/^grok-2.*/i, "Grok 2 Vision")
     .trim();
 }
 
@@ -1047,7 +1055,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                   </span>
                   <span className="text-xs text-zinc-500 font-normal">{PROVIDERS.length} Providers Available</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                   {PROVIDERS.map((p) => {
                     const isCurrent = provider === p.id;
                     const count = getModelsByProvider(p.id).length;

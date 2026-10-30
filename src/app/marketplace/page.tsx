@@ -23,12 +23,15 @@ import AntigravityStagger from "@/components/AntigravityStagger";
 function formatModelDisplayName(rawNameOrId?: string): string {
   if (!rawNameOrId) return "";
   return rawNameOrId
-    .replace(/\s*\((Anthropic|OpenAI|Google|Groq|Groq LPU)\)/gi, "")
+    .replace(/\s*\((Anthropic|OpenAI|Google|Groq|Groq LPU|xAI)\)/gi, "")
+    .replace(/^claude-opus-4.*/i, "Claude Opus 4")
     .replace(/^claude-3-7-sonnet.*/i, "Claude 3.7 Sonnet")
     .replace(/^claude-3-5-sonnet.*/i, "Claude 3.5 Sonnet")
     .replace(/^claude-3-5-haiku.*/i, "Claude 3.5 Haiku")
     .replace(/^o3-mini.*/i, "o3-mini Reasoning")
+    .replace(/^o3(?!\-).*/i, "o3 Reasoning Flagship")
     .replace(/^o1.*/i, "o1 Deep Reasoning")
+    .replace(/^gpt-4\.5.*/i, "GPT-4.5 Knowledge Flagship")
     .replace(/^gpt-4o-mini.*/i, "GPT-4o Mini")
     .replace(/^gpt-4o.*/i, "GPT-4o Omnimodal")
     .replace(/^gemini-2\.0-flash-thinking.*/i, "Gemini 2.0 Flash Thinking")
@@ -36,7 +39,12 @@ function formatModelDisplayName(rawNameOrId?: string): string {
     .replace(/^gemini-2\.0-pro.*/i, "Gemini 2.0 Pro Experimental")
     .replace(/^gemini-1\.5-pro.*/i, "Gemini 1.5 Pro")
     .replace(/^deepseek-r1-distill-llama-70b.*/i, "DeepSeek R1 (70B)")
+    .replace(/^deepseek-r1(?!\-distill).*/i, "DeepSeek R1 (671B Full MoE)")
+    .replace(/^deepseek-v3.*/i, "DeepSeek V3 (671B MoE)")
+    .replace(/^llama-3\.1-405b.*/i, "Llama 3.1 405B Reasoning")
     .replace(/^llama-3\.3-70b-versatile.*/i, "Llama 3.3 70B Versatile")
+    .replace(/^grok-3.*/i, "Grok 3 (Big Brain)")
+    .replace(/^grok-2.*/i, "Grok 2 Vision")
     .trim();
 }
 
@@ -226,10 +234,11 @@ export default function MarketplacePage() {
           <div className="flex flex-wrap items-center gap-1 p-1 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs">
             {[
               { id: "all", label: "All Providers" },
-              { id: "gemini", label: "Google Gemini" },
               { id: "anthropic", label: "Anthropic" },
               { id: "openai", label: "OpenAI" },
+              { id: "gemini", label: "Google Gemini" },
               { id: "groq", label: "Groq LPU" },
+              { id: "xai", label: "xAI (Grok)" },
             ].map((prov) => (
               <button
                 key={prov.id}
@@ -288,7 +297,13 @@ export default function MarketplacePage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold block">
-                        {pool.provider === "gemini" ? "Google Gemini" : pool.provider}
+                        {pool.provider === "gemini"
+                          ? "Google Gemini"
+                          : pool.provider === "xai"
+                          ? "xAI (Grok)"
+                          : pool.provider === "groq"
+                          ? "Groq LPU"
+                          : pool.provider}
                       </span>
                       <h3 className="font-bold text-white text-base mt-0.5">{pool.displayName}</h3>
                     </div>

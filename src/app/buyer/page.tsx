@@ -869,7 +869,7 @@ contract VaultLending {
             <Layers className="w-3.5 h-3.5 text-zinc-400" />
             Select Provider
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {PROVIDERS.map((p) => {
               const isCurrent = selectedProvider === p.id;
               const nodeCount = allOrderbookListings.filter(

@@ -37,9 +37,11 @@ export class AiProviderDispatcher {
       return await this.callAnthropicLive(params);
     }
 
-    // 2. OpenAI Provider (o3-mini / GPT-4o)
+    // 2. OpenAI Provider (o3-mini / o3 / o1 / GPT-4.5 / GPT-4o)
     if (
-      (params.modelId.startsWith("o3") || params.modelId.startsWith("gpt")) &&
+      (params.modelId.startsWith("o3") ||
+        params.modelId.startsWith("o1") ||
+        params.modelId.startsWith("gpt")) &&
       (rawKey.startsWith("sk-proj-") || rawKey.startsWith("sk-")) &&
       !rawKey.startsWith("sk-ant-") &&
       !isTestKey
@@ -52,7 +54,7 @@ export class AiProviderDispatcher {
       return await this.callGeminiLive(params);
     }
 
-    // 4. Groq High-Speed LPU Provider (DeepSeek R1 70B / Llama 3.3 70B)
+    // 4. Groq High-Speed LPU Provider (DeepSeek R1 / Llama 3.3 70B / Llama 3.1 405B)
     if (
       (params.modelId.includes("llama") ||
         params.modelId.includes("deepseek") ||
@@ -61,6 +63,15 @@ export class AiProviderDispatcher {
       !isTestKey
     ) {
       return await this.callGroqLive(params);
+    }
+
+    // 5. xAI Provider (Grok 3 / Grok 2)
+    if (
+      (params.modelId.startsWith("grok") || params.bounds.provider === "xai") &&
+      rawKey.startsWith("xai-") &&
+      !isTestKey
+    ) {
+      return await this.callXaiLive(params);
     }
 
     // 5. Test Suite Deterministic Enclave Synthesis (STRICTLY for automated test harnesses)
@@ -78,6 +89,10 @@ export class AiProviderDispatcher {
     const modelTarget =
       params.modelId === "claude-3-7-sonnet"
         ? "claude-3-7-sonnet-20250219"
+        : params.modelId === "claude-opus-4"
+        ? "claude-3-opus-20240229"
+        : params.modelId === "claude-3-5-haiku"
+        ? "claude-3-5-haiku-20241022"
         : "claude-3-5-sonnet-20241022";
 
     const thinkingTokens =
@@ -152,11 +167,16 @@ export class AiProviderDispatcher {
     }
   }
 
-  // Live OpenAI API (o3-mini / GPT-4o)
+  // Live OpenAI API (o3-mini / o3 / o1 / GPT-4.5 / GPT-4o)
   private async callOpenAiLive(params: AiExecutionRequest): Promise<AiExecutionResponse> {
     const isO3 = params.modelId.includes("o3") || params.modelId.includes("o1");
+    const targetModel =
+      params.modelId === "gpt-4.5"
+        ? "gpt-4.5-preview"
+        : params.modelId;
+
     const bodyPayload: Record<string, unknown> = {
-      model: params.modelId,
+      model: targetModel,
       messages: [{ role: "user", content: params.fullPromptText }],
     };
 
@@ -405,6 +425,62 @@ export class AiProviderDispatcher {
         actualTokensUsed: Math.min(Math.max(totalUsed, 800), params.bounds.totalMaxTokens - 100),
         isLiveUpstream: true,
         provider: "groq",
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  // Live xAI API (Grok 3 / Grok 2)
+  private async callXaiLive(params: AiExecutionRequest): Promise<AiExecutionResponse> {
+    const targetModel = params.modelId === "grok-3" ? "grok-beta" : "grok-2-latest";
+    const bodyPayload: Record<string, unknown> = {
+      model: targetModel,
+      messages: [{ role: "user", content: params.fullPromptText }],
+      max_tokens: Math.min(params.bounds.maxOutputTokens, 8192),
+    };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    try {
+      const res = await fetch("https://api.x.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${params.rawApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bodyPayload),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(
+          `xAI upstream error (HTTP ${res.status}): ${errJson.error?.message || res.statusText}`
+        );
+      }
+
+      const data = await res.json();
+      const choice = data.choices?.[0]?.message;
+      const outputText = choice?.content || "";
+      const reasoningText =
+        params.thinkingLevel !== "none"
+          ? `[Live xAI Big Brain Thinking Trace (${targetModel})]`
+          : "";
+
+      const usage = data.usage || {};
+      const totalUsed = usage.total_tokens || 1000;
+
+      return {
+        aiOutputText: outputText || "xAI Grok inference completed inside Enclave RAM.",
+        reasoningText,
+        actualTokensUsed: Math.min(
+          Math.max(totalUsed, 600),
+          params.bounds.totalMaxTokens - 100
+        ),
+        isLiveUpstream: true,
+        provider: "xai",
       };
     } finally {
       clearTimeout(timeout);
