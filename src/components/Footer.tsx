@@ -36,7 +36,7 @@ export default function Footer() {
               
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full liquid-glass-pill text-[11px] text-zinc-700 dark:text-zinc-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 pulse-ring-emerald" />
-                <span>HashKey Chain 133 (HSP) • Sepolia 11155111</span>
+                <span>HashKey Horizon 133 (HSP) • Block #35,100,370+ • Oct 31, 2026</span>
               </div>
             </div>
           </div>
@@ -117,6 +117,17 @@ export default function Footer() {
             <ul className="space-y-2.5">
               <li>
                 <a
+                  href="https://testnet-explorer.hskchain.net/address/0x26291175Fa0Ea3C8583fEdEB56805eA68289b105"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-zinc-950 dark:hover:text-white transition inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold"
+                >
+                  <span>Orderbook Contract (0x2629)</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </a>
+              </li>
+              <li>
+                <a
                   href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
                   target="_blank"
                   rel="noreferrer"
@@ -179,7 +190,7 @@ export default function Footer() {
       <div className="border-t border-black/[0.06] dark:border-white/[0.06] py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
           <div className="flex items-center gap-2">
-            <span>&copy; 2026 ShunyaGrid Protocol. Released under MIT Open Source License.</span>
+            <span>&copy; October 31, 2026 ShunyaGrid Protocol. Released under MIT Open Source License.</span>
           </div>
 
           <div className="flex items-center gap-4 text-[11px]">

@@ -259,6 +259,21 @@ export const MODEL_TOKEN_CATALOG: Record<string, ModelTokenBounds> = {
     supportsVision: true,
     defaultPricePer1kMicroUsdc: 12000, // $0.012
   },
+    "gemini-2.0-pro:none": {
+    catalogKey: "gemini-2.0-pro:none",
+    modelId: "gemini-2.0-pro",
+    displayName: "Google Gemini 2.0 Pro Experimental",
+    provider: "gemini",
+    upstreamBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    thinkingLevel: "none",
+    minRequiredTokens: 1000,
+    maxInputAndFileTokens: 16000,
+    thinkingBudgetTokens: 0,
+    maxOutputTokens: 8192,
+    totalMaxTokens: 24192,
+    supportsVision: true,
+    defaultPricePer1kMicroUsdc: 10000,
+  },
   "gemini-1.5-pro:none": {
     catalogKey: "gemini-1.5-pro:none",
     modelId: "gemini-1.5-pro",

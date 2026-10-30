@@ -2,7 +2,7 @@
 
 **Audit Target**: [`@contracts/`](file:///C:/Users/kanak/OneDrive/Desktop/Devcon/contracts/)  
 **Auditor**: `blockchain-developer` (ShunyaGrid Autonomous Security Engine)  
-**Date**: October 2026  
+**Date**: October 31, 2026  
 **Compiler Version**: Solidity `^0.8.20`  
 **License**: MIT  
 

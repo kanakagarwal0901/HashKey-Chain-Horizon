@@ -37,6 +37,7 @@ function formatModelDisplayName(rawNameOrId?: string): string {
     .replace(/^gpt-4o.*/i, "GPT-4o Omnimodal")
     .replace(/^gemini-2\.0-flash-thinking.*/i, "Gemini 2.0 Flash Thinking")
     .replace(/^gemini-2\.0-flash.*/i, "Gemini 2.0 Flash")
+    .replace(/^gemini-2\.0-pro.*/i, "Gemini 2.0 Pro Experimental")
     .replace(/^gemini-1\.5-pro.*/i, "Gemini 1.5 Pro")
     .replace(/^deepseek-r1-distill-llama-70b.*/i, "DeepSeek R1 (70B)")
     .replace(/^llama-3\.3-70b-versatile.*/i, "Llama 3.3 70B Versatile")
@@ -81,7 +82,19 @@ export default function HomePage() {
   return (
     <div className="space-y-36 sm:space-y-48 pb-48 text-zinc-900 dark:text-zinc-100">
       {/* Hero Section */}
-      <section className="pt-24 sm:pt-40 pb-16 text-center max-w-5xl mx-auto px-4 sm:px-6 antigravity-glow-hero scroll-mt-24">
+      <section className="pt-20 sm:pt-36 pb-16 text-center max-w-5xl mx-auto px-4 sm:px-6 antigravity-glow-hero scroll-mt-24">
+
+        {/* Live HashKey Horizon Testnet Telemetry Pill */}
+        <div className="inline-flex items-center gap-2 sm:gap-2.5 px-4 py-2 rounded-full liquid-glass-pill mb-8 border border-black/10 dark:border-white/10 text-xs text-zinc-700 dark:text-zinc-300 shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 pulse-ring-emerald shrink-0" />
+          <span className="font-semibold text-zinc-950 dark:text-white">HashKey Horizon Testnet</span>
+          <span className="text-zinc-400 dark:text-zinc-600 hidden sm:inline">•</span>
+          <span className="font-mono text-zinc-600 dark:text-zinc-400 hidden sm:inline">Block #35,100,370+</span>
+          <span className="text-zinc-400 dark:text-zinc-600">•</span>
+          <span className="text-zinc-600 dark:text-zinc-400">October 31, 2026</span>
+          <span className="text-zinc-400 dark:text-zinc-600 hidden md:inline">•</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-medium hidden md:inline">Zero-Cutoff Confidential Inference</span>
+        </div>
 
         {/* Declarative Apple / Nike Display Headline */}
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-zinc-950 dark:text-white leading-[1.12] max-w-4xl mx-auto mb-8">
@@ -407,17 +420,24 @@ export default function HomePage() {
         {/* Model Filter Buttons */}
         <div className="flex flex-wrap items-center gap-2 pb-1">
           <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mr-1">Filter:</span>
-          {["all", "claude-3-7", "o3-mini", "gemini-2.0", "gpt-4o"].map((filter) => (
+          {[
+            { id: "all", label: "All Models" },
+            { id: "claude-3-7", label: "Claude 3.7 Sonnet" },
+            { id: "o3-mini", label: "o3-mini Reasoning" },
+            { id: "gemini-2.0", label: "Gemini 2.0" },
+            { id: "deepseek", label: "DeepSeek R1" },
+            { id: "gpt-4o", label: "GPT-4o Omnimodal" },
+          ].map((item) => (
             <button
-              key={filter}
-              onClick={() => setModelFilter(filter)}
+              key={item.id}
+              onClick={() => setModelFilter(item.id)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
-                modelFilter === filter
+                modelFilter === item.id
                   ? "bg-zinc-950 text-white dark:bg-white dark:text-black font-semibold"
                   : "bg-black/[0.04] dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white border border-black/[0.06] dark:border-white/[0.08]"
               }`}
             >
-              {filter === "all" ? "All Models" : filter}
+              {item.label}
             </button>
           ))}
         </div>

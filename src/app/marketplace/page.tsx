@@ -93,6 +93,10 @@ export default function MarketplacePage() {
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                 Guaranteed Completion
               </span>
+              <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900/80 text-zinc-300 border border-white/10 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-ring-emerald" />
+                HashKey Horizon Block #35,100,370+ • Oct 31, 2026
+              </span>
             </div>
             <div className="space-y-3.5 sm:space-y-4">
               <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white flex items-center gap-3">

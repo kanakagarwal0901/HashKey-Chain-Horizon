@@ -42,6 +42,7 @@ export async function GET() {
         (normalizedModel.includes("claude-3-5-sonnet") && listingModel.includes("claude-3-5-sonnet")) ||
         (normalizedModel.includes("gemini-2.0-flash-thinking") && listingModel.includes("gemini-2.0-flash-thinking")) ||
         (normalizedModel === "gemini-2.0-flash" && listingModel === "gemini-2.0-flash") ||
+        (normalizedModel.includes("gemini-2.0-pro") && listingModel.includes("gemini-2.0-pro")) ||
         (normalizedModel.includes("gemini-1.5-pro") && listingModel.includes("gemini-1.5-pro")) ||
         (normalizedModel.includes("deepseek-r1") && listingModel.includes("deepseek-r1"));
 

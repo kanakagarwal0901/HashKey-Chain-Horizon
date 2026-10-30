@@ -62,6 +62,7 @@ function formatModelDisplayName(rawNameOrId?: string): string {
     .replace(/^gpt-4o.*/i, "GPT-4o Omnimodal")
     .replace(/^gemini-2\.0-flash-thinking.*/i, "Gemini 2.0 Flash Thinking")
     .replace(/^gemini-2\.0-flash.*/i, "Gemini 2.0 Flash")
+    .replace(/^gemini-2\.0-pro.*/i, "Gemini 2.0 Pro Experimental")
     .replace(/^gemini-1\.5-pro.*/i, "Gemini 1.5 Pro")
     .replace(/^deepseek-r1-distill-llama-70b.*/i, "DeepSeek R1 (70B)")
     .replace(/^llama-3\.3-70b-versatile.*/i, "Llama 3.3 70B Versatile")
@@ -661,7 +662,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-ring-emerald" />
-            HashKey Chain • Agent Payments & A2A Settlement
+            HashKey Horizon Testnet • Live Block #35,100,370+ • Oct 31, 2026
           </span>
           <span className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900 text-zinc-300 border border-white/10 flex items-center gap-1.5">
             <Coins className="w-3.5 h-3.5 text-zinc-400" />

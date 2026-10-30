@@ -65,7 +65,7 @@ export class ArkivDatabaseEngine {
   private listings: Map<string, ArkivSellerListingEntity> = new Map();
   private files: Map<string, ArkivFileEntity> = new Map();
   private entityMutexes: Map<string, AsyncMutex> = new Map();
-  private currentBlock: number = 19_482_100;
+  private currentBlock: number = 35_100_370;
   private persistencePath: string = "";
   private shouldPersist: boolean = true;
   private hasSyncedRemote: boolean = false;
@@ -221,8 +221,8 @@ export class ArkivDatabaseEngine {
         sealedApiKey: "ENCLAVE_SEALED:mumbai-live-demo-gemini-token",
         payoutAddress: "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
         hedaraPayoutAccount: "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
-        createdAtBlock: 19482100,
-        expiresAtBlock: 19483300,
+        createdAtBlock: 35100370,
+        expiresAtBlock: 35105000,
         status: "active",
       },
       {
@@ -239,8 +239,8 @@ export class ArkivDatabaseEngine {
         sealedApiKey: "ENCLAVE_SEALED:mumbai-live-demo-gemini-token",
         payoutAddress: "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
         hedaraPayoutAccount: "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
-        createdAtBlock: 19482100,
-        expiresAtBlock: 19483300,
+        createdAtBlock: 35100370,
+        expiresAtBlock: 35105000,
         status: "active",
       },
       {
@@ -257,8 +257,8 @@ export class ArkivDatabaseEngine {
         sealedApiKey: "ENCLAVE_SEALED:mumbai-live-demo-claude-token",
         payoutAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
         hedaraPayoutAccount: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-        createdAtBlock: 19482100,
-        expiresAtBlock: 19483300,
+        createdAtBlock: 35100370,
+        expiresAtBlock: 35105000,
         status: "active",
       },
       {
@@ -275,8 +275,8 @@ export class ArkivDatabaseEngine {
         sealedApiKey: "ENCLAVE_SEALED:mumbai-live-demo-openai-token",
         payoutAddress: "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
         hedaraPayoutAccount: "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
-        createdAtBlock: 19482100,
-        expiresAtBlock: 19483300,
+        createdAtBlock: 35100370,
+        expiresAtBlock: 35105000,
         status: "active",
       },
       {
@@ -293,8 +293,8 @@ export class ArkivDatabaseEngine {
         sealedApiKey: "ENCLAVE_SEALED:mumbai-live-demo-groq-token",
         payoutAddress: "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
         hedaraPayoutAccount: "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
-        createdAtBlock: 19482100,
-        expiresAtBlock: 19483300,
+        createdAtBlock: 35100370,
+        expiresAtBlock: 35105000,
         status: "active",
       },
     ];

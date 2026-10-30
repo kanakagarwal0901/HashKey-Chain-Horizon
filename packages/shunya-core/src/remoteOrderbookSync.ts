@@ -85,8 +85,8 @@ export class RemoteOrderbookSync {
             sealedApiKey: String(item[8]),
             payoutAddress: String(item[9]),
             hedaraPayoutAccount: String(item[9]),
-            createdAtBlock: 19482100,
-            expiresAtBlock: 19483300,
+            createdAtBlock: 35100370,
+            expiresAtBlock: 35105000,
             status: "active",
           });
         }
