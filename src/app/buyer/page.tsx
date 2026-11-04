@@ -46,6 +46,7 @@ import SpatialCard from "@/components/SpatialCard";
 import AnonRpcStatusBadge from "@/components/AnonRpcStatusBadge";
 import AntigravityStagger from "@/components/AntigravityStagger";
 import ShunyaLogo from "@/components/ShunyaLogo";
+import { ShunyaLogoMark, ShunyaLogoLockup } from "@/components/svg/ShunyaSvgAssets";
 import {
   CIRCLE_FAUCET_URL,
   switchOrAddSepoliaNetwork,
@@ -1266,8 +1267,17 @@ contract VaultLending {
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <label className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-zinc-400" />
-                  <span>Your Prompt / Question</span>
+                  <div className="relative flex items-center justify-center">
+                    <ShunyaLogoMark
+                      size={28}
+                      pulseEmerald={promptText.length > 0}
+                      animated={promptText.length > 0}
+                    />
+                  </div>
+                  <span>Your Confidential Prompt / Question</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    RSA-OAEP ENCRYPTED
+                  </span>
                 </label>
                 <span className="text-xs text-zinc-500 tabular-data">
                   ~{estimatedPromptTokens.toLocaleString()} tokens ({promptText.length} chars)
@@ -1889,15 +1899,23 @@ contract VaultLending {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in" data-ui="modal">{/* taste-skill-ignore */}
           <div className="relative w-full max-w-lg p-6 sm:p-8 rounded-3xl border border-white/20 bg-[#0d0e12] space-y-6" data-ui="modal-content">
             <div className="flex items-start justify-between border-b border-white/[0.08] pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-950/60 text-emerald-400 flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-emerald-400 block">
-                    Zero-Cutoff Escrow Protection
+              <div className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <ShunyaLogoLockup height={32} showBadges={false} />
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider">
+                    CHAIN 133 VERIFIED
                   </span>
-                  <h3 className="text-xl font-bold text-zinc-950 dark:text-white">100% Automatic Refund Issued</h3>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-950/60 text-emerald-400 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-semibold text-emerald-400 block">
+                      Zero-Cutoff Escrow Protection (T_max − T_actual)
+                    </span>
+                    <h3 className="text-xl font-bold text-zinc-950 dark:text-white">100% Automatic Refund Issued</h3>
+                  </div>
                 </div>
               </div>
               <button

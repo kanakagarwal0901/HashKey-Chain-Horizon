@@ -1,13 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Shield, Lock, CheckCircle2, Globe, Cpu, Layers, Database, Coins } from "lucide-react";
+import { usePathname } from "next/navigation";
+import {
+  ArrowUpRight,
+  Shield,
+  Lock,
+  CheckCircle2,
+  Globe,
+  Cpu,
+  Layers,
+  Database,
+  Coins,
+  Sparkles,
+} from "lucide-react";
 import AnonRpcStatusBadge from "@/components/AnonRpcStatusBadge";
 import ShunyaLogo from "@/components/ShunyaLogo";
+import { ShunyaLogoMark } from "@/components/svg/ShunyaSvgAssets";
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Hide global footer on the dedicated Griflan Labs start page (which has its own HUD matrix footer)
+  if (pathname === "/start") {
+    return null;
+  }
+
   return (
-    <footer className="border-t border-black/[0.06] dark:border-white/[0.08] bg-transparent mt-24 text-zinc-600 dark:text-zinc-400">
+    <footer className="relative border-t border-black/[0.06] dark:border-white/[0.08] bg-transparent mt-24 text-zinc-600 dark:text-zinc-400 overflow-hidden">
       {/* Upper Multi-Column Precision Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
@@ -38,6 +58,12 @@ export default function Footer() {
               Protocol Rails
             </h4>
             <ul className="space-y-2.5">
+              <li>
+                <Link href="/start" className="hover:text-zinc-950 dark:hover:text-white transition flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 font-semibold">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Labs Start (Griflan UI)</span>
+                </Link>
+              </li>
               <li>
                 <Link href="/buyer" className="hover:text-zinc-950 dark:hover:text-white transition flex items-center gap-1.5">
                   <Cpu className="w-3.5 h-3.5 text-zinc-400" />
@@ -177,17 +203,28 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Sub-Footer Legal & Attribution Bar */}
-      <div className="border-t border-black/[0.06] dark:border-white/[0.06] py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+      {/* Sub-Footer Legal & Attribution Bar with Blueprint Watermark */}
+      <div className="relative border-t border-black/[0.06] dark:border-white/[0.06] py-8">
+        {/* Placement 7: Oversized Brutalist Watermark (180px x 180px, 8% Opacity) */}
+        <div
+          className="absolute -right-8 -bottom-10 pointer-events-none select-none opacity-[0.08]"
+          aria-hidden="true"
+        >
+          <ShunyaLogoMark size={180} monochrome={true} />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
           <div className="flex items-center gap-2">
             <span>&copy; October 31, 2026 ShunyaGrid Protocol. Released under MIT Open Source License.</span>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px]">
-            <span>Non-custodial confidential AI inference network.</span>
+          {/* Blueprint Sovereign Sign-Off Text */}
+          <div className="flex items-center gap-3 text-[11px] font-mono">
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              0% Plaintext Exposure • 100% Shunya
+            </span>
             <span className="text-zinc-400 dark:text-zinc-600">•</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-medium">All systems operational</span>
+            <span className="text-zinc-500">HashKey Chain Horizon (133)</span>
           </div>
         </div>
       </div>

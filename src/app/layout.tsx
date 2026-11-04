@@ -2,14 +2,20 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { XrayProvider } from "@/context/XrayContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import LiquidGlassFilters from "@/components/LiquidGlassFilters";
+import FixedHudCorner from "@/components/FixedHudCorner";
+import ShunyaPreloaderCurtain from "@/components/ShunyaPreloaderCurtain";
 
 export const metadata: Metadata = {
   title: "ShunyaGrid • HashKey Chain Confidential AI & Agent Payments",
   description:
     "Autonomous agent payment and A2A settlement network powered by HashKey Settlement Protocol (HSP) and confidential hardware enclaves with mathematical zero-cutoff guarantees.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -20,35 +26,47 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('shunya_theme');if(t==='dark'){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})()`,
           }}
         />
       </head>
-      <body className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col antialiased selection:bg-zinc-200 selection:text-zinc-900 dark:selection:bg-zinc-800 dark:selection:text-white transition-colors duration-200" suppressHydrationWarning>
+      <body
+        className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col antialiased selection:bg-zinc-200 selection:text-zinc-900 dark:selection:bg-zinc-800 dark:selection:text-white transition-colors duration-200"
+        suppressHydrationWarning
+      >
         <ThemeProvider>
-          <AuthProvider>
-            {/* Liquid Glass Optical SVG Caustic Filters */}
-            <LiquidGlassFilters />
+          <XrayProvider>
+            <AuthProvider>
+              {/* Preloader Curtain Gate (000 to 100% Attestation Split) */}
+              <ShunyaPreloaderCurtain />
 
-            {/* EF Anon-RPC Sandboxed Harness (Hidden Iframe for anonymous JSON-RPC) */}
-            <iframe
-              src="/anon-rpc/sandbox.html"
-              className="hidden"
-              title="EF Anon-RPC Sandbox"
-              aria-hidden="true"
-            />
+              {/* Fixed Top-Left HUD Corner with Lockup & X-Ray Toggle */}
+              <FixedHudCorner />
 
-            {/* Precision Navigation */}
-            <Navbar />
+              {/* Liquid Glass Optical SVG Caustic Filters */}
+              <LiquidGlassFilters />
 
-            {/* Main Content */}
-            <main className="flex-1">{children}</main>
+              {/* EF Anon-RPC Sandboxed Harness (Hidden Iframe for anonymous JSON-RPC) */}
+              <iframe
+                src="/anon-rpc/sandbox.html"
+                className="hidden"
+                title="EF Anon-RPC Sandbox"
+                aria-hidden="true"
+              />
 
-            {/* Professional Multi-Column Liquid Glass Footer */}
-            <Footer />
-          </AuthProvider>
+              {/* Precision Navigation */}
+              <Navbar />
+
+              {/* Main Content */}
+              <main className="flex-1">{children}</main>
+
+              {/* Professional Multi-Column Liquid Glass Footer */}
+              <Footer />
+            </AuthProvider>
+          </XrayProvider>
         </ThemeProvider>
       </body>
     </html>

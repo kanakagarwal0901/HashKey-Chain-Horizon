@@ -24,6 +24,12 @@ import HowItWorksModal from "@/components/HowItWorksModal";
 import SpatialCard from "@/components/SpatialCard";
 import AntigravityStagger from "@/components/AntigravityStagger";
 import ShunyaLogo from "@/components/ShunyaLogo";
+import ShunyaShowcaseReel from "@/components/ShunyaShowcaseReel";
+import {
+  Inline01Pipeline,
+  Inline02MemorySplit,
+  Inline03TmaxCurve,
+} from "@/components/svg/ShunyaSvgAssets";
 
 function formatModelDisplayName(rawNameOrId?: string): string {
   if (!rawNameOrId) return "";
@@ -90,6 +96,18 @@ export default function HomePage() {
             <ShunyaLogo size={92} showWordmark={false} animated={true} />
             <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-cyan-500/15 via-teal-500/10 to-emerald-500/15 blur-2xl -z-10 group-hover:opacity-100 opacity-60 transition-opacity pointer-events-none" />
           </div>
+        </div>
+
+        {/* Link to Griflan Labs Start Experience */}
+        <div className="flex justify-center mb-6">
+          <Link
+            href="/start"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full liquid-glass-pill border border-emerald-500/30 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:scale-105 transition shadow-sm group"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>✦ Experience Start Page (Griflan Labs UI)</span>
+            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+          </Link>
         </div>
 
         {/* Live HashKey Horizon Testnet Telemetry Pill */}
@@ -327,6 +345,22 @@ export default function HomePage() {
         </AntigravityStagger>
       </section>
 
+      {/* 1. YUUSUKE.WORK-STYLE VISUAL SHOWCASE REEL (ALL 6 BESPOKE CARDS) */}
+      <ShunyaShowcaseReel />
+
+      {/* 2. VISUAL INTERRUPTER A: ZERO-TRUST 4-STAGE PIPELINE SCHEMATIC */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 my-16">
+        <div className="border border-black/10 dark:border-white/10 rounded-2xl p-4 sm:p-6 bg-white/70 dark:bg-[#07090e]/80 backdrop-blur-md shadow-sm">
+          <div className="flex items-center justify-between pb-3 mb-3 border-b border-black/5 dark:border-white/5 font-mono text-xs">
+            <span className="text-zinc-500">[INTERRUPTER A // 4-STAGE JOURNEY]</span>
+            <span className="text-emerald-500 font-semibold">BROWSER ➔ SILICON</span>
+          </div>
+          <div className="xray-scrambled overflow-hidden rounded-xl">
+            <Inline01Pipeline />
+          </div>
+        </div>
+      </div>
+
       {/* Honest Side-by-Side Architectural Comparison */}
       <section id="architecture-comparison" className="max-w-5xl mx-auto px-4 sm:px-6 scroll-mt-28">
         <div className="text-center space-y-4 mb-14 sm:mb-16">
@@ -390,6 +424,35 @@ export default function HomePage() {
               </li>
             </ul>
           </SpatialCard>
+        </div>
+      </section>
+
+      {/* 3. DETERMINISTIC REASONING T_MAX SECTION WITH VISUAL INTERRUPTER C */}
+      <section id="tmax-proof" className="max-w-5xl mx-auto px-4 sm:px-6 scroll-mt-28">
+        <div className="border border-black/10 dark:border-white/10 rounded-3xl p-8 sm:p-12 bg-white/80 dark:bg-[#07090e]/90 backdrop-blur-md space-y-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/5 dark:border-white/5 pb-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-[11px] font-mono text-amber-500 uppercase tracking-wider mb-2">
+                <span>CONSENSUS PROOF // T_MAX CEILING</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-extrabold text-zinc-950 dark:text-white tracking-tight">
+                Deterministic Token Bounds (T_max)
+              </h2>
+            </div>
+            <div className="text-right font-mono text-xs text-zinc-500">
+              <div>SETTLEMENT DELTA: &lt; 1.0s</div>
+              <div className="text-emerald-500 font-semibold">0% MID-STREAM ABORTS</div>
+            </div>
+          </div>
+
+          <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed max-w-3xl">
+            Frontier reasoning models like Claude 3.7 Sonnet (Extended Thinking) and DeepSeek R1 allocate dynamic, unpredictable internal &lt;think&gt; tokens. Legacy metered proxies crash mid-stream when token budgets deplete. ShunyaGrid locks the mathematical upper bound in on-chain escrow before execution begins, returning any unused (T_max − T_actual) tokens automatically in 0.4s.
+          </p>
+
+          {/* VISUAL INTERRUPTER C: T_MAX ESCROW CONSUMPTION CURVE */}
+          <div className="pt-4 xray-scrambled overflow-hidden rounded-xl border border-black/5 dark:border-white/5">
+            <Inline03TmaxCurve />
+          </div>
         </div>
       </section>
 

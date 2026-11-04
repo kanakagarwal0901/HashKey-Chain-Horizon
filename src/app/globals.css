@@ -666,3 +666,34 @@ html:not(.dark) table tbody td {
     transform: none !important;
   }
 }
+
+
+/* ====================================================
+   Host Memory X-Ray Reactivity [ Host X-Ray: ON ]
+   Inverts fills to green/red wireframe matrix outlines
+   and overlays 0x00... memory dump strings
+==================================================== */
+.host-xray-active .xray-scrambled {
+  filter: hue-rotate(95deg) contrast(175%) brightness(1.2) drop-shadow(0 0 12px rgba(16, 185, 129, 0.45));
+  position: relative;
+  transition: all 0.4s ease-in-out;
+}
+
+.host-xray-active .xray-scrambled::after {
+  content: "0x00 0x7F 0x9A 0x00C1 0x44E2 0x99B0 0x11D8 [RAM DUMP SCRAMBLED - 0% VISIBILITY]";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(6, 7, 9, 0.92);
+  padding: 4px 10px;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 25;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}

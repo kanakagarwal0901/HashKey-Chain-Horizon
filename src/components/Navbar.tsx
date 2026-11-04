@@ -22,6 +22,7 @@ import {
   UserCheck,
   Sun,
   Moon,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -64,7 +65,13 @@ export default function Navbar() {
     }
   };
 
+  // Dedicated full-bleed Griflan Labs start page has its own precision HUD matrix header
+  if (pathname === "/start") {
+    return null;
+  }
+
   const navItems = [
+    { href: "/start", label: "✦ Labs", icon: Sparkles },
     { href: "/buyer", label: "Buyer Studio", icon: Cpu },
     { href: "/seller", label: "Seller Hub", icon: Layers },
     { href: "/marketplace", label: "Marketplace", icon: Database },
@@ -120,7 +127,6 @@ export default function Navbar() {
 
           {/* Top-Right Profile, Theme Switcher & Authentication */}
           <div className="flex items-center gap-3">
-
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
@@ -140,134 +146,104 @@ export default function Navbar() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-full liquid-glass-pill hover:border-white/25 transition text-xs"
+                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full liquid-glass-pill text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white transition"
                 >
                   {ensAvatar ? (
                     <img
                       src={ensAvatar}
                       alt="ENS Avatar"
-                      className="w-6 h-6 rounded-full object-cover border border-white/20"
+                      className="w-5 h-5 rounded-full border border-zinc-200 dark:border-zinc-700 object-cover"
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-zinc-800 text-zinc-200 flex items-center justify-center font-bold text-[10px]">
-                      {ensName ? ensName.slice(0, 2).toUpperCase() : walletAddress ? walletAddress.slice(2, 4).toUpperCase() : "SG"}
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                      {walletAddress ? walletAddress.slice(2, 4) : "0x"}
                     </div>
                   )}
 
-                  <div className="hidden sm:flex flex-col text-left">
-                    <span className="font-semibold text-zinc-900 dark:text-white text-[12px] truncate max-w-[120px]">
-                      {ensName || (walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "")}
-                    </span>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 pulse-ring-emerald" />
-                      Verified Human
-                    </span>
-                  </div>
+                  <span className="font-mono text-xs">
+                    {ensName ||
+                      (walletAddress
+                        ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                        : "Connected")}
+                  </span>
 
-                  <ChevronDown className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 ml-0.5" />
+                  {nullifierHash && (
+                    <span
+                      title="World ID Verified Human"
+                      className="w-2 h-2 rounded-full bg-emerald-500 pulse-ring-emerald"
+                    />
+                  )}
+
+                  <ChevronDown className="w-3.5 h-3.5 text-zinc-400 ml-0.5" />
                 </button>
 
-                {/* Profile Dropdown Menu */}
+                {/* Profile Details Dropdown */}
                 {dropdownOpen && (
-                  <div
-                    data-ui="dropdown-menu"
-                    className="!absolute -right-12 sm:right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain rounded-2xl liquid-glass p-4 space-y-3 z-50 text-zinc-900 dark:text-zinc-100 shadow-2xl"
-                  >
-                    <div className="border-b border-black/[0.06] dark:border-white/[0.08] pb-3 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium block">
-                          Connected Account
-                        </span>
-                        {ensName && (
-                          <a
-                            href={`https://app.ens.domains/${ensName}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white flex items-center gap-1"
-                          >
-                            <Globe className="w-3 h-3" />
-                            ENS
-                            <ExternalLink className="w-2.5 h-2.5" />
-                          </a>
+                  <div className="absolute right-0 mt-2 w-72 rounded-2xl liquid-glass-card shadow-2xl z-50 p-4 space-y-4 border border-black/10 dark:border-white/10 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="space-y-1">
+                      <div className="text-[10px] uppercase font-semibold text-zinc-500 dark:text-zinc-400 tracking-wider">
+                        Connected Identity
+                      </div>
+                      <div className="font-mono text-xs font-semibold text-zinc-900 dark:text-white flex items-center justify-between">
+                        <span>{ensName || "Anonymous Node"}</span>
+                        {nullifierHash && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-medium">
+                            <UserCheck className="w-3 h-3" />
+                            World ID
+                          </span>
                         )}
                       </div>
-                      {ensName && (
-                        <div className="text-sm font-semibold text-zinc-900 dark:text-white truncate pt-0.5">
-                          {ensName}
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between gap-2 pt-0.5 min-w-0">
-                        <span className="text-xs text-zinc-700 dark:text-zinc-300 truncate tabular-data min-w-0" title={walletAddress || ""}>
-                          {walletAddress ? `${walletAddress.slice(0, 10)}...${walletAddress.slice(-8)}` : ""}
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-zinc-500 font-mono text-[11px]">
+                          {walletAddress
+                            ? `${walletAddress.slice(0, 10)}...${walletAddress.slice(-8)}`
+                            : ""}
                         </span>
                         <button
                           onClick={copyAddress}
-                          className="p-1 rounded hover:bg-black/[0.05] dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition flex-shrink-0"
-                          title="Copy full address"
+                          className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition"
+                          title="Copy address"
                         >
-                          {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copied ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
                         </button>
                       </div>
-                    </div>
 
-                    {/* World ID Proof Details */}
-                    <div className="p-3 rounded-xl bg-black/[0.03] dark:bg-black/50 border border-black/[0.06] dark:border-white/[0.06] text-xs space-y-1.5">
-                      <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-300">
-                        <span>Human Status:</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                          <Check className="w-3 h-3" /> Verified Human
+                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-black/[0.04] dark:border-white/[0.04]">
+                        <span className="text-zinc-500">HashKey Horizon</span>
+                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          133 Online
                         </span>
                       </div>
-                      {nullifierHash && (
-                        <div className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate min-w-0" title={nullifierHash}>
-                          Nullifier: {nullifierHash.slice(0, 14)}...{nullifierHash.slice(-6)}
-                        </div>
-                      )}
                     </div>
 
-                    {/* HashKey Chain HSP Node Status */}
-                    <div className="p-3 rounded-xl bg-black/[0.03] dark:bg-black/50 border border-black/[0.06] dark:border-white/[0.06] text-xs space-y-1">
-                      <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-300">
-                        <span>Settlement Rails:</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-ring-emerald" />
-                          HashKey HSP
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-zinc-500 truncate" title="HashKey Testnet Chain ID 133">
-                        HashKey Testnet (ID 133)
-                      </div>
-                    </div>
+                    <div className="space-y-1 pt-1">
+                      <a
+                        href={`https://testnet-explorer.hskchain.net/address/${walletAddress}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full text-xs text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] px-3 py-2 rounded-xl flex items-center justify-between transition"
+                      >
+                        <span>View on HashKey Explorer</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
+                      </a>
 
-                    {/* Navigation Links inside Dropdown */}
-                    <div className="space-y-1 pt-1 text-xs">
-                      {navItems.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setDropdownOpen(false)}
-                            className="px-3 py-2 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition flex items-center gap-2"
-                          >
-                            <Icon className="w-3.5 h-3.5 text-zinc-400" />
-                            <span>{item.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-
-                    {/* Log Out */}
-                    <div className="pt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
                       <button
                         onClick={() => {
                           logout();
                           setDropdownOpen(false);
                         }}
-                        className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-xs font-semibold flex items-center justify-center gap-2 transition"
+                        className="w-full text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 px-3 py-2 rounded-xl flex items-center justify-between transition"
                       >
+                        <span>Disconnect</span>
                         <LogOut className="w-3.5 h-3.5" />
-                        Disconnect
                       </button>
                     </div>
                   </div>
