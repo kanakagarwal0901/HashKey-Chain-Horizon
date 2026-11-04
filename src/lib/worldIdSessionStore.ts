@@ -48,23 +48,22 @@ if (process.env.NODE_ENV !== "production") {
  */
 export async function createRealWorldIdSession(
   walletAddress: string = "0xAnonymous",
-  customAppId?: string,
-  customAction?: string
+  _customAppId?: string,
+  _customAction?: string
 ): Promise<ActiveWorldIdSession> {
   const sessionId = crypto.randomUUID();
-  const appId =
-    customAppId ||
-    process.env.WORLD_ID_APP_ID ||
-    "app_9c7005e230a8dc3eced53aaa2b78a17f";
-  const action =
-    customAction ||
-    process.env.WORLD_ID_ACTION ||
-    "shunyagrid-gate";
+  // Only allow configured WORLD_ID_APP_ID / WORLD_ID_ACTION
+  const appId = process.env.WORLD_ID_APP_ID || "app_9c7005e230a8dc3eced53aaa2b78a17f";
+  const action = process.env.WORLD_ID_ACTION || "shunyagrid-gate";
 
-  const signingKeyHex =
-    process.env.WORLD_ID_SIGNING_KEY ||
-    process.env.RP_SIGNING_KEY ||
-    crypto.createHash("sha256").update("shunyagrid-worldid-secret-key").digest("hex");
+  // No hardcoded fallback signing secret (env only, else 503)
+  const signingKeyHex = process.env.WORLD_ID_SIGNING_KEY || process.env.RP_SIGNING_KEY;
+  if (!signingKeyHex) {
+    const err = new Error("World ID signing secret not configured in environment");
+    (err as any).status = 503;
+    (err as any).statusCode = 503;
+    throw err;
+  }
 
   const sig = signRequest({
     signingKeyHex,
@@ -133,6 +132,16 @@ export async function createRealWorldIdSession(
     isStaging: true,
     environment: "staging",
   };
+
+  // Cap the session map at 1000 (evict oldest)
+  while (worldIdSessions.size >= 1000) {
+    const oldestKey = worldIdSessions.keys().next().value;
+    if (oldestKey) {
+      worldIdSessions.delete(oldestKey);
+    } else {
+      break;
+    }
+  }
 
   worldIdSessions.set(sessionId, session);
 

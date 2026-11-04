@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { switchOrAddHashKeyNetwork, SHUNYA_TREASURY_EVM_ADDRESS } from "@/lib/clientSepolia";
+import { newNonceAndDeadline, typedDataFor } from "@/lib/authSignaturesShared";
 
 interface ArcBridgeDrawerProps {
   isOpen: boolean;
@@ -286,7 +287,7 @@ export default function ArcBridgeDrawer({
         throw new Error("Missing connected seller wallet address. Please connect your MetaMask.");
       }
 
-      // Step 0: Pre-flight check - verify Treasury destination reserves BEFORE MetaMask debit
+      // Step 0: Pre-flight check - verify Treasury destination reserves BEFORE signature
       const preflightRes = await fetch("/api/bridge/cctp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -302,48 +303,51 @@ export default function ArcBridgeDrawer({
       if (!preflightRes.ok || preflightData.error || preflightData.sufficient === false) {
         throw new Error(
           preflightData.error ||
-            `Treasury liquidity check failed: The destination chain (${selectedChain}) does not have sufficient ${selectedToken} reserves. Your HSK was NOT deducted.`
+            `Treasury liquidity check failed: The destination chain (${selectedChain}) does not have sufficient ${selectedToken} reserves.`
         );
       }
 
-      let sourceBurnTxId = "";
-      if (typeof window !== "undefined" && (window as any).ethereum) {
-        // Step 1: Ensure MetaMask is switched to HashKey Chain Testnet (0x85 / 133)
-        const switched = await switchOrAddHashKeyNetwork();
-        if (!switched) {
-          throw new Error("Please switch your MetaMask to HashKey Chain Testnet to debit your HSK.");
-        }
+      if (typeof window === "undefined" || !(window as any).ethereum) {
+        throw new Error("MetaMask is required to authorize the sweep.");
+      }
 
-        // Step 2: Prompt MetaMask to execute on-chain transfer of the swept HSK to Treasury
-        const { ethers } = await import("ethers");
-        const weiAmount = ethers.parseEther(parsedAmount.toFixed(6));
-        const hexValue = "0x" + weiAmount.toString(16);
+      await switchOrAddHashKeyNetwork().catch(() => null);
 
-        try {
-          sourceBurnTxId = await (window as any).ethereum.request({
-            method: "eth_sendTransaction",
-            params: [
-              {
-                from: cleanSourceAccount,
-                to: SHUNYA_TREASURY_EVM_ADDRESS,
-                value: hexValue,
-              },
-            ],
-          });
-        } catch (mmErr: any) {
-          if (mmErr.code === 4001 || mmErr.message?.includes("rejected")) {
-            throw new Error("Sweep cancelled: You rejected the HSK debit transaction in MetaMask.");
-          }
-          throw new Error(`MetaMask debit transaction failed: ${mmErr.message || mmErr}`);
-        }
+      // Step 1: Sign SellerSweep with connected wallet (Finding 8)
+      const { ethers } = await import("ethers");
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const signerAddress = await signer.getAddress();
+      const seller = cleanSourceAccount && cleanSourceAccount.startsWith("0x") ? cleanSourceAccount : signerAddress;
 
-        // Await 1 confirmation on HashKey Chain so the wallet balance is officially mined & updated
-        if (sourceBurnTxId) {
-          try {
-            const hskProvider = new ethers.JsonRpcProvider("https://testnet.hsk.xyz", 133);
-            await hskProvider.waitForTransaction(sourceBurnTxId, 1, 12000).catch(() => null);
-          } catch {}
+      const { nonce, deadline } = newNonceAndDeadline();
+      const authMessage = {
+        seller,
+        recipient: destinationEvmAddress.trim(),
+        amountHsk: parsedAmount.toString(),
+        destinationChain: selectedChain,
+        targetToken: selectedToken,
+        nonce,
+        deadline,
+      };
+
+      const { domain, types } = typedDataFor("SellerSweep");
+      let signature = "";
+      try {
+        signature = await signer.signTypedData(domain, types, authMessage);
+      } catch (signErr: any) {
+        // Clear error if the user rejects (Finding 8)
+        if (
+          signErr?.code === 4001 ||
+          signErr?.code === "ACTION_REJECTED" ||
+          signErr?.message?.toLowerCase().includes("user rejected") ||
+          signErr?.message?.toLowerCase().includes("rejected")
+        ) {
+          setBridgeError(null);
+          setIsBridging(false);
+          return;
         }
+        throw signErr;
       }
 
       const res = await fetch("/api/bridge/cctp", {
@@ -352,12 +356,17 @@ export default function ArcBridgeDrawer({
         body: JSON.stringify({
           sourceChain: "hashkey-testnet",
           destinationChain: selectedChain,
-          sourceAccount: cleanSourceAccount,
+          sourceAccount: seller,
+          sellerAddress: seller,
           recipientAddress: destinationEvmAddress.trim(),
+          destinationAddress: destinationEvmAddress.trim(),
           amountUsdc: parsedAmount * (hskUsdRate && hskUsdRate > 0 ? hskUsdRate : 0.0894),
           amountHsk: parsedAmount,
           targetToken: selectedToken,
-          sourceBurnTxId,
+          auth: {
+            message: authMessage,
+            signature,
+          },
         }),
       });
 
@@ -384,8 +393,8 @@ export default function ArcBridgeDrawer({
         dexRate: data.dexRate || quotePreview.rate,
         recipientAddress: destinationEvmAddress.trim(),
         blockNumber: data.blockNumber || bridgeTx.blockNumber,
-        sourceBurnTxId: sourceBurnTxId || data.sourceBurnTxId,
-        sourceExplorerUrl: data.sourceExplorerUrl || (sourceBurnTxId ? `https://testnet-explorer.hskchain.net/tx/${sourceBurnTxId}` : undefined),
+        sourceBurnTxId: data.sourceBurnTxId,
+        sourceExplorerUrl: data.sourceExplorerUrl,
       });
 
       // Immediately calculate optimistic remaining balance for the drawer
@@ -407,7 +416,16 @@ export default function ArcBridgeDrawer({
         onSweepSuccess();
       }
     } catch (err: any) {
-      setBridgeError(err.message || "An unexpected error occurred during sweep.");
+      if (
+        err?.code === 4001 ||
+        err?.code === "ACTION_REJECTED" ||
+        err?.message?.toLowerCase().includes("user rejected") ||
+        err?.message?.toLowerCase().includes("rejected")
+      ) {
+        setBridgeError(null);
+      } else {
+        setBridgeError(err.message || "An unexpected error occurred during sweep.");
+      }
     } finally {
       setIsBridging(false);
     }

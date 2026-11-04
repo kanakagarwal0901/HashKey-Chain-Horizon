@@ -64,10 +64,8 @@ export async function sealSellerApiKeyInBrowser(
   const cleaned = cleanApiKey(rawApiKey);
   if (!cleaned) return "";
 
-  // If window.crypto.subtle is unavailable (e.g. non-HTTPS local network IP),
-  // return an explicit ENCLAVE_SEALED envelope so the backend unwrap handles it reliably
   if (typeof window === "undefined" || !window.crypto?.subtle) {
-    return `ENCLAVE_SEALED:${cleaned}`;
+    throw new Error("WebCrypto subtle is unavailable in this browser environment. Cannot seal API key.");
   }
 
   try {
@@ -116,58 +114,9 @@ export async function sealSellerApiKeyInBrowser(
       c: bufToBase64(new Uint8Array(encryptedData)),
     };
     return `ENCLAVE_HYBRID:${JSON.stringify(payload)}`;
-  } catch (err) {
-    console.warn("[ClientCrypto] WebCrypto RSA-OAEP sealing fallback:", err);
-    return `ENCLAVE_SEALED:${cleaned}`;
+  } catch (err: any) {
+    throw new Error(`Failed to seal API key: ${err?.message || String(err)}`);
   }
-}
-
-async function fallbackSealViaApi(
-  promptText: string,
-  files: { filename: string; mimeType: string; base64Data: string }[],
-  enclavePublicKeyPem: string
-) {
-  const res = await fetch("/api/enclave/seal-fallback", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ promptText, files, enclavePublicKeyPem }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Failed to seal prompt via enclave fallback");
-  }
-  const data = await res.json();
-  return {
-    buyerLocalReturnKeyBase64: data.buyerLocalReturnKeyBase64,
-    encryptedEnvelope: data.encryptedEnvelope,
-  };
-}
-
-async function fallbackDecryptViaApi(
-  encryptedOutputBase64: string,
-  ivHex: string,
-  authTagHex: string,
-  kReturnBase64: string
-) {
-  const res = await fetch("/api/enclave/decrypt-fallback", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      encryptedOutputBase64,
-      ivHex,
-      authTagHex,
-      kReturnBase64,
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Failed to decrypt output via enclave fallback");
-  }
-  const data = await res.json();
-  return {
-    aiOutputText: data.aiOutputText,
-    reasoningText: data.reasoningText,
-  };
 }
 
 // 2. BUYER BROWSER: Seal Prompt & Files with local AES-256-GCM, wrap keys to PK_enclave
@@ -195,10 +144,8 @@ export async function sealBuyerPromptAndFilesInBrowser(
     ephemeralBuyerFingerprint: string;
   };
 }> {
-  // Check if Web Crypto subtle is supported in current context (e.g. non-HTTPS LAN IP or restricted iframe)
   if (typeof window === "undefined" || !window.crypto?.subtle) {
-    console.info("[ClientCrypto] WebCrypto subtle unavailable, using enclave fallback");
-    return fallbackSealViaApi(promptText, files, enclavePublicKeyPem);
+    throw new Error("WebCrypto subtle is unavailable in this environment. Cannot seal prompt and files.");
   }
 
   try {
@@ -289,9 +236,8 @@ export async function sealBuyerPromptAndFilesInBrowser(
         ephemeralBuyerFingerprint: bufToHex(window.crypto.getRandomValues(new Uint8Array(8))),
       },
     };
-  } catch (err) {
-    console.warn("[ClientCrypto] WebCrypto subtle sealing error, using enclave fallback:", err);
-    return fallbackSealViaApi(promptText, files, enclavePublicKeyPem);
+  } catch (err: any) {
+    throw new Error(`Failed to seal prompt and files in browser: ${err?.message || String(err)}`);
   }
 }
 
@@ -302,10 +248,8 @@ export async function decryptBuyerOutputInBrowser(
   authTagHex: string,
   kReturnBase64: string
 ): Promise<{ aiOutputText: string; reasoningText: string }> {
-  // Check if Web Crypto subtle is supported in current context
   if (typeof window === "undefined" || !window.crypto?.subtle) {
-    console.info("[ClientCrypto] WebCrypto subtle unavailable, using enclave decrypt fallback");
-    return fallbackDecryptViaApi(encryptedOutputBase64, ivHex, authTagHex, kReturnBase64);
+    throw new Error("WebCrypto subtle is unavailable in this environment. Cannot decrypt output.");
   }
 
   try {
@@ -335,8 +279,7 @@ export async function decryptBuyerOutputInBrowser(
 
     const jsonStr = new TextDecoder().decode(decrypted);
     return JSON.parse(jsonStr);
-  } catch (err) {
-    console.warn("[ClientCrypto] WebCrypto subtle decryption error, using enclave fallback:", err);
-    return fallbackDecryptViaApi(encryptedOutputBase64, ivHex, authTagHex, kReturnBase64);
+  } catch (err: any) {
+    throw new Error(`Failed to decrypt output in browser: ${err?.message || String(err)}`);
   }
 }

@@ -12,7 +12,8 @@ export interface WorldIdVerificationProof {
 
 export class WorldIdService {
   private appId: string = process.env.WORLD_ID_APP_ID || "app_9c7005e230a8dc3eced53aaa2b78a17f";
-  private verifiedNullifiers: Set<string> = new Set();
+  // Maps `${action}:${nullifier_hash}` -> walletAddress (lowercase)
+  private verifiedNullifiers: Map<string, string> = new Map();
 
   // Authoritative Worldcoin Developer Portal & ZK Proof Verification
   public async verifyProof(params: {
@@ -20,6 +21,7 @@ export class WorldIdService {
     nullifier_hash?: string;
     action?: string;
     signal?: string;
+    walletAddress?: string;
     proof?: string;
     credential_type?: "orb" | "phone";
   }): Promise<{ success: boolean; nullifier_hash: string; error?: string }> {
@@ -31,6 +33,9 @@ export class WorldIdService {
       };
     }
     const nullifier = params.nullifier_hash;
+    const action = params.action || "seller-listing";
+    const wallet = (params.walletAddress || params.signal || "").toLowerCase().trim();
+    const key = `${action}:${nullifier}`;
 
     // STRICT VALIDATION: Reject explicitly invalid or malformed proofs
     if (
@@ -45,12 +50,29 @@ export class WorldIdService {
       };
     }
 
-    if (this.verifiedNullifiers.has(nullifier)) {
+    // Reject a nullifier already used for the action by a different wallet
+    if (this.verifiedNullifiers.has(key)) {
+      const existingWallet = this.verifiedNullifiers.get(key);
+      if (wallet && existingWallet && existingWallet !== wallet) {
+        return {
+          success: false,
+          nullifier_hash: nullifier,
+          error: "Nullifier already used for this action by a different wallet.",
+        };
+      }
       return { success: true, nullifier_hash: nullifier };
     }
 
-    // If live proof parameters are provided and live check is enabled
-    if (params.proof && params.merkle_root && process.env.WORLD_ID_LIVE_CHECK === "true") {
+    // If live check is enabled, verify with Worldcoin Developer Portal
+    if (process.env.WORLD_ID_LIVE_CHECK === "true") {
+      if (!params.proof || !params.merkle_root) {
+        return {
+          success: false,
+          nullifier_hash: nullifier,
+          error: "Missing required ZK proof or merkle_root for World ID live verification.",
+        };
+      }
+
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 4000);
@@ -62,7 +84,7 @@ export class WorldIdService {
             merkle_root: params.merkle_root,
             proof: params.proof,
             verification_level: params.credential_type || "orb",
-            action: params.action || "seller-listing",
+            action,
             signal: params.signal || "",
           }),
           signal: controller.signal,
@@ -72,17 +94,41 @@ export class WorldIdService {
         if (res.ok) {
           const data = await res.json();
           if (data.success) {
-            this.verifiedNullifiers.add(nullifier);
+            this.verifiedNullifiers.set(key, wallet);
             return { success: true, nullifier_hash: nullifier };
           }
+          return { success: false, nullifier_hash: nullifier, error: data.detail || "World ID verification failed" };
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          return {
+            success: false,
+            nullifier_hash: nullifier,
+            error: errData.detail || errData.code || "World ID verification rejected by upstream",
+          };
         }
-      } catch (err) {
-        // Fall back cleanly to local zero-knowledge proof validation
+      } catch (err: any) {
+        // Fail closed on network error!
+        return {
+          success: false,
+          nullifier_hash: nullifier,
+          error: `World ID verification network error: ${err.message}`,
+        };
       }
     }
 
-    // Local deterministic verification for tests and hackathon evaluation
-    this.verifiedNullifiers.add(nullifier);
+    // Fail closed in production when WORLD_ID_LIVE_CHECK !== "true"
+    if (process.env.NODE_ENV === "production") {
+      console.error("[WorldIdService] FATAL: WORLD_ID_LIVE_CHECK !== 'true' in production. Rejection enforced (fail closed).");
+      return {
+        success: false,
+        nullifier_hash: nullifier,
+        error: "World ID live verification must be enabled in production",
+      };
+    }
+
+    // Non-production fallback only (log a loud warning)
+    console.warn("[WorldIdService] WARNING: WORLD_ID_LIVE_CHECK is not enabled. Accepting mock proof in non-production.");
+    this.verifiedNullifiers.set(key, wallet);
     return {
       success: true,
       nullifier_hash: nullifier,
@@ -92,11 +138,13 @@ export class WorldIdService {
   // Generate a verified proof for seamless UI demo & instant onboarding
   public generateDemoProof(sellerAddress: string): WorldIdVerificationProof {
     const nullifier_hash = `0xnullifier_${crypto.createHash("sha256").update(sellerAddress).digest("hex").slice(0, 32)}`;
-    this.verifiedNullifiers.add(nullifier_hash);
+    const action = "shunyagrid-seller-listing";
+    const key = `${action}:${nullifier_hash}`;
+    this.verifiedNullifiers.set(key, sellerAddress.toLowerCase().trim());
     return {
       merkle_root: "0x1b92048201948201948201948201948201948201",
       nullifier_hash,
-      action: "shunyagrid-seller-listing",
+      action,
       signal: sellerAddress,
       credential_type: "orb",
       verified: true,

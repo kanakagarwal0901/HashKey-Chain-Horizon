@@ -5,8 +5,8 @@
 ---
 
 ### Quick Links & Deployed Contracts
-* **HSP Adapter Contract:** [`0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae`](https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae) (Bytecode active on Testnet Chain 133; see [Test Status](#7-test-status--known-limitations-verified-2026-11-02))
-* **Settlement Router Contract:** [`0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D`](https://testnet-explorer.hskchain.net/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D) (Bytecode active on Testnet Chain 133)
+* **HSP Adapter Contract:** [`0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108`](https://testnet-explorer.hskchain.net/address/0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108) (Bytecode active on Testnet Chain 133; redeployed 2026-11-03, owner = treasury wallet; previous deployment owned by public Hardhat key is deprecated; see [Test Status](#7-test-status--known-limitations-verified-2026-11-02))
+* **Settlement Router Contract:** [`0x56B8BaF4a417A90202021cBAc6ba983c8f96D6F3`](https://testnet-explorer.hskchain.net/address/0x56B8BaF4a417A90202021cBAc6ba983c8f96D6F3) (Bytecode active on Testnet Chain 133; redeployed 2026-11-03)
 * **Autonomous Agent CLI:** `npm run agent:hsk` (`apps/agent/openclaw-hsk-agent.ts`)
 * **Live Web Application:** [http://localhost:3000](http://localhost:3000)
 
@@ -228,8 +228,8 @@ ShunyaGrid was architected specifically for the **HashKey Chain Horizon** Hackat
 
 ### 1. Native HashKey Chain Deployment & Economic Utility
 * **Deployed Contracts on HashKey Chain:** Core protocol smart contracts have bytecode deployed on **HashKey Chain Testnet (Chain ID 133)**:
-  * **`HSPAdapter.sol`:** [`0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae`](https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae) (Bytecode active on Chain 133; source code unverified on explorer)
-  * **`HashKeySettlementRouter.sol`:** [`0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D`](https://testnet-explorer.hskchain.net/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D) (Bytecode active on Chain 133; source code unverified on explorer)
+  * **`HSPAdapter.sol`:** [`0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108`](https://testnet-explorer.hskchain.net/address/0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108) (Bytecode active on Chain 133; source code unverified on explorer)
+  * **`HashKeySettlementRouter.sol`:** [`0x56B8BaF4a417A90202021cBAc6ba983c8f96D6F3`](https://testnet-explorer.hskchain.net/address/0x56B8BaF4a417A90202021cBAc6ba983c8f96D6F3) (Bytecode active on Chain 133; source code unverified on explorer)
   * **`Deployer / Operator (owner)`:** [`0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`](https://testnet-explorer.hskchain.net/address/0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266) (Public Hardhat dev account #0; holds contract ownership for testnet demo)
 * **Native HSK Utility:** Native **HSK** serves as the primary currency for all AI inference reservations, escrow deposits, protocol commissions, and seller earnings.
 * **HashKey Ecosystem Token Constants:** Token address references configured in `contracts/HSPAdapter.sol` (note: these addresses return `0x` bytecode on Testnet Chain 133; active testing uses native HSK):
@@ -304,6 +304,72 @@ npx tsx scripts/testLiveGeminiFlashExecution.ts
 
 ---
 
+## 6.5 User Journeys & Decision Graph
+
+Every box below is a **node** with an ID. Section 7 reports the end-to-end test result and suggested improvements per node.
+Rounded boxes are user/agent actions, diamonds are decisions the system makes, and red edges are failure paths.
+
+### Buyer (web app)
+
+```mermaid
+flowchart TD
+  B1([B1 · Landing / Login gateway<br/>connect wallet, pick role]) --> B2([B2 · Marketplace<br/>GET /api/listings])
+  B2 --> B3([B3 · Configure request<br/>model, thinking level, files → T_max])
+  B3 --> D1{D1 · Seller with<br/>free quota ≥ T_max?}
+  D1 -- no --> X1[Show 'no solvent seller'<br/>pick another model / lower T_max]
+  D1 -- yes --> B4([B4 · Encrypt prompt in browser<br/>GET /api/enclave-pubkey, AES-GCM + RSA-OAEP])
+  B4 --> B5([B5 · Choose chain & token, get quote<br/>GET /api/uniswap/quote])
+  B5 --> B6([B6 · Pay with wallet<br/>tx to treasury, wait for confirmation])
+  B6 --> B7([B7 · POST /api/blind-execute<br/>paymentTxId + sealed envelope])
+  B7 --> D2{D2 · Payment verified?<br/>right chain, token, amount, payer, unused}
+  D2 -- no --> X2[HTTP 402 Payment Required]
+  D2 -- yes --> D3{D3 · Quota lock<br/>acquired?}
+  D3 -- no --> X3[HTTP 409 + refund]
+  D3 -- yes --> B8([B8 · Unwrap in server RAM<br/>call AI provider with seller key])
+  B8 --> D4{D4 · Inference<br/>succeeded?}
+  D4 -- no --> X4[Full refund to payer]
+  D4 -- yes --> B9([B9 · Settlement<br/>seller payout + protocol fee + buyer refund of unused tokens])
+  B9 --> B10([B10 · Decrypt answer in browser<br/>with return key])
+  linkStyle 3,9,11,14 stroke:#d33
+```
+
+### Seller (web app)
+
+```mermaid
+flowchart TD
+  S1([S1 · Connect wallet]) --> S2([S2 · World ID verification<br/>/api/world-id/session → poll → register])
+  S2 --> D5{D5 · Human<br/>verified?}
+  D5 -- no --> Y1[Blocked from listing]
+  D5 -- yes --> S3([S3 · Enter API key<br/>sealed in browser to enclave key])
+  S3 --> S4([S4 · POST /api/verify-api-key])
+  S4 --> D6{D6 · Key valid &<br/>quota detected?}
+  D6 -- no --> Y2[Show provider error]
+  D6 -- yes --> S5([S5 · Set price & quota<br/>sign ListingWrite, POST /api/listings])
+  S5 --> S6([S6 · Listing live<br/>local orderbook + Arkiv / on-chain sync])
+  S6 --> S7([S7 · Earnings accrue<br/>GET /api/seller/balance])
+  S7 --> S8([S8 · Payout centre<br/>pick chain & token, sign SellerSweep])
+  S8 --> D7{D7 · Signature valid &<br/>ledger balance enough?}
+  D7 -- no --> Y3[Rejected, nothing sent]
+  D7 -- yes --> S9([S9 · Treasury delivers funds<br/>POST /api/bridge/cctp; ledger re-credited on failure])
+  linkStyle 2,6,12 stroke:#d33
+```
+
+### Autonomous agent (A2A, `npm run agent:hsk`)
+
+```mermaid
+flowchart TD
+  A1([A1 · Discover listings<br/>GET /api/listings]) --> A2([A2 · Sign EIP-712 HSP mandate])
+  A2 --> A3([A3 · lockHSPMandateWithSignature<br/>deposit T_max in HSPAdapter])
+  A3 --> A4([A4 · Blind execution of sealed prompt])
+  A4 --> D8{D8 · Settlement within bounds?<br/>tUsed ≤ tMax, fee ≤ cap, sum = deposit}
+  D8 -- yes --> A5([A5 · settleHSPMandate<br/>seller paid, fee to treasury, refund to agent])
+  D8 -- no / never settled --> A6[A6 · refundHSPMandate<br/>owner anytime, agent after timeout]
+  A5 --> A7([A7 · Mandate status SETTLED])
+  linkStyle 5 stroke:#d33
+```
+
+---
+
 ## 7. Test Status & Known Limitations (verified 2026-11-02)
 
 Every test script and smart contract was fact-checked against the codebase and the live HashKey Chain Testnet (Chain ID `133`, RPC: `https://testnet.hsk.xyz`) on 2026-11-02. Below is the verified status of the four A2A test commands and protocol limitations.
@@ -315,22 +381,22 @@ Every test script and smart contract was fact-checked against the codebase and t
 | `npm run test:hsp` | `scripts/testHashKeyHspSettlement.ts` | **Fails** (`EVM error: OutOfFunds`) | The script defaults to the public Hardhat dev account #0 (`0xf39Fd6...`, published in `.env.example`). This address holds only ~0.000021 HSK (drained by public sweeper bots; nonce 770) and cannot pay the 0.01 HSK upfront deposit + gas. Additionally, `settleHSPMandate` requires `onlyOwner` (`0xf39Fd6...`). Fails until a funded private key is supplied via `HASHKEY_DEPLOYER_PRIVATE_KEY`. |
 | `npm run agent:hsk` | `apps/agent/openclaw-hsk-agent.ts` | **Fails** (`EVM error: OutOfFunds`) | Defaults to the public Hardhat dev account #0 (`0xf39Fd6...`), which lacks the 0.015 HSK upfront deposit + gas required for `lockMandateWithSignature`. Fails until a funded private key is supplied via `BUYER_AGENT_PRIVATE_KEY`. |
 | `npx tsx scripts/testLiveGeminiFlashExecution.ts` | `scripts/testLiveGeminiFlashExecution.ts` | **Fails** (`EVM error: OutOfFunds`) | Defaults to the public Hardhat dev account #0 (`0xf39Fd6...`), lacking funds to broadcast the required HSK transfer to the Treasury EOA (12.69 HSK for the 12,000-token T_max against the `pratah-4c4a` Gemini Flash listing at the live rate). (Also requires the Next.js dev server running on `http://localhost:3000` with an active Gemini Flash listing). |
-| `npm run test:hashkey` | `scripts/testHashKeyPaymentFlow.ts` | **Fails Assertion** (`PAYOUT-02`) | The script broadcasts a real on-chain HSK payout from Treasury EOA `0x9b3b...2625` (which holds ~2.315 HSK on testnet). However, it fails assertion `PAYOUT-02` (`scripts/testHashKeyPaymentFlow.ts:77-83`) because the test hardcodes an expected rate of `$0.75 / HSK`, whereas `packages/shunya-core/src/hashkeyTreasury.ts:93` computes payouts using the live oracle rate (`~$0.0894 / HSK`). |
+| `npm run test:hashkey` | `scripts/testHashKeyPaymentFlow.ts` | **Fails Assertion** (`PAYOUT-02`) | The script broadcasts a real on-chain HSK payout from Treasury EOA `0xe087...aBaD6` (which holds ~2.315 HSK on testnet). However, it fails assertion `PAYOUT-02` (`scripts/testHashKeyPaymentFlow.ts:77-83`) because the test hardcodes an expected rate of `$0.75 / HSK`, whereas `packages/shunya-core/src/hashkeyTreasury.ts:93` computes payouts using the live oracle rate (`~$0.0894 / HSK`). |
 
 ### Verified Protocol Limitations & Security Findings
 
-1. **Public Contract Ownership (Testnet / Demo Deployment Only):**
-   `HSPAdapter` deployed at `0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae` has its `owner()` set to `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (the standard Hardhat dev account #0, published in `.env.example`). Because `settleHSPMandate` is protected by `onlyOwner` (`contracts/HSPAdapter.sol:289`), any actor with access to the public key can call `settleHSPMandate` and redirect settlements. **This deployment is strictly for hackathon testing and demo purposes; the contract must be redeployed with a private, secure owner key prior to any real-world usage.**
+1. **Contract Ownership (Redeployed 2026-11-03):**
+   `HSPAdapter` deployed at `0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108` has its `owner()` set to the treasury wallet `0xe08798BaCfec631554b02D126b67788Dac3AbaD6` (redeployed 2026-11-03, owner = treasury wallet; previous deployment owned by public Hardhat key is deprecated). `settleHSPMandate` is protected by `onlyOwner` (`contracts/HSPAdapter.sol:289`) and is safely executed by the authorized treasury key.
 2. **Account Balance & Sweeper Bot Drainage:**
    Public Hardhat account `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` currently holds ~0.000021 HSK (nonce 770) due to automated sweeper bots active on public testnets. Scripts relying on default credentials will fail with `EVM error: OutOfFunds`.
 3. **EIP-712 Mandate Gas Requirements:**
    `lockHSPMandateWithSignature` requires `recovered == msg.sender` (`contracts/HSPAdapter.sol:196`). The buyer agent must submit its own transaction and pay native HSK gas; the EIP-712 signature authorizes the mandate terms on-chain but does not enable gasless or relayed meta-transactions.
 4. **Dual Payment Rails (Contract Escrow vs. Treasury Transfer):**
    - The HSP smart contract rail (`apps/agent/openclaw-hsk-agent.ts`, `scripts/testHashKeyHspSettlement.ts`) locks funds into `HSPAdapter.sol` and enforces mathematical value conservation on-chain (`sellerPayout + protocolFee + buyerRefund == maxDeposit`).
-   - The web app direct rail (`scripts/testLiveGeminiFlashExecution.ts`, `src/app/api/blind-execute/route.ts`) sends native HSK directly to the Treasury EOA (`0x9b3b...2625`). In this path, token accounting, quota reconciliation, and refunds are calculated and broadcast off-chain by `BuyerRefundEngine` (`packages/shunya-core/src/buyerRefundEngine.ts`).
+   - The web app direct rail (`scripts/testLiveGeminiFlashExecution.ts`, `src/app/api/blind-execute/route.ts`) sends native HSK directly to the Treasury EOA (`0xe087...aBaD6`). In this path, token accounting, quota reconciliation, and refunds are calculated and broadcast off-chain by `BuyerRefundEngine` (`packages/shunya-core/src/buyerRefundEngine.ts`).
 5. **Hardcoded Treasury Credentials & Environment Mismatch:**
    - A treasury private key is hardcoded as a fallback in source files (`packages/shunya-core/src/hashkeyTreasury.ts` and `buyerRefundEngine.ts`). In production, this credential must be moved exclusively to environment variables and rotated.
-   - `.env.example` lists `SHUNYA_TREASURY_PRIVATE_KEY` set to Hardhat dev key #0 (address `0xf39Fd6...`), which does not correspond to `NEXT_PUBLIC_SHUNYA_TREASURY_EVM_ADDRESS` (`0x9b3b...2625`).
+   - `.env.example` lists `SHUNYA_TREASURY_PRIVATE_KEY` set to Hardhat dev key #0 (address `0xf39Fd6...`), which does not correspond to `NEXT_PUBLIC_SHUNYA_TREASURY_EVM_ADDRESS` (`0xe087...aBaD6`).
 6. **Token Standards on Testnet:**
    The ecosystem token addresses for HashKey USDC (`0x054ed458...`), USDT (`0xF1B50e...`), and Wrapped HSK (`0xB210D2...`) are declared in `contracts/HSPAdapter.sol:37-40` as *mainnet* reference constants. They have no contract code on Testnet Chain 133 (`eth_getCode` returns `0x`). All active testnet settlement flows use native HSK.
 7. **Confidential Computing Architecture:**

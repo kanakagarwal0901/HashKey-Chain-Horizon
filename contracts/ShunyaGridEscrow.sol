@@ -11,6 +11,11 @@ pragma solidity ^0.8.20;
  */
 contract ShunyaGridEscrow {
     // -------------------------------------------------------------------------
+    // Constants
+    // -------------------------------------------------------------------------
+    uint256 public constant MAX_COMMISSION_BPS = 2000; // Max 20% protocol commission bound
+
+    // -------------------------------------------------------------------------
     // Custom Errors
     // -------------------------------------------------------------------------
     error ZeroAddress();
@@ -23,6 +28,8 @@ contract ShunyaGridEscrow {
     error InsufficientAllowance();
     error TokenTransferFailed();
     error NullifierAlreadySpent(bytes32 nullifier);
+    error ExcessiveCommission();
+    error ConservationOfValueFailed();
 
     // -------------------------------------------------------------------------
     // Events
@@ -41,6 +48,12 @@ contract ShunyaGridEscrow {
         uint256 sellerPayout,
         uint256 protocolCommission,
         uint256 buyerRefund
+    );
+
+    event JobRefunded(
+        bytes32 indexed jobId,
+        address indexed buyer,
+        uint256 refundAmount
     );
 
     // -------------------------------------------------------------------------
@@ -94,6 +107,10 @@ contract ShunyaGridEscrow {
         if (msg.value == 0) revert ZeroAmount();
         if (seller == address(0)) revert ZeroAddress();
         if (jobs[jobId].buyer != address(0)) revert JobAlreadyExists(jobId);
+
+        // NOTE: The World ID nullifier is tracked on-chain for single-use / replay prevention,
+        // but the cryptographic zero-knowledge proof of human verification is validated off-chain
+        // (via World ID Cloud API / server relayer) and is not verified on-chain by this contract.
         if (worldIdNullifier != bytes32(0) && usedNullifiers[worldIdNullifier]) {
             revert NullifierAlreadySpent(worldIdNullifier);
         }
@@ -117,6 +134,7 @@ contract ShunyaGridEscrow {
     /**
      * @notice Settles a job based on actual tokens used (T_used).
      * @dev Strictly enforces: sellerPayout + protocolCommission + refund == maxUpfrontAmount.
+     *      Limits protocolCommission <= maxUpfrontAmount * MAX_COMMISSION_BPS / 10000.
      */
     function settleJob(
         bytes32 jobId,
@@ -128,9 +146,14 @@ contract ShunyaGridEscrow {
         if (job.buyer == address(0)) revert JobNotFound(jobId);
         if (job.settled) revert JobAlreadySettled(jobId);
 
+        // Bound protocol commission to max 20%
+        if (protocolCommission > (job.maxUpfrontAmount * MAX_COMMISSION_BPS) / 10000) {
+            revert ExcessiveCommission();
+        }
+
         // Conservation of Value Invariant
         if (sellerPayout + protocolCommission + buyerRefund != job.maxUpfrontAmount) {
-            revert ZeroAmount();
+            revert ConservationOfValueFailed();
         }
 
         job.settled = true;
@@ -152,5 +175,28 @@ contract ShunyaGridEscrow {
             (bool s3, ) = job.buyer.call{value: buyerRefund}("");
             if (!s3) revert TokenTransferFailed();
         }
+    }
+
+    /**
+     * @notice Emergency or timeout refund for buyer.
+     * @dev Buyer may refund after 24 hours from creation; owner may refund at any time.
+     */
+    function refundJob(bytes32 jobId) external nonReentrant {
+        EscrowJob storage job = jobs[jobId];
+        if (job.buyer == address(0)) revert JobNotFound(jobId);
+        if (job.settled) revert JobAlreadySettled(jobId);
+
+        if (msg.sender != owner && msg.sender != job.buyer) revert Unauthorized();
+        if (msg.sender == job.buyer && block.timestamp < job.createdAt + 24 hours) {
+            revert Unauthorized();
+        }
+
+        job.settled = true;
+        uint256 refundAmount = job.maxUpfrontAmount;
+
+        emit JobRefunded(jobId, job.buyer, refundAmount);
+
+        (bool s, ) = job.buyer.call{value: refundAmount}("");
+        if (!s) revert TokenTransferFailed();
     }
 }

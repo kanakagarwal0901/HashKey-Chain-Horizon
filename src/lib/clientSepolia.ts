@@ -16,7 +16,7 @@ export const SEPOLIA_CHAIN_ID_DEC = 11155111;
 export const SEPOLIA_CIRCLE_USDC_ADDRESS =
   process.env.NEXT_PUBLIC_SEPOLIA_USDC_ADDRESS || "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 export const SHUNYA_TREASURY_EVM_ADDRESS =
-  process.env.NEXT_PUBLIC_SHUNYA_TREASURY_EVM_ADDRESS || "0x9b3b7375b0591E8A304A8f66D11186Fb07672625";
+  process.env.NEXT_PUBLIC_SHUNYA_TREASURY_EVM_ADDRESS || "0xe08798BaCfec631554b02D126b67788Dac3AbaD6";
 export const CIRCLE_FAUCET_URL = "https://faucet.circle.com";
 
 const SEPOLIA_PUBLIC_RPC =
@@ -25,8 +25,8 @@ const SEPOLIA_PUBLIC_RPC =
 export const HASHKEY_CHAIN_ID_HEX = "0x85"; // 133
 export const HASHKEY_CHAIN_ID_DEC = 133;
 export const HASHKEY_TESTNET_RPC = "https://testnet.hsk.xyz";
-export const HASHKEY_HSP_ADAPTER = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
-export const HASHKEY_ROUTER = "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D";
+export const HASHKEY_HSP_ADAPTER = "0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108";
+export const HASHKEY_ROUTER = "0x56B8BaF4a417A90202021cBAc6ba983c8f96D6F3";
 
 /**
  * Switch wallet network to HashKey Chain Testnet (0x85 / 133) or add it if not present.
@@ -419,7 +419,7 @@ export async function executeBuyerUniversalPayment(params: {
       params: [
         {
           from: params.buyerAddress,
-          to: "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae", // HSPAdapter
+          to: "0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108", // HSPAdapter
           value: valueHex,
         },
       ],

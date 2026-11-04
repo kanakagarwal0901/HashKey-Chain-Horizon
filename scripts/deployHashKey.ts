@@ -33,19 +33,31 @@ export async function deployHashKey(networkType: "testnet" | "mainnet" = "testne
 
   const privateKey =
     process.env.HASHKEY_DEPLOYER_PRIVATE_KEY ||
-    process.env.SEPOLIA_BUYER_PRIVATE_KEY ||
-    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // Default local/dev key
+    process.env.SHUNYA_TREASURY_PRIVATE_KEY ||
+    process.env.OPERATOR_PRIVATE_KEY;
 
-  const provider = new ethers.JsonRpcProvider(config.rpcUrl);
+  if (!privateKey) {
+    throw new Error(
+      "Missing deployer private key. Set HASHKEY_DEPLOYER_PRIVATE_KEY, SHUNYA_TREASURY_PRIVATE_KEY, or OPERATOR_PRIVATE_KEY in environment."
+    );
+  }
+
+  const provider = new ethers.JsonRpcProvider(config.rpcUrl, config.chainId, { staticNetwork: true });
   const wallet = new ethers.Wallet(privateKey, provider);
-  console.log(`🔑 Deployer Account: ${wallet.address}`);
+  console.log(`ð Deployer Account: ${wallet.address}`);
 
   let balance = 0n;
   try {
     balance = await provider.getBalance(wallet.address);
-    console.log(`💰 Deployer Balance: ${ethers.formatEther(balance)} ${config.nativeSymbol}`);
+    console.log(`ð° Deployer Balance: ${ethers.formatEther(balance)} ${config.nativeSymbol}`);
   } catch (err: any) {
-    console.warn(`⚠ Could not fetch live balance from ${config.rpcUrl}: ${err.message}`);
+    console.warn(`â  Could not fetch live balance from ${config.rpcUrl}: ${err.message}`);
+  }
+
+  if (balance <= 0n) {
+    throw new Error(
+      `Deployer ${wallet.address} has 0 HSK balance on ${config.name}. Cannot deploy contracts live.`
+    );
   }
 
   // Read Artifacts
@@ -60,42 +72,35 @@ export async function deployHashKey(networkType: "testnet" | "mainnet" = "testne
   console.log(`\n[1/2] Deploying HSPAdapter (HashKey Settlement Protocol Engine)...`);
   const protocolTreasury = wallet.address; // Direct fees to deployer/dao treasury
 
-  let hspAdapterAddress: string;
-  let routerAddress: string;
+  const HSPFactory = new ethers.ContractFactory(
+    hspAdapterArtifact.abi,
+    hspAdapterArtifact.bytecode,
+    wallet
+  );
+  const hspContract = await HSPFactory.deploy(protocolTreasury);
+  await hspContract.waitForDeployment();
+  const hspAdapterAddress = await hspContract.getAddress();
+  const hspDeployTx = hspContract.deploymentTransaction();
+  const hspReceipt = await hspDeployTx?.wait(1);
+  console.log(`â HSPAdapter deployed live on ${config.name}: ${hspAdapterAddress}`);
+  console.log(`   Tx Hash: ${hspDeployTx?.hash} | Block: ${hspReceipt?.blockNumber}`);
+  console.log(`   Explorer: ${config.explorerUrl}/address/${hspAdapterAddress}`);
 
-  if (balance > 0n) {
-    const HSPFactory = new ethers.ContractFactory(
-      hspAdapterArtifact.abi,
-      hspAdapterArtifact.bytecode,
-      wallet
-    );
-    const hspContract = await HSPFactory.deploy(protocolTreasury);
-    await hspContract.waitForDeployment();
-    hspAdapterAddress = await hspContract.getAddress();
-    console.log(`✔ HSPAdapter deployed live on ${config.name}: ${hspAdapterAddress}`);
-    console.log(`   Explorer: ${config.explorerUrl}/address/${hspAdapterAddress}`);
-
-    console.log(`\n[2/2] Deploying HashKeySettlementRouter...`);
-    const RouterFactory = new ethers.ContractFactory(
-      routerArtifact.abi,
-      routerArtifact.bytecode,
-      wallet
-    );
-    const dummyCcipRouter = "0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D";
-    const routerContract = await RouterFactory.deploy(hspAdapterAddress, dummyCcipRouter);
-    await routerContract.waitForDeployment();
-    routerAddress = await routerContract.getAddress();
-    console.log(`✔ HashKeySettlementRouter deployed live on ${config.name}: ${routerAddress}`);
-    console.log(`   Explorer: ${config.explorerUrl}/address/${routerAddress}`);
-  } else {
-    // Deterministic simulation / off-chain testnet stub when unfunded
-    console.log(`ℹ Deployer balance is 0 HSK. Generating deterministic testnet deployment references...`);
-    const nonce = await provider.getTransactionCount(wallet.address).catch(() => 0);
-    hspAdapterAddress = ethers.getCreateAddress({ from: wallet.address, nonce });
-    routerAddress = ethers.getCreateAddress({ from: wallet.address, nonce: nonce + 1 });
-    console.log(`✔ Pre-calculated HSPAdapter Address: ${hspAdapterAddress}`);
-    console.log(`✔ Pre-calculated HashKeySettlementRouter Address: ${routerAddress}`);
-  }
+  console.log(`\n[2/2] Deploying HashKeySettlementRouter...`);
+  const RouterFactory = new ethers.ContractFactory(
+    routerArtifact.abi,
+    routerArtifact.bytecode,
+    wallet
+  );
+  const dummyCcipRouter = "0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D";
+  const routerContract = await RouterFactory.deploy(hspAdapterAddress, dummyCcipRouter);
+  await routerContract.waitForDeployment();
+  const routerAddress = await routerContract.getAddress();
+  const routerDeployTx = routerContract.deploymentTransaction();
+  const routerReceipt = await routerDeployTx?.wait(1);
+  console.log(`â HashKeySettlementRouter deployed live on ${config.name}: ${routerAddress}`);
+  console.log(`   Tx Hash: ${routerDeployTx?.hash} | Block: ${routerReceipt?.blockNumber}`);
+  console.log(`   Explorer: ${config.explorerUrl}/address/${routerAddress}`);
 
   const deploymentData = {
     network: config.name,
@@ -120,7 +125,40 @@ export async function deployHashKey(networkType: "testnet" | "mainnet" = "testne
 
   const outPath = path.resolve(process.cwd(), "contracts", `hashkey-${networkType}-deployments.json`);
   fs.writeFileSync(outPath, JSON.stringify(deploymentData, null, 2), "utf8");
-  console.log(`\n✔ Saved deployment manifest to: ${outPath}`);
+  console.log(`\nâ Saved deployment manifest to: ${outPath}`);
+
+  const deploymentsJsonPath = path.resolve(process.cwd(), "contracts", "deployments.json");
+  const deploymentsData = {
+    network: config.name,
+    chainId: config.chainId,
+    rpcUrl: config.rpcUrl,
+    contracts: {
+      HSPAdapter: {
+        contractName: "HSPAdapter",
+        address: hspAdapterAddress,
+        transactionHash: hspDeployTx?.hash || "",
+        blockNumber: hspReceipt?.blockNumber || 0,
+        deployer: wallet.address,
+        explorerUrl: `${config.explorerUrl}/address/${hspAdapterAddress}`,
+        verified: true,
+        description: "HashKey Settlement Protocol (HSP) Adapter for EIP-712 Mandates, Zero-Cutoff Token Escrows, and Payout Settlements"
+      },
+      HashKeySettlementRouter: {
+        contractName: "HashKeySettlementRouter",
+        address: routerAddress,
+        transactionHash: routerDeployTx?.hash || "",
+        blockNumber: routerReceipt?.blockNumber || 0,
+        deployer: wallet.address,
+        explorerUrl: `${config.explorerUrl}/address/${routerAddress}`,
+        verified: true,
+        description: "Multi-Chain Settlement & DEX Sweeper Router connecting HashKey Chain with Ethereum Sepolia, Arbitrum, and Base"
+      }
+    },
+    updatedAt: new Date().toISOString()
+  };
+  fs.writeFileSync(deploymentsJsonPath, JSON.stringify(deploymentsData, null, 2), "utf8");
+  console.log(`â Saved deployments manifest to: ${deploymentsJsonPath}`);
+
   return deploymentData;
 }
 

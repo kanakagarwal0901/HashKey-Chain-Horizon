@@ -11,9 +11,13 @@ async function runHashKeyHspTest() {
   const rpcUrl = "https://testnet.hsk.xyz";
   const deployerKey =
     process.env.HASHKEY_DEPLOYER_PRIVATE_KEY ||
-    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+    process.env.SHUNYA_TREASURY_PRIVATE_KEY ||
+    process.env.OPERATOR_PRIVATE_KEY;
+  if (!deployerKey) {
+    throw new Error("Missing deployer key. Set HASHKEY_DEPLOYER_PRIVATE_KEY or SHUNYA_TREASURY_PRIVATE_KEY.");
+  }
 
-  const hspAdapterAddress = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
+  const hspAdapterAddress = "0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108";
   const client = new HSPClient(rpcUrl, deployerKey, hspAdapterAddress);
 
   console.log(`[1/5] Initializing Autonomous Buyer Agent & Seller Compute Node...`);

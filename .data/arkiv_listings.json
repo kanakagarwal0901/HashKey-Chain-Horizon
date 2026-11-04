@@ -10,12 +10,12 @@
     "pricePer1kMicroUsdc": 4000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_gemini_01",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-gemini-token",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_gemini_15_pro",
@@ -28,12 +28,12 @@
     "pricePer1kMicroUsdc": 8000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_gemini_pro_02",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-gemini-token",
+    "sealedApiKey": "",
     "payoutAddress": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "hedaraPayoutAccount": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 35105000,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_claude_37_sonnet",
@@ -46,12 +46,12 @@
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_claude_03",
-    "sealedApiKey": "3QDOZDDMuLok827zb1fswAzdm29iHMlNM81tAnX77ogZbIYXd+gu4vvKSN6JYiTIHBy6K1TlqJdfRlJSG93NimLYLQY6HVNwaXbCj2lMPo42ZxgXRd11Pif8zU9SLly6AIjCNyG1bhoSIwIPkGx4GzTVngoC+iwbC0e80Lq7/UxtLhMT+TRXbR8DJd8LFxo/L7RFznFbFVN7EqV3oR+o+Lh7HxRaF/wMQ7V2FjZkIDnoLasMTk3DCdA6DcPEQbUCiGKvWf7aDLT0n3tL4xSeYRaMQlxQvNuvc7iBB+D9Q9Xxa5Y2NYJ/FWu3ELq834wdvJpUQmURa/NMd/k9YuWUTw==",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_o3_mini",
@@ -64,12 +64,12 @@
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_o3_mini_5",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-openai-token",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_groq_deepseek_r1",
@@ -82,12 +82,12 @@
     "pricePer1kMicroUsdc": 5000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_groq_05",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-groq-token",
+    "sealedApiKey": "",
     "payoutAddress": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "hedaraPayoutAccount": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 35105000,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_gemini_2_pro",
@@ -100,12 +100,12 @@
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_gemini_pro_06",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-gemini-token",
+    "sealedApiKey": "",
     "payoutAddress": "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
     "hedaraPayoutAccount": "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 35105000,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_claude_opus_4",
@@ -118,12 +118,12 @@
     "pricePer1kMicroUsdc": 35000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_claude_opus_4_4",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-anthropic-token",
+    "sealedApiKey": "",
     "payoutAddress": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "hedaraPayoutAccount": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_o3_flagship",
@@ -136,12 +136,12 @@
     "pricePer1kMicroUsdc": 20000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_o3_08",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-openai-token",
+    "sealedApiKey": "",
     "payoutAddress": "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
     "hedaraPayoutAccount": "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 35105000,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_gpt_45",
@@ -154,12 +154,12 @@
     "pricePer1kMicroUsdc": 20000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_gpt45_09",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-openai-token",
+    "sealedApiKey": "",
     "payoutAddress": "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
     "hedaraPayoutAccount": "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 35105000,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_deepseek_r1_full",
@@ -172,12 +172,12 @@
     "pricePer1kMicroUsdc": 6000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_r1_10",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-groq-token",
+    "sealedApiKey": "",
     "payoutAddress": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "hedaraPayoutAccount": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 35105000,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_deepseek_v3",
@@ -190,12 +190,12 @@
     "pricePer1kMicroUsdc": 2500,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_deepseek_v3_19",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-groq-token",
+    "sealedApiKey": "",
     "payoutAddress": "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
     "hedaraPayoutAccount": "0x873873c173E4aD264c93Ab7F41366fcD3b9303b7",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_llama_33_70b",
@@ -208,12 +208,12 @@
     "pricePer1kMicroUsdc": 4000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_llama_12",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-groq-token",
+    "sealedApiKey": "",
     "payoutAddress": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "hedaraPayoutAccount": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 35105000,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_llama_31_405b",
@@ -226,12 +226,12 @@
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_llama405_13",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-groq-token",
+    "sealedApiKey": "",
     "payoutAddress": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "hedaraPayoutAccount": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 35105000,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_grok_3",
@@ -244,12 +244,12 @@
     "pricePer1kMicroUsdc": 20000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_grok_3_20",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-xai-token",
+    "sealedApiKey": "",
     "payoutAddress": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "hedaraPayoutAccount": "0xE17fe685764Bc9Bf749B7a72a9fC1452a7235d21",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_grok_2",
@@ -262,12 +262,12 @@
     "pricePer1kMicroUsdc": 8000,
     "humanVerified": true,
     "worldIdNullifier": "0xnullifier_worldid_grok_2_21",
-    "sealedApiKey": "ENCLAVE_SEALED:mumbai-live-demo-xai-token",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "ownerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -277,13 +277,13 @@
     "availableTokens": 30000,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:key",
+    "sealedApiKey": "",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "id": "arkiv_entity_676ec03befd5",
     "lockedTokens": 0,
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active",
+    "status": "needs_reseal",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
   },
   {
@@ -296,12 +296,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:cross-device-token",
+    "sealedApiKey": "",
     "payoutAddress": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "hedaraPayoutAccount": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_f7a1790dcd64",
@@ -313,12 +313,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:cross-device-token",
+    "sealedApiKey": "",
     "payoutAddress": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "hedaraPayoutAccount": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_17f9332357a1",
@@ -330,12 +330,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:cross-device-token",
+    "sealedApiKey": "",
     "payoutAddress": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "hedaraPayoutAccount": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "id_test_direct",
@@ -347,12 +347,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:key",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_48580319eb52",
@@ -364,12 +364,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:cross-device-token",
+    "sealedApiKey": "",
     "payoutAddress": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "hedaraPayoutAccount": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_6a0532ee2c4c",
@@ -381,12 +381,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:cross-device-token",
+    "sealedApiKey": "",
     "payoutAddress": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "hedaraPayoutAccount": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_1d52dedffb5f",
@@ -398,12 +398,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:cross-device-token",
+    "sealedApiKey": "",
     "payoutAddress": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "hedaraPayoutAccount": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_0485629634a4",
@@ -415,12 +415,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:key",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_52eafe209d03",
@@ -432,12 +432,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:key",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_92dec6e0eee6",
@@ -449,12 +449,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 12000,
     "humanVerified": true,
-    "sealedApiKey": "z7u/cbX2Av2sJZ9DkupOF29SOwprpQ/fZezz+qQimmbOjVpfjpTHRHVyqdGQHdf9x1k8/kCjzxiF85jpxhGlqNpJAtI5dgru0VcIUCm9xGhY6Hb98FVNDD9tfGW0LVAvoX0gnlCIUyQDQVYqvDtMiE3ei1Uuv+j6KBqmkxCMu7H4BBHRBKBLcp6BQ+Qte/WFPLMUrpFPU30Q3hkBx1+cZ1mVwSuyfrz3eDICf+9b/h+SnZ7KaNHh1NlQHuHx7LvA+Vy6KFir2F4Y+oMWDU5t3BA4fFeqiIzobzP5xPGtNHLJLkfUcTu0p5tYHui8WmxDq71hNbjiWJLG/jHu45l5LA==",
+    "sealedApiKey": "",
     "payoutAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "hedaraPayoutAccount": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "ownerAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
@@ -464,13 +464,13 @@
     "availableTokens": 150000,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "T52AmHvAfZi4G4vjEN474/c3fGqTWaw1o6DjLdg/nZgjU1kTkhZSKeV1YK0fyrPwR/7qiZIYw5T9b/MDB31hZz+BU+lXRUb/sRjs93/BfLrM1Cdh7P+jGstY/A9ZphEq5Upt365Qba0cYV8QkPNquTrJXscRQtliwsrO02zE5wUGKgMfqjPBor1hxGR8X5JnUIzK40dNINThqQ3XcJSUNr1oNnyQTI+x6pnObqCFCU63tL/b0oZKA3nZL9Ryr/M2TnPX3uCygDEZr7oEi76/H3vC2H78jI+94fZkrIcx27EQPgPgl7yIT2zPLhPXBQJwqmJYBV2ppX8sL8+jDUlfcQ==",
+    "sealedApiKey": "",
     "payoutAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "id": "arkiv_entity_78fa47913f58",
     "lockedTokens": 0,
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active",
+    "status": "needs_reseal",
     "hedaraPayoutAccount": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   },
   {
@@ -481,13 +481,13 @@
     "availableTokens": 150000,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "psFd0jCk39CmHWpB/x5UUsLJROCaElYe4FzTFFgyHWzCmwwTvrg7nBxXdv0DqKCvJn74q+fsoLU9xWWrqcYT+soL6d54DnmJ5nqiaEEpQmcy1XP40VQN31k9BYfA1jXtUnsfJDkd7KGkoJVkuW0Nyw/dB7OXDs8qg8d3nX5lIMHokQ+X/Mp5cubLD1BEVA2XS8X95HrscKSqyhiFQljyKlfE/p2nedmbIqae737/XHA4nqalXhEB/piVGNDQ8nBy5jQ50pMMKMgh5YodwbLMZIVX508HeAdIZOMb9213tyoB42X7ZNbsDmlJPsAXVNjnEYvH2OzYRA1AK31/U4HI4Q==",
+    "sealedApiKey": "",
     "payoutAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "id": "arkiv_entity_47fa0f01e5ee",
     "lockedTokens": 0,
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active",
+    "status": "needs_reseal",
     "hedaraPayoutAccount": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   },
   {
@@ -498,13 +498,13 @@
     "availableTokens": 150000,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "vx/QAaEQ82xha/sk+ygco6cG1JTgwWELbTCgVSwx5HRM+49n9oWE4OOmwKkjSlhasr7RHOBMGEsE5aHvD/KqyDCJLjKcwn3STnu+dMbSilcCg+KGNeKFCPtfkNrFwycYbriSkCC1T0JvtAh1JgO6LzPvMSBcMjUDgr0StizHr+yckyDeeQhxdVTo2udhLvfXn4CwYLutLJGuJc7pDuJg7b2JoIlln9XUVCVDdMGm9nacc/bYgUZ34zKcF26wcL3wApS40j2XBfCpkJwxhi+uoPwnWchVyMO4vNXVEIH0z2pt8Nd+FJrbxccJnHwFMuTrdSSAx7CMRKGVR21+rLYQRQ==",
+    "sealedApiKey": "",
     "payoutAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "id": "arkiv_entity_00e30a369c37",
     "lockedTokens": 0,
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active",
+    "status": "needs_reseal",
     "hedaraPayoutAccount": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   },
   {
@@ -515,12 +515,12 @@
     "availableTokens": 8000,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:key",
+    "sealedApiKey": "",
     "id": "arkiv_entity_184a222b9407",
     "lockedTokens": 0,
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active",
+    "status": "needs_reseal",
     "payoutAddress": "0x1111111111111111111111111111111111111111",
     "hedaraPayoutAccount": "0x1111111111111111111111111111111111111111"
   },
@@ -532,13 +532,13 @@
     "availableTokens": 150000,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "oLarrLcNoBUsVpIoExHaFXf8ry3PUwoJBMolen8shFTjiYw6Dm/Ey+o7iwIYxwecCQISRQKAZmwW+zJM3bI4PVvlSNZytNSeU+qdARMYQIbzDnKNom6S3XauRu45gclB/bjkh3cSHuSn8DQbkK7aMuW8d3XSIJUBqMrkgrHk6hfwEqAe4a2bl2YHvyENstF7bjQMqqez+EZCdUX7uCosKejWrGii+FyTodGn7aVVQc+CGPCLfbw/cjH0dtK3DuNfgZrVIG5n6zhv3FMzzfAjgMhtol0mYeI29xgIuA7NZ3p/S0P7Oqh41pjc2uq7OWGItFht9YoqhuOrHirV938S+w==",
+    "sealedApiKey": "",
     "payoutAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "id": "arkiv_entity_fb9f87484da4",
     "lockedTokens": 0,
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active",
+    "status": "needs_reseal",
     "hedaraPayoutAccount": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   },
   {
@@ -549,13 +549,13 @@
     "availableTokens": 150000,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "hDl0iqXWl1LwWG2vCO0T/Soo2RnULF7ySbA3kV0UDHa+KL+N1+N1uvKSxYAn7uSchetfh90YD74A1hl9G3yszWBfOPCjNJM00pbkxnZg7v0O7zGlz4/5vr1bdlQx9GaZJac/zQ73zSPOoQ0ZPWymmMccIXd3qJREg8rE+uBK4SYBOfThJioy5mXbNfOknS6SX1Bda3TZuHl5OkiKRIH3sCj0587+IEXnuy8P/ZUMB1/VNB51jrv8fuLEvBue1WNux2nz8lUzhai1DTZigRb1AKqVBwVYapyHTPhVfF6a/5NoHQ7rYPOG3J7aqtIPUGBtkpv+Fqdgf2nMfYgeDFASpg==",
+    "sealedApiKey": "",
     "payoutAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "id": "arkiv_entity_f53a4dac0666",
     "lockedTokens": 0,
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active",
+    "status": "needs_reseal",
     "hedaraPayoutAccount": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   },
   {
@@ -566,13 +566,13 @@
     "availableTokens": 150000,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "d+7x2gU5hKiBzpgweBhotmcnVtaVKWhhgr+uOPpjaaMneYiB666cUgYO2VyrJ6BPOZO9qIr3iWsBW7OCq8UI+4ARb3BAEJ/HVDe9ZCv7ndjKAo5j7X2JSkvIzTJDDKWeLiofdFIXsArWBDgHC4/TJIwTeCoJae9XePIIFgKsElBMDtgb4FdyqCet7mRYw8eDMH/FB16e6iOrvzkIHTVfdzhMNXikkkLPnpLC+VTThR6qcbSLGR/3oZYnMKSmDXktonRklWAm/LRcqfQeHFH7z7Ckh/0iYyELGkBy/9U+9Yi7IPP+pwQsJqPXylSNWhuDS7v40AoWRj7/l8t0NzXSYA==",
+    "sealedApiKey": "",
     "payoutAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "id": "arkiv_entity_37792a2a9b64",
     "lockedTokens": 0,
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active",
+    "status": "needs_reseal",
     "hedaraPayoutAccount": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   },
   {
@@ -583,13 +583,13 @@
     "availableTokens": 150000,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "52U0Sb49Rc3VdV8T92KYbcV6PB0mj68CCAgcjxuFFU960QwZZAyPxJjvUqsgmewjMnZ4ZZk5qwM2z2iNgO7oA21p9pK+n5ElQ/8IkdaLxy076obRcxpEwY2IAZsA9J+bJUjCQ53/kRkqvALsamgyEyjrUeGL65u0bzGFGMZ8okgtAwSpKokvi5seLn5mpX7F/QOWZwEauB1tCzNwtdOkdBktXq7iWEn3VhjUaEFHVHM3kTzEv/X60H0KS763tGnBxTX5MP4GBvz+f/NwLCNnwxkqumOqB/3JeXJCNweOESiUE23X1oUrqo8PH9CjNKktQysXf8MbNk6Yqr/k0dlTnQ==",
+    "sealedApiKey": "",
     "payoutAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "id": "arkiv_entity_6c8dd9c26213",
     "lockedTokens": 0,
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active",
+    "status": "needs_reseal",
     "hedaraPayoutAccount": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   },
   {
@@ -600,13 +600,13 @@
     "availableTokens": 150000,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "oLXMzqzsRDMopHu/BvojQ5dlAdKbpYwkLfghO3/eo/oHFkP+zCpJMl3MLP22mOQxHSJzZ3rEbW2ohjfNv5dnDiM2lYC+PvsZshX6yiRxToE6a/hFn65jlNErJsFnifLQNWBBnFNOQqhZrd9yD7BHZGY0pemWNEdcELGmq3lSq9ymKcZvQCLKUuPbklj+5fbzZfbfETODMAW4hcBZrCR3FHXYzkFOmlzvdv702uzN2Nefgey+FZi515OMvbzByoc5PLoPIKY9eqfWfA144Uzwmww6uRUbwJnUBcRttoqrepmrRJYYpIgw4t3yPpDTqtsGtjva3UeZxLByqStPqwxf5A==",
+    "sealedApiKey": "",
     "payoutAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "id": "arkiv_entity_da0bfef2b646",
     "lockedTokens": 0,
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active",
+    "status": "needs_reseal",
     "hedaraPayoutAccount": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   },
   {
@@ -619,12 +619,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:test",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "test_c1_1793388222484",
@@ -636,12 +636,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:test",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_be587994e789",
@@ -653,12 +653,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "key1",
+    "sealedApiKey": "",
     "payoutAddress": "0x1111111111111111111111111111111111111111",
     "hedaraPayoutAccount": "0x1111111111111111111111111111111111111111",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "test_c1_1793388618736",
@@ -670,12 +670,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:test",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "test_c2_1793388618736",
@@ -687,12 +687,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:test",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_af547860031a",
@@ -704,12 +704,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 15000,
     "humanVerified": true,
-    "sealedApiKey": "key1",
+    "sealedApiKey": "",
     "payoutAddress": "0x1111111111111111111111111111111111111111",
     "hedaraPayoutAccount": "0x1111111111111111111111111111111111111111",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_80812312168c",
@@ -721,12 +721,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "key2",
+    "sealedApiKey": "",
     "payoutAddress": "0x1111111111111111111111111111111111111111",
     "hedaraPayoutAccount": "0x1111111111111111111111111111111111111111",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_074559754b1d",
@@ -738,12 +738,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:key",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_56f94173fbe1",
@@ -755,12 +755,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:sk-ant-test-key",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_63471efd9a5c",
@@ -772,12 +772,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:key",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_9b2f896dbfe8",
@@ -789,12 +789,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:sk-ant-test-key",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_d23ffac265e9",
@@ -806,12 +806,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:key",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_b501f0a79439",
@@ -823,12 +823,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 90000,
     "humanVerified": true,
-    "sealedApiKey": "SvX1Yr4kEuDZGvw9vvL/W/YNsDxCJ9FCpouDziOXmMkldJqVCht3C55/P28hfsbyH+UIPS9EaQ1i5vewdg+MhTOnnspaaPIObr/l0ip21XBE8C1U+3NWrvjJlIXYlgyBByirOOMaDXAjh7o4NT0Y9HaJtAJVJoJjYqrcz/kghESiBnj7rfK1VmWPeeX+zCYbRa9kU47mDzXIQHm6ttjOk/0v2NTBvHZYxEc7DKGt/GPLyciW+OX5Q5bGt33ZQJQzKeQA2cBwqBc+doBU4ILilolRI/U1UYJaGnikdcPcQBYGyoQiCuEXFMszVcYLuBoXGGhwXaPYEE3pP239rwn6Yg==",
+    "sealedApiKey": "",
     "payoutAddress": "0x4c4A34783A9cB6C3A896D08502e0f5C64EC54cA7",
     "hedaraPayoutAccount": "0x4c4A34783A9cB6C3A896D08502e0f5C64EC54cA7",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_64f9cc60fb97",
@@ -840,12 +840,12 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "xopcpYcqTXGTQG+bEfhrMg4bFVfzb6mDVLnu446vzdAdpUGpgusPAq9nmqs895JXxbcvHvynmMgU17Rv/Eenh2h01RRKh3Dxq2nKCXXG+9eOMLmVu2fyQszQCCCv2nP0Ff7LqXqGhqBgcDSMO5gPOjcqeF9Ea6SRm0Kj0/47GGYOUWDZMGm6LESJfOuyWnJluascqdLYBxI+zuq9TBNVuJOuKOU+mJdaC3USuZh6uuJoWIrtS98tc8BsbwXAvNXxyYSjMBQS63UAJP7LIUfTINkDSmhuLE8o0el44e7SaeQEx/+F1ZUDDu9JgvklwD0H8sT/YxxGjpXVB0tjEvrPvg==",
+    "sealedApiKey": "",
     "payoutAddress": "0x4c4A34783A9cB6C3A896D08502e0f5C64EC54cA7",
     "hedaraPayoutAccount": "0x4c4A34783A9cB6C3A896D08502e0f5C64EC54cA7",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   },
   {
     "id": "arkiv_entity_2e36dadf6d8d",
@@ -857,11 +857,11 @@
     "lockedTokens": 0,
     "pricePer1kMicroUsdc": 10000,
     "humanVerified": true,
-    "sealedApiKey": "ENCLAVE_SEALED:key",
+    "sealedApiKey": "",
     "payoutAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "hedaraPayoutAccount": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "createdAtBlock": 35100370,
     "expiresAtBlock": 0,
-    "status": "active"
+    "status": "needs_reseal"
   }
 ]

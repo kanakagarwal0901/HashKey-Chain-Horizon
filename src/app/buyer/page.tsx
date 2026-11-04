@@ -196,7 +196,7 @@ export default function BuyerStudioPage() {
       }
     >();
     for (const l of allOrderbookListings) {
-      if (l.status !== "active") continue;
+      if (l.status !== "active" || !l.sealedApiKey) continue;
       const meta = getModelMetadata(l.model);
       const modelName = meta?.name || l.model;
       const provider = meta?.provider || l.provider || "openai";
@@ -293,10 +293,10 @@ export default function BuyerStudioPage() {
       if (urlModelMatched) return;
       if (all && all.length > 0) {
         const activeForSelected = all.filter(
-          (l: any) => l.model === selectedModel && l.status === "active"
+          (l: any) => l.model === selectedModel && l.status === "active" && Boolean(l.sealedApiKey)
         );
         if (activeForSelected.length === 0) {
-          const firstActive = all.find((l: any) => l.status === "active");
+          const firstActive = all.find((l: any) => l.status === "active" && Boolean(l.sealedApiKey));
           if (firstActive) {
             const meta = getModelMetadata(firstActive.model);
             if (meta) {
@@ -642,7 +642,7 @@ contract VaultLending {
       refreshUsdcBalance();
 
       // Phase 3: Sealed Enclave Execution
-      setExecutionStep("Confidential Hardware Enclave executing inference with zero seller visibility...");
+      setExecutionStep("Confidential Enclave executing inference with zero seller visibility...");
       const executeRes = await fetch("/api/blind-execute", {
         method: "POST",
         headers: {
@@ -804,7 +804,7 @@ contract VaultLending {
                 {hskBalance.toFixed(3)} HSK
               </span>
               <a
-                href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+                href="https://testnet-explorer.hskchain.net/address/0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108"
                 target="_blank"
                 rel="noreferrer"
                 title="View HSP Adapter on Blockscout"
@@ -875,7 +875,7 @@ contract VaultLending {
             {PROVIDERS.map((p) => {
               const isCurrent = selectedProvider === p.id;
               const nodeCount = allOrderbookListings.filter(
-                (l) => l.status === "active" && (getModelMetadata(l.model)?.provider === p.id || l.provider === p.id)
+                (l) => l.status === "active" && Boolean(l.sealedApiKey) && (getModelMetadata(l.model)?.provider === p.id || l.provider === p.id)
               ).length;
 
               return (
@@ -955,7 +955,7 @@ contract VaultLending {
               >
                 {availableModels.map((m) => {
                   const nodeCount = allOrderbookListings.filter(
-                    (l) => l.status === "active" && l.model === m.id
+                    (l) => l.status === "active" && Boolean(l.sealedApiKey) && l.model === m.id
                   ).length;
                   return (
                     <option key={m.id} value={m.id} className="bg-zinc-900 text-white">
@@ -1784,7 +1784,7 @@ contract VaultLending {
                           Payout: +{Number(executionResult.hashKeySettlement?.sellerPayoutHsk || 0).toFixed(4)} HSK
                         </span>
                         <a
-                          href={executionResult.hashKeySettlement?.blockscoutUrl || "https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"}
+                          href={executionResult.hashKeySettlement?.blockscoutUrl || "https://testnet-explorer.hskchain.net/address/0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108"}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-400 hover:underline flex items-center gap-1 font-semibold text-xs"
@@ -1850,13 +1850,13 @@ contract VaultLending {
                     <div className="p-4 rounded-2xl bg-black/60 border border-white/[0.08] text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <Shield className="w-4 h-4 text-emerald-400" />
-                        <span className="text-zinc-400">Hardware Enclave Attestation:</span>
+                        <span className="text-zinc-400">Enclave Attestation (Simulated):</span>
                         <span className="text-zinc-200 tabular-data font-semibold">
                           {executionResult.zeroGVerification.attestationHash?.slice(0, 18)}...
                         </span>
                       </div>
                       <span className="text-zinc-500 text-[11px]">
-                        Enclave: {executionResult.zeroGVerification.enclaveId?.replace(/^0g-/i, "TEE-") || "TEE-IntelSGX-V2"}
+                        Enclave: {executionResult.zeroGVerification.enclaveId || "Software Enclave (Simulated)"}
                       </span>
                     </div>
                   )}

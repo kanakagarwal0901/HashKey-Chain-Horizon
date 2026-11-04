@@ -13,8 +13,16 @@ export async function POST(req: NextRequest) {
       merkle_root,
       proof,
       signal,
+      walletAddress: signal,
       action: action || "shunyagrid-gate",
     });
+
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, verified: false, error: result.error || "World ID verification failed" },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

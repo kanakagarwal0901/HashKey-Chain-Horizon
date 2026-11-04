@@ -91,16 +91,7 @@ async function verifyProofWithWorldcoinApi(
       return { verified: false, error: `Invalid proof: ${errorMsg}` };
     }
 
-    // If the Developer Portal app is configured as production but simulator identities are on staging,
-    // and the proof is authentic and well-formed Groth16 from the simulator, accept verification
-    if (
-      (errorMsg.includes("invalid_merkle_root") || errorMsg.includes("All proof verifications failed")) &&
-      !isMalformedProof
-    ) {
-      console.log(`[World ID v4 Verify] Simulator approved proof confirmed (staging identity on registered RP portal).`);
-      return { verified: true };
-    }
-
+    // Fail closed: Do NOT accept invalid_merkle_root or failed verifications
     return { verified: false, error: errorMsg };
   } catch (err: any) {
     console.warn(`[World ID v4 Verify] Network exception: ${err.message}`);

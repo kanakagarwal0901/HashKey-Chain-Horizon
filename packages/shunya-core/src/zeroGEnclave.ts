@@ -13,6 +13,8 @@ export interface ZeroGExecutionAttestation {
   zeroGContractAddress: string;
   zeroGStorageRef?: string;
   enclaveSignerAddress?: string;
+  status: "simulated";
+  teeType: "none (software)";
 }
 
 // Authoritative 0G Galileo Testnet Flow Contract
@@ -28,7 +30,7 @@ export class ZeroGService {
     this.enclaveWallet = ethers.Wallet.createRandom();
   }
 
-  // Create cryptographic execution proof from inside the sealed enclave using ECDSA secp256k1
+  // Create simulated execution proof using local ephemeral ECDSA signer
   public signExecutionReceipt(params: {
     model: string;
     thinkingLevel: string;
@@ -36,6 +38,7 @@ export class ZeroGService {
     tokensUsed: number;
     promptHash: string;
   }): ZeroGExecutionAttestation {
+    const timestamp = new Date().toISOString();
     const payload = JSON.stringify({
       enclaveId: this.enclaveId,
       model: params.model,
@@ -43,7 +46,9 @@ export class ZeroGService {
       maxTokensEnforced: params.maxTokens,
       actualTokensConsumed: params.tokensUsed,
       promptHash: params.promptHash,
-      timestamp: new Date().toISOString(),
+      timestamp,
+      status: "simulated",
+      teeType: "none (software)",
     });
 
     const attestationHash = ethers.keccak256(ethers.toUtf8Bytes(payload));
@@ -53,13 +58,15 @@ export class ZeroGService {
       enclaveId: this.enclaveId,
       attestationHash,
       signature,
-      timestamp: new Date().toISOString(),
+      timestamp,
       model: params.model,
       thinkingLevel: params.thinkingLevel,
       maxTokensEnforced: params.maxTokens,
       actualTokensConsumed: params.tokensUsed,
       zeroGContractAddress: ZERO_G_FLOW_CONTRACT,
       enclaveSignerAddress: this.enclaveWallet.address,
+      status: "simulated",
+      teeType: "none (software)",
     };
   }
 

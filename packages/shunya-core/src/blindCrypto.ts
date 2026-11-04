@@ -22,11 +22,6 @@ export interface BuyerEncryptedEnvelope {
   ephemeralBuyerFingerprint: string;
 }
 
-// Deterministic master Enclave keypair for serverless Vercel / multi-container alignment
-export const DEFAULT_ENCLAVE_KEYPAIR = {
-  publicKey: `-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9Itq3uaw2mVrjnhvcKBo\n1RmSyqJFRBAWmVl6kQ5WI5EM+ZTZ5c/+RQJIG8j+F9dWxHtaS4//1363U3cJpKzo\nZ36SvP5EqiwOvjGWjInEPI92F5BCrlSqG6hfJV69WKsCErepSXX3/cc87CfXDYlC\nsL/Rmvq1LmJwhadjUdPeeKszcq+rhKNRr32BUvNtldWNSZiEcFc1bVjsM2bLhUus\nQvUiLRy8fwD72ojdoQFxBwDqeO8PhU5SOERAUE2xybfli3vu8fA2+m12CTzTmtOn\n1sz4QUIwtlg1+DMgyxFbpoUFP9/KS/Efyq9An2XmNhfK91C7K+Uy9Z+6Es2TmLnB\nHQIDAQAB\n-----END PUBLIC KEY-----\n`,
-  privateKey: `-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQD0i2re5rDaZWuO\neG9woGjVGZLKokVEEBaZWXqRDlYjkQz5lNnlz/5FAkgbyP4X11bEe1pLj//XfrdT\ndwmkrOhnfpK8/kSqLA6+MZaMicQ8j3YXkEKuVKobqF8lXr1YqwISt6lJdff9xzzs\nJ9cNiUKwv9Ga+rUuYnCFp2NR0954qzNyr6uEo1GvfYFS822V1Y1JmIRwVzVtWOwz\nZsuFS6xC9SItHLx/APvaiN2hAXEHAOp47w+FTlI4REBQTbHJt+WLe+7x8Db6bXYJ\nPNOa06fWzPhBQjC2WDX4MyDLEVumhQU/38pL8R/Kr0CfZeY2F8r3ULsr5TL1n7oS\nzZOYucEdAgMBAAECggEAAcVrZhHlq1nwstIh0dRXmLOGt1EAOhiju+3vT/2lQhIF\ni16N9XbRhfkY7JqYEd7NZ2mSoy7NJj0UttYLNoDKGMsh5PHdLXOu56cUSrr0tjuT\nxLfsGQx5RESulmaz7bXPXgir1oxe2h0HTpk7RYMo/dQQgJQwRmsQGue2IHGYZZH+\n6DSZUVQ9fs+18lwecwPQYnmdr1UjSYbrRlP4PHD6SdQlYrWuqSWe4rRBbBsRiOFe\nftYg7/n2X0cd/v9UYwJu49CwO3cgTsmreT2TBlMADaHIrduGDRaR4qYOuuttvbVW\noV0lD6DBJbSgbv9SLJfNRDYpI7cV8hX5OoyZLV5EAQKBgQD7ST2Fj2rrbCJtZP06\nK7P5mcup8NeonSdXx2t3f01rJOiXOk61xo71fNoyi+9famxfkz0YEvUg0iwKNk2l\nH5UE435DHgIHVa9Uad6FLGRvNXPe19s6u8WNeHMYRN3YMfytKI+6mQbhUhqh2NLI\narFVoMmDaAg90rXfiRp5KwMmkQKBgQD5Ic1fKlALcuKUQENtaOkXfGJXHC2ZCfhW\noCogBsbZfdCP4VR6aHkyxmpJFvaTy+m7r20OCqwPprrCn8HR3/x1vFpo3lgELy6H\nmn0VrVell7peo4o+/0WMhBh1TPJwJTV2/kP3jUL+lRtgaql+62nFJqhJczPKy/Ii\nKoMSLUtvzQKBgBsO8un73IaHOVnQQxhNdm7NKcod3gsRCRiBp8fRVHPSIJ2QMMOQ\nIvq6PACvYtJCcnMENtLtz6l+GDHtUQUT1ocVPBZcF9nUVzHeyJBMjHARMG3xjnDP\noWEvdC1L1RufnlbDBF8SdVQz9BwzbdcY7gmLa8eTnzeRBfaRG+GqSQeRAoGBAJK6\n5OGC40gK7wYP32amHnrVqHnTv8teAuTKSmU4eI+KOXc0aHP76j4MfHb1zl53//6p\nsJpPkM1bDq4oN5hryp5xQ/J12fME8uutArTsti1ycrLgsUCvSoAbIOidXEDOuXGP\nCerYSTf2C/y6dX+qGU6jmQRBlKSBf+e9kBr5kG+VAoGAWuxm7rK6MGHrSNsRdr43\nbwcvxzayCj7TyrviOQlKmiVdmk1HamVr9KF+SiXEowe8IG93LCdTE4yzL0p7PVUr\nkFVMeHIXB2PhdPYLMdQCExuE5KoADBZGWBOgpEYbrGf+ZPbrXBpkThdg80gyqWiC\nTQt+1+sFEQg7TBI9ZkXuA/U=\n-----END PRIVATE KEY-----\n`,
-};
 
 // In-memory or persisted enclave keypair for the prototype
 const globalForEnclave = globalThis as unknown as {
@@ -68,46 +63,57 @@ export function getOrCreateEnclaveKeyPair(): { publicKey: string; privateKey: st
     return globalForEnclave.enclaveKeyPair;
   }
 
-  // 1. Environment variables override
-  if (process.env.SHUNYA_ENCLAVE_PUBLIC_KEY && process.env.SHUNYA_ENCLAVE_PRIVATE_KEY) {
-    const pair = {
-      publicKey: process.env.SHUNYA_ENCLAVE_PUBLIC_KEY.replace(/\\n/g, "\n"),
-      privateKey: process.env.SHUNYA_ENCLAVE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-    };
-    globalForEnclave.enclaveKeyPair = pair;
-    return pair;
+  const pubKeyEnv = process.env.SHUNYA_ENCLAVE_PUBLIC_KEY;
+  const privKeyEnv = process.env.SHUNYA_ENCLAVE_PRIVATE_KEY;
+
+  if (!pubKeyEnv || !privKeyEnv) {
+    throw new Error(
+      "Missing required enclave keypair in environment. Please set SHUNYA_ENCLAVE_PUBLIC_KEY and SHUNYA_ENCLAVE_PRIVATE_KEY."
+    );
   }
 
-  // 2. Check if persisted to disk
-  try {
-    const keyFilePath = path.join(process.cwd(), ".enclave_keypair.json");
-    if (fs.existsSync(keyFilePath)) {
-      const saved = JSON.parse(fs.readFileSync(keyFilePath, "utf8"));
-      if (saved.publicKey && saved.privateKey) {
-        globalForEnclave.enclaveKeyPair = saved;
-        return saved;
-      }
-    }
-  } catch {
-    // Non-fatal, proceed to default fallback
-  }
+  const pair = {
+    publicKey: pubKeyEnv.replace(/\\n/g, "\n").trim(),
+    privateKey: privKeyEnv.replace(/\\n/g, "\n").trim(),
+  };
 
-  // 3. Fallback to deterministic master enclave keypair
-  globalForEnclave.enclaveKeyPair = DEFAULT_ENCLAVE_KEYPAIR;
-  return DEFAULT_ENCLAVE_KEYPAIR;
+  globalForEnclave.enclaveKeyPair = pair;
+  return pair;
 }
 
 // SELLER BROWSER: Seal Seller's raw API key so only the Enclave can unwrap it
 export function sealSellerApiKeyToEnclave(rawApiKey: string, enclavePublicKeyPem: string): string {
-  const encrypted = crypto.publicEncrypt(
+  const rawBuf = Buffer.from(rawApiKey, "utf8");
+  if (rawBuf.length <= 180) {
+    const encrypted = crypto.publicEncrypt(
+      {
+        key: enclavePublicKeyPem,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: "sha256",
+      },
+      rawBuf
+    );
+    return encrypted.toString("base64");
+  }
+
+  const aesKey = crypto.randomBytes(32);
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", aesKey, iv);
+  const ciphertext = Buffer.concat([cipher.update(rawBuf), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  const wrappedKey = crypto.publicEncrypt(
     {
       key: enclavePublicKeyPem,
       padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
       oaepHash: "sha256",
     },
-    Buffer.from(rawApiKey, "utf8")
+    aesKey
   );
-  return encrypted.toString("base64");
+  return `ENCLAVE_HYBRID:${JSON.stringify({
+    w: wrappedKey.toString("base64"),
+    iv: iv.toString("hex"),
+    c: Buffer.concat([ciphertext, tag]).toString("base64"),
+  })}`;
 }
 
 // BUYER BROWSER: Encrypt arbitrary attached files + prompt + K_return key
@@ -190,72 +196,64 @@ export function unwrapSellerApiKey(sealedApiKeyBase64: string, enclavePrivateKey
 
   // 1. Handle hybrid envelope: ENCLAVE_HYBRID:{"w":...,"iv":...,"c":...}
   if (trimmed.startsWith("ENCLAVE_HYBRID:")) {
+    const jsonStr = trimmed.replace("ENCLAVE_HYBRID:", "").trim();
+    let payload: { w: string; iv: string; c: string };
     try {
-      const jsonStr = trimmed.replace("ENCLAVE_HYBRID:", "").trim();
-      const payload = JSON.parse(jsonStr);
-      const rawAesKey = crypto.privateDecrypt(
-        {
-          key: enclavePrivateKeyPem,
-          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: "sha256",
-        },
-        Buffer.from(payload.w, "base64")
-      );
-      const fullCiphertext = Buffer.from(payload.c, "base64");
-      const tag = fullCiphertext.subarray(fullCiphertext.length - 16);
-      const ciphertext = fullCiphertext.subarray(0, fullCiphertext.length - 16);
-      const decipher = crypto.createDecipheriv("aes-256-gcm", rawAesKey, Buffer.from(payload.iv, "hex"));
-      decipher.setAuthTag(tag);
-      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-      const resultKey = cleanApiKey(decrypted.toString("utf8"));
-      if (resultKey) return resultKey;
-    } catch (hybridErr: any) {
-      console.warn("[EnclaveCrypto] ENCLAVE_HYBRID unwrap failed:", hybridErr.message);
+      payload = JSON.parse(jsonStr);
+    } catch (parseErr: any) {
+      throw new Error(`Invalid ENCLAVE_HYBRID payload JSON: ${parseErr.message}`);
     }
-  }
 
-  // 2. Handle explicit ENCLAVE_SEALED: prefix
-  if (trimmed.startsWith("ENCLAVE_SEALED:")) {
-    const raw = cleanApiKey(trimmed.replace("ENCLAVE_SEALED:", ""));
-    if (isRecognizedApiKey(raw)) {
-      return raw;
+    if (!payload.w || !payload.iv || !payload.c) {
+      throw new Error("Malformed ENCLAVE_HYBRID payload: missing w, iv, or c");
     }
-    try {
-      const decoded = cleanApiKey(Buffer.from(raw, "base64").toString("utf8"));
-      if (isRecognizedApiKey(decoded)) {
-        return decoded;
-      }
-    } catch {}
-    return raw;
-  }
 
-  // 3. Handle direct plaintext API key
-  const cleanedDirect = cleanApiKey(trimmed);
-  if (isRecognizedApiKey(cleanedDirect)) {
-    return cleanedDirect;
-  }
-
-  // 4. Standard RSA-OAEP private key decryption
-  try {
-    const decrypted = crypto.privateDecrypt(
+    const rawAesKey = crypto.privateDecrypt(
       {
         key: enclavePrivateKeyPem,
         padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
         oaepHash: "sha256",
       },
-      Buffer.from(trimmed, "base64")
+      Buffer.from(payload.w, "base64")
     );
-    return cleanApiKey(decrypted.toString("utf8"));
-  } catch (rsaErr: any) {
-    // Fallback: Check if base64 decodes directly as plaintext recognized key
-    try {
-      const plain = cleanApiKey(Buffer.from(trimmed, "base64").toString("utf8"));
-      if (isRecognizedApiKey(plain)) {
-        return plain;
-      }
-    } catch {}
-    throw new Error(`Enclave RSA-OAEP unwrap failure: ${rsaErr.message}`);
+    const fullCiphertext = Buffer.from(payload.c, "base64");
+    if (fullCiphertext.length < 16) {
+      throw new Error("Malformed ENCLAVE_HYBRID ciphertext: length too short for auth tag");
+    }
+    const tag = fullCiphertext.subarray(fullCiphertext.length - 16);
+    const ciphertext = fullCiphertext.subarray(0, fullCiphertext.length - 16);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", rawAesKey, Buffer.from(payload.iv, "hex"));
+    decipher.setAuthTag(tag);
+    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    const resultKey = cleanApiKey(decrypted.toString("utf8"));
+    if (!resultKey) {
+      throw new Error("Decrypted API key is empty");
+    }
+    return resultKey;
   }
+
+  // Reject explicit plaintext prefixes or recognized plaintext keys
+  if (trimmed.startsWith("ENCLAVE_SEALED:")) {
+    throw new Error("Plaintext sealing format ENCLAVE_SEALED is rejected");
+  }
+  if (isRecognizedApiKey(trimmed)) {
+    throw new Error("Plaintext API key is rejected; must be RSA-OAEP sealed");
+  }
+
+  // 2. Standard RSA-OAEP private key decryption
+  const decrypted = crypto.privateDecrypt(
+    {
+      key: enclavePrivateKeyPem,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: "sha256",
+    },
+    Buffer.from(trimmed, "base64")
+  );
+  const resultKey = cleanApiKey(decrypted.toString("utf8"));
+  if (!resultKey) {
+    throw new Error("Decrypted API key is empty");
+  }
+  return resultKey;
 }
 
 // ENCLAVE RAM: Unwrap Buyer Prompt & Files

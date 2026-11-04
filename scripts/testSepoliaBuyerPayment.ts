@@ -36,7 +36,7 @@ async function runSepoliaPaymentTests() {
   );
 
   assert(
-    SHUNYA_TREASURY_EVM_ADDRESS.toLowerCase() === "0x9b3b7375b0591E8A304A8f66D11186Fb07672625".toLowerCase(),
+    SHUNYA_TREASURY_EVM_ADDRESS.toLowerCase() === "0xe08798BaCfec631554b02D126b67788Dac3AbaD6".toLowerCase(),
     "SEP-02: ShunyaGrid Treasury EVM recipient address matches Treasury address",
     SHUNYA_TREASURY_EVM_ADDRESS
   );

@@ -20,7 +20,7 @@ async function testBuyerPayment() {
   const arbProvider = new ethers.JsonRpcProvider("https://sepolia-rollup.arbitrum.io/rpc", 421614, { staticNetwork: true });
   const buyerWallet = new ethers.Wallet(pk, arbProvider); // using funded wallet as buyer
 
-  const treasuryAddress = "0x9b3b7375b0591E8A304A8f66D11186Fb07672625";
+  const treasuryAddress = "0xe08798BaCfec631554b02D126b67788Dac3AbaD6";
 
   // 1. Test native ETH buyer payment on Arbitrum Sepolia
   console.log("Sending real buyer payment (0.00005 ETH) to Treasury on Arbitrum Sepolia...");

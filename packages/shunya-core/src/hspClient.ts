@@ -32,7 +32,7 @@ export class HSPClient {
   constructor(
     rpcUrl: string = "https://testnet.hsk.xyz",
     privateKey?: string,
-    hspAdapterAddress: string = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae",
+    hspAdapterAddress: string = "0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108",
     routerAddress?: string
   ) {
     this.provider = new ethers.JsonRpcProvider(rpcUrl);

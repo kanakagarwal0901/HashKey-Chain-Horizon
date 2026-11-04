@@ -23,23 +23,25 @@ import { verifyUniversalBuyerPayment } from "@/lib/sepoliaPaymentVerifier";
 
 // Next.js Route: Blind Execution with Zero Plaintext & HashKey HSP Settlement
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID();
+
   try {
     const body = await request.json();
     const { modelId, thinkingLevel, listingId, encryptedEnvelope, paymentTxId, buyerAddress } = body;
 
     if (!modelId || !thinkingLevel || !listingId || !encryptedEnvelope) {
       return NextResponse.json(
-        { error: "Missing required fields: modelId, thinkingLevel, listingId, encryptedEnvelope" },
+        { error: "Missing required fields: modelId, thinkingLevel, listingId, encryptedEnvelope", requestId },
         { status: 400 }
       );
     }
 
     const bounds = getModelTokenBounds(modelId, thinkingLevel as ThinkingLevel);
     let listing = arkivDb.getListingById(listingId);
-    console.log(`[blind-execute] Looking up ${listingId}, found:`, Boolean(listing));
+    console.log(`[blind-execute][${requestId}] Looking up ${listingId}, found:`, Boolean(listing));
 
     if (!listing) {
-      return NextResponse.json({ error: `Seller listing ${listingId} not found on orderbook` }, { status: 404 });
+      return NextResponse.json({ error: `Seller listing ${listingId} not found on orderbook`, requestId }, { status: 404 });
     }
 
     // Invariant Check (FT-01): Seller must have availableTokens >= T_max
@@ -52,6 +54,7 @@ export async function POST(request: NextRequest) {
           alternativeSuggestion: eligibility.alternativeSuggestion,
           requiredTMax: bounds.totalMaxTokens,
           sellerAvailable: listing.availableTokens,
+          requestId,
         },
         { status: 422 }
       );
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!paymentHeader) {
+    if (!paymentHeader || typeof paymentHeader !== "string") {
       // Return HTTP 402 Payment Required quoting T_max upfront deposit on HashKey Chain
       const liveRate = uniswapService.getHskUsdRate() || 0.0894;
       const upfrontHsk = (upfrontChargeMicroUsdc / 1_000_000 / liveRate).toFixed(4);
@@ -79,8 +82,8 @@ export async function POST(request: NextRequest) {
         protocol: "HSP-1.0",
         network: "HashKey Chain Testnet",
         chainId: 133,
-        payToContract: "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae",
-        routerAddress: "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D",
+        payToContract: "0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108",
+        routerAddress: "0x56B8BaF4a417A90202021cBAc6ba983c8f96D6F3",
         requiredHsk: upfrontHsk,
         requiredMicroUsdc: upfrontChargeMicroUsdc,
         modelId,
@@ -88,6 +91,7 @@ export async function POST(request: NextRequest) {
         tMaxTokens: bounds.totalMaxTokens,
         tMinTokens: bounds.minRequiredTokens,
         expiresInSeconds: 3600,
+        requestId,
       };
 
       return new NextResponse(JSON.stringify(hspQuote), {
@@ -96,53 +100,89 @@ export async function POST(request: NextRequest) {
           "Content-Type": "application/json",
           "X-HSP-Amount-HSK": upfrontHsk,
           "X-HSP-Amount-USDC": (upfrontChargeMicroUsdc / 1_000_000).toString(),
-          "X-HSP-Pay-To": "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae",
+          "X-HSP-Pay-To": "0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108",
           "X-HSP-Token-Bounds": `T_min=${bounds.minRequiredTokens}, T_max=${bounds.totalMaxTokens}`,
           "WWW-Authenticate": 'HSP realm="HashKey Settlement Protocol"',
         },
       });
     }
 
-    // Verify Payment: Either HashKey Chain or multi-chain EVM transfer
-    let evmPaymentDetails: any = null;
+    // Finding 1: Payment ID MUST be a 0x-prefixed 32-byte tx hash and MUST verify; otherwise return 402.
+    const cleanPaymentId = paymentHeader.trim();
+    if (!/^0x[0-9a-fA-F]{64}$/.test(cleanPaymentId)) {
+      return NextResponse.json(
+        {
+          error: "Payment Required: invalid payment transaction hash format (expected 0x-prefixed 32-byte hash)",
+          received: cleanPaymentId.slice(0, 16) + (cleanPaymentId.length > 16 ? "..." : ""),
+          requestId,
+        },
+        { status: 402 }
+      );
+    }
+
     const paymentChain = request.headers.get("x-payment-chain") || body.paymentChain || "hashkey-testnet";
     const paymentToken = request.headers.get("x-payment-token") || body.paymentToken || body.paymentCurrency || (paymentChain.includes("hashkey") ? "HSK" : "ETH");
 
-    if (paymentHeader.startsWith("0x")) {
+    const verificationResult = await verifyUniversalBuyerPayment({
+      txHash: cleanPaymentId,
+      buyerAddress: buyerAddress || "",
+      requiredMicroUsdc: upfrontChargeMicroUsdc,
+      chainKey: paymentChain,
+      tokenSymbol: paymentToken,
+      listingId: listing.id,
+    });
 
-      const verificationResult = await verifyUniversalBuyerPayment({
-        txHash: paymentHeader,
-        buyerAddress: buyerAddress || "",
-        requiredMicroUsdc: upfrontChargeMicroUsdc,
-        chainKey: paymentChain,
-        tokenSymbol: paymentToken,
-      });
+    if (!verificationResult.verified) {
+      return NextResponse.json(
+        {
+          error: "Web3 payment verification failed on " + paymentChain,
+          detail: verificationResult.error,
+          requiredMicroUsdc: upfrontChargeMicroUsdc,
+          txHash: cleanPaymentId,
+          requestId,
+        },
+        { status: 402 }
+      );
+    }
 
-      if (!verificationResult.verified) {
-        return NextResponse.json(
-          {
-            error: "Web3 payment verification failed on " + paymentChain,
-            detail: verificationResult.error,
-            requiredMicroUsdc: upfrontChargeMicroUsdc,
-            txHash: paymentHeader,
-          },
-          { status: 402 }
-        );
-      }
-      evmPaymentDetails = verificationResult;
+    // Finding 6: Payer = tx.from (ERC-20: Transfer from). If body.buyerAddress is given and differs -> 402.
+    const verifiedPayer = (verificationResult.payer || verificationResult.from || "").trim();
+    if (!verifiedPayer || !ethers.isAddress(verifiedPayer)) {
+      return NextResponse.json(
+        { error: "Payment verification did not resolve a valid payer address", requestId },
+        { status: 402 }
+      );
+    }
+
+    if (buyerAddress && buyerAddress.trim().toLowerCase() !== verifiedPayer.toLowerCase()) {
+      return NextResponse.json(
+        {
+          error: `Buyer address mismatch: requested buyer address (${buyerAddress}) differs from payment transaction payer (${verifiedPayer}).`,
+          requestId,
+        },
+        { status: 402 }
+      );
+    }
+
+    const evmPaymentDetails = verificationResult;
+    const resolvedChain = evmPaymentDetails.chainKey || paymentChain || "hashkey-testnet";
+    const resolvedToken = evmPaymentDetails.tokenSymbol || paymentToken;
+    const verifiedPaidAmount = Number(evmPaymentDetails.amountMicroUsdc);
+    if (!Number.isFinite(verifiedPaidAmount) || verifiedPaidAmount < upfrontChargeMicroUsdc) {
+      return NextResponse.json(
+        { error: "Payment amount could not be verified or is below the required deposit", requestId },
+        { status: 402 }
+      );
     }
 
     // Step 1: Pre-flight Atomic Lock on Arkiv with Mutex Concurrency Protection
     const locked = await arkivDb.atomicLockTokensAsync(listing.id, bounds.totalMaxTokens);
     if (!locked) {
       return NextResponse.json(
-        { error: "Concurrent race detected: Seller quota locked by another in-flight prompt" },
+        { error: "Concurrent race detected: Seller quota locked by another in-flight prompt", requestId },
         { status: 409 }
       );
     }
-
-    const resolvedChain = evmPaymentDetails?.chainKey || paymentChain || "hashkey-testnet";
-    const resolvedToken = evmPaymentDetails?.tokenSymbol || paymentToken || (resolvedChain.includes("hashkey") ? "HSK" : "ETH");
 
     // Wrap downstream execution in Saga compensation: if any step throws, refund locked quota!
     try {
@@ -158,25 +198,30 @@ export async function POST(request: NextRequest) {
         unwrappedFiles = unwrapped.files;
         kReturn = unwrapped.kReturn;
       } catch (unwrapErr: unknown) {
-        console.error("Enclave unwrap failed:", unwrapErr);
+        console.error(`[blind-execute][${requestId}] Enclave unwrap failed:`, unwrapErr instanceof Error ? unwrapErr.message : String(unwrapErr));
         await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
-        const reasonMsg = `Cryptographic envelope decryption failed inside Enclave: ${unwrapErr instanceof Error ? unwrapErr.message : String(unwrapErr)}`;
-        const refundRecipient = evmPaymentDetails?.from || buyerAddress;
-        const refund = await buyerRefundEngine.executeRefund({
-          paymentRail: resolvedChain,
-          tokenSymbol: resolvedToken,
-          buyerAddress: refundRecipient,
-          refundAmountMicroUsdc: upfrontChargeMicroUsdc,
-          reason: reasonMsg,
-          originalPaymentTxId: paymentHeader,
-          modelId,
-        });
+        let refund = null;
+        try {
+          refund = await buyerRefundEngine.executeRefund({
+            paymentRail: resolvedChain,
+            tokenSymbol: resolvedToken,
+            buyerAddress: verifiedPayer,
+            refundAmountMicroUsdc: upfrontChargeMicroUsdc,
+            reason: `Cryptographic envelope processing failure (ref: ${requestId})`,
+            originalPaymentTxId: cleanPaymentId,
+            modelId,
+            verifiedPaidMicroUsdc: verifiedPaidAmount,
+          });
+        } catch (rfErr: any) {
+          console.error(`[blind-execute][${requestId}] Enclave refund notice:`, rfErr?.message);
+        }
         return NextResponse.json(
           {
             success: false,
-            error: reasonMsg,
-            refunded: true,
-            refund,
+            error: "Cryptographic envelope processing failed",
+            requestId,
+            refunded: Boolean(refund?.success),
+            refundTxHash: refund?.refundTxHash,
           },
           { status: 422 }
         );
@@ -191,25 +236,30 @@ export async function POST(request: NextRequest) {
           rawSellerApiKey = unwrapSellerApiKey(listing.sealedApiKey, enclavePrivateKey);
         }
       } catch (unwrapKeyErr: any) {
-        console.error("Seller key unwrap failed:", unwrapKeyErr);
+        console.error(`[blind-execute][${requestId}] Seller key unwrap failed:`, unwrapKeyErr instanceof Error ? unwrapKeyErr.message : String(unwrapKeyErr));
         await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
-        const reasonMsg = `Failed to unwrap Seller API key inside Enclave: ${unwrapKeyErr instanceof Error ? unwrapKeyErr.message : String(unwrapKeyErr)}`;
-        const refundRecipient = evmPaymentDetails?.from || buyerAddress;
-        const refund = await buyerRefundEngine.executeRefund({
-          paymentRail: resolvedChain,
-          tokenSymbol: resolvedToken,
-          buyerAddress: refundRecipient,
-          refundAmountMicroUsdc: upfrontChargeMicroUsdc,
-          reason: reasonMsg,
-          originalPaymentTxId: paymentHeader,
-          modelId,
-        });
+        let refund = null;
+        try {
+          refund = await buyerRefundEngine.executeRefund({
+            paymentRail: resolvedChain,
+            tokenSymbol: resolvedToken,
+            buyerAddress: verifiedPayer,
+            refundAmountMicroUsdc: upfrontChargeMicroUsdc,
+            reason: `Seller key processing failure (ref: ${requestId})`,
+            originalPaymentTxId: cleanPaymentId,
+            modelId,
+            verifiedPaidMicroUsdc: verifiedPaidAmount,
+          });
+        } catch (rfErr: any) {
+          console.error(`[blind-execute][${requestId}] Seller key refund notice:`, rfErr?.message);
+        }
         return NextResponse.json(
           {
             success: false,
-            error: reasonMsg,
-            refunded: true,
-            refund,
+            error: "Seller key processing failed",
+            requestId,
+            refunded: Boolean(refund?.success),
+            refundTxHash: refund?.refundTxHash,
           },
           { status: 422 }
         );
@@ -232,26 +282,30 @@ export async function POST(request: NextRequest) {
           parsedFiles,
         });
       } catch (aiErr: unknown) {
-        console.error("[blind-execute] Upstream AI call rejected:", aiErr);
+        console.error(`[blind-execute][${requestId}] Upstream AI call failed:`, aiErr instanceof Error ? aiErr.message : String(aiErr));
         await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
-        const reasonMsg = aiErr instanceof Error ? aiErr.message : "Upstream AI provider rejected inference request";
-        const refundRecipient = evmPaymentDetails?.from || buyerAddress;
-        const refund = await buyerRefundEngine.executeRefund({
-          paymentRail: resolvedChain,
-          tokenSymbol: resolvedToken,
-          buyerAddress: refundRecipient,
-          refundAmountMicroUsdc: upfrontChargeMicroUsdc,
-          reason: `AI API call rejected: ${reasonMsg}`,
-          originalPaymentTxId: paymentHeader,
-          modelId,
-        });
+        let refund = null;
+        try {
+          refund = await buyerRefundEngine.executeRefund({
+            paymentRail: resolvedChain,
+            tokenSymbol: resolvedToken,
+            buyerAddress: verifiedPayer,
+            refundAmountMicroUsdc: upfrontChargeMicroUsdc,
+            reason: `Inference provider request failed (ref: ${requestId})`,
+            originalPaymentTxId: cleanPaymentId,
+            modelId,
+            verifiedPaidMicroUsdc: verifiedPaidAmount,
+          });
+        } catch (rfErr: any) {
+          console.error(`[blind-execute][${requestId}] Upstream failure refund notice:`, rfErr?.message);
+        }
         return NextResponse.json(
           {
             success: false,
-            error: `API Call Rejected by Upstream Provider: ${reasonMsg}`,
-            detail: reasonMsg,
-            refunded: true,
-            refund,
+            error: "Inference provider request failed",
+            requestId,
+            refunded: Boolean(refund?.success),
+            refundTxHash: refund?.refundTxHash,
           },
           { status: 422 }
         );
@@ -293,23 +347,15 @@ export async function POST(request: NextRequest) {
 
       if (!targetSellerAddress || !ethers.isAddress(targetSellerAddress)) {
         return NextResponse.json(
-          { error: `Selected listing (${listing.id}) has no valid connected seller EVM payout address` },
+          { error: `Selected listing (${listing.id}) has no valid connected seller EVM payout address`, requestId },
           { status: 422 }
-        );
-      }
-
-      const resolvedBuyerAddress = (buyerAddress || evmPaymentDetails?.from || "").trim();
-      if (!resolvedBuyerAddress || !ethers.isAddress(resolvedBuyerAddress)) {
-        return NextResponse.json(
-          { error: "Valid buyer EVM address is required for settlement and refunds" },
-          { status: 400 }
         );
       }
 
       const hspRecord = await hashKeyTreasury.settleSellerPayoutOnHashKey({
         mandateId: body.mandateId || ethers.hexlify(ethers.randomBytes(32)),
         sellerAddress: targetSellerAddress,
-        buyerAddress: resolvedBuyerAddress,
+        buyerAddress: verifiedPayer,
         modelId,
         tUsed: aiResult.actualTokensUsed,
         tMax: bounds.totalMaxTokens,
@@ -321,16 +367,17 @@ export async function POST(request: NextRequest) {
 
       // Issue automatic on-chain refund to buyer for unused deposit
       let buyerRefundResult = null;
-      if (buyerRefundMicroUsdc > 0 && resolvedBuyerAddress) {
+      if (buyerRefundMicroUsdc > 0) {
         try {
           buyerRefundResult = await buyerRefundEngine.executeRefund({
             paymentRail: resolvedChain,
             tokenSymbol: resolvedToken,
-            buyerAddress: resolvedBuyerAddress,
+            buyerAddress: verifiedPayer,
             refundAmountMicroUsdc: buyerRefundMicroUsdc,
             reason: `Automatic refund for unused quota (${bounds.totalMaxTokens - aiResult.actualTokensUsed} tokens)`,
-            originalPaymentTxId: paymentHeader,
+            originalPaymentTxId: cleanPaymentId,
             modelId,
+            verifiedPaidMicroUsdc: verifiedPaidAmount,
           });
         } catch (rfErr) {
           console.warn("[blind-execute] Buyer refund notice:", rfErr);
@@ -349,6 +396,7 @@ export async function POST(request: NextRequest) {
         success: true,
         protocol: "HSP-1.0",
         network: "HashKey Chain Testnet",
+        requestId,
         encryptedOutput: sealedOutput,
         tokenAccounting: {
           tMaxReserved: bounds.totalMaxTokens,
@@ -360,12 +408,12 @@ export async function POST(request: NextRequest) {
           sellerRemainingTokens: updatedListing.availableTokens,
         },
         paymentReceipt: {
-          txHash: paymentHeader,
-          chainKey: evmPaymentDetails?.chainKey || "hashkey-testnet",
+          txHash: cleanPaymentId,
+          chainKey: evmPaymentDetails.chainKey || "hashkey-testnet",
           amountUsdc: upfrontChargeMicroUsdc / 1_000_000,
-          from: evmPaymentDetails?.from || buyerAddress,
-          to: evmPaymentDetails?.to || hashKeyTreasury.hspAdapterAddress,
-          explorerUrl: evmPaymentDetails?.etherscanUrl || `https://testnet-explorer.hskchain.net/tx/${paymentHeader}`,
+          from: verifiedPayer,
+          to: evmPaymentDetails.to || hashKeyTreasury.hspAdapterAddress,
+          explorerUrl: evmPaymentDetails.etherscanUrl || `https://testnet-explorer.hskchain.net/tx/${cleanPaymentId}`,
         },
         hashKeySettlement: {
           network: "HashKey Chain Testnet",
@@ -406,36 +454,35 @@ export async function POST(request: NextRequest) {
       });
     } catch (execErr: unknown) {
       await arkivDb.reconcilePostExecutionAsync(listing.id, bounds.totalMaxTokens, 0);
-      const reasonMsg = execErr instanceof Error ? execErr.message : "Unexpected execution error during inference";
-      const refundRecipient = evmPaymentDetails?.from || buyerAddress;
+      console.error(`[blind-execute][${requestId}] Inference execution error:`, execErr instanceof Error ? execErr.message : String(execErr));
       let refund = null;
       try {
         refund = await buyerRefundEngine.executeRefund({
           paymentRail: resolvedChain,
           tokenSymbol: resolvedToken,
-          buyerAddress: refundRecipient,
+          buyerAddress: verifiedPayer,
           refundAmountMicroUsdc: upfrontChargeMicroUsdc,
-          reason: `Execution failure: ${reasonMsg}`,
-          originalPaymentTxId: paymentHeader,
+          reason: `Inference execution error (ref: ${requestId})`,
+          originalPaymentTxId: cleanPaymentId,
           modelId,
+          verifiedPaidMicroUsdc: verifiedPaidAmount,
         });
-      } catch (refundErr) {
-        console.error("[blind-execute] Failed to execute buyer refund:", refundErr);
+      } catch (refundErr: any) {
+        console.error(`[blind-execute][${requestId}] Failed to execute buyer refund:`, refundErr?.message);
       }
       return NextResponse.json(
         {
           success: false,
-          error: `Inference Execution Error: ${reasonMsg}`,
-          detail: reasonMsg,
-          refunded: Boolean(refund),
-          refund,
+          error: "Inference execution failed",
+          requestId,
+          refunded: Boolean(refund?.success),
+          refundTxHash: refund?.refundTxHash,
         },
         { status: 500 }
       );
     }
   } catch (err: unknown) {
-    console.error("Execution error:", err);
-    const message = err instanceof Error ? err.message : "Internal Execution Error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error(`[blind-execute][${requestId}] Internal error:`, err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ error: "Internal server error", requestId }, { status: 500 });
   }
 }

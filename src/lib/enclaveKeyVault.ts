@@ -26,7 +26,9 @@ export interface EnclaveAttestationReport {
   signingPublicKeyPem: string;
   measurementHash: string;
   bootedAtIso: string;
-  teeProvider: "0G-Sealed-Compute-TEE-v1";
+  teeProvider: string;
+  status: "simulated";
+  teeType: "none (software)";
 }
 
 export interface SealedAiOutput {
@@ -75,10 +77,10 @@ class EnclaveVaultSingleton {
     this.signingPublicKeyPem = signPub;
     this.signingPrivateKeyPem = signPriv;
 
-    // Measurement Hash (PCR0 equivalent)
+    // Measurement Hash (Simulated software measurement)
     this.measurementHash = crypto
       .createHash("sha256")
-      .update(this.rsaPublicKeyPem + this.signingPublicKeyPem + "0G_GALILEO_TEE_SHUNYAGRID_v1")
+      .update(this.rsaPublicKeyPem + this.signingPublicKeyPem + "SOFTWARE_SIMULATED_ENCLAVE_v1")
       .digest("hex");
   }
 
@@ -88,7 +90,9 @@ class EnclaveVaultSingleton {
       signingPublicKeyPem: this.signingPublicKeyPem,
       measurementHash: this.measurementHash,
       bootedAtIso: this.bootedAtIso,
-      teeProvider: "0G-Sealed-Compute-TEE-v1",
+      teeProvider: "none (software simulated)",
+      status: "simulated",
+      teeType: "none (software)",
     };
   }
 
@@ -101,34 +105,26 @@ class EnclaveVaultSingleton {
     kReturnBuffer: Buffer;
     promptText: string;
   } {
-    // 1. Unwrap wrappedKeys using SK_enclave
-    let kInputHex = "";
-    let kReturnHex = "";
-
-    try {
-      const wrappedBuf = Buffer.from(envelope.wrappedKeysBase64, "base64");
-      const unwrappedRaw = crypto.privateDecrypt(
-        {
-          key: this.rsaPrivateKeyPem,
-          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: "sha256",
-        },
-        wrappedBuf
-      );
-      const parsed = JSON.parse(unwrappedRaw.toString("utf8"));
-      kInputHex = parsed.kInputHex;
-      kReturnHex = parsed.kReturnHex;
-    } catch (err: any) {
-      // Direct JSON base64 fallback for testing
-      try {
-        const fallback = Buffer.from(envelope.wrappedKeysBase64, "base64").toString("utf8");
-        const parsed = JSON.parse(fallback);
-        kInputHex = parsed.kInputHex;
-        kReturnHex = parsed.kReturnHex;
-      } catch {
-        throw new Error(`Failed to unwrap buyer keys in Enclave: ${err.message}`);
-      }
+    if (!envelope || !envelope.wrappedKeysBase64) {
+      throw new Error("Missing or invalid buyer envelope wrappedKeysBase64");
     }
+
+    // 1. Unwrap wrappedKeys using SK_enclave (RSA-OAEP SHA-256 only)
+    const wrappedBuf = Buffer.from(envelope.wrappedKeysBase64, "base64");
+    const unwrappedRaw = crypto.privateDecrypt(
+      {
+        key: this.rsaPrivateKeyPem,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: "sha256",
+      },
+      wrappedBuf
+    );
+    const parsed = JSON.parse(unwrappedRaw.toString("utf8"));
+    if (!parsed.kInputHex || !parsed.kReturnHex) {
+      throw new Error("Invalid wrapped keys in envelope: missing kInputHex or kReturnHex");
+    }
+    const kInputHex = parsed.kInputHex;
+    const kReturnHex = parsed.kReturnHex;
 
     const kInputBuffer = Buffer.from(kInputHex, "hex");
     const kReturnBuffer = Buffer.from(kReturnHex, "hex");

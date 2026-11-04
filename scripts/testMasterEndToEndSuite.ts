@@ -97,7 +97,7 @@ async function runMasterTestSuite() {
 
   const sellerWallet = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
   const buyerWallet = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-  const treasuryAddress = "0x9b3b7375b0591E8A304A8f66D11186Fb07672625";
+  const treasuryAddress = "0xe08798BaCfec631554b02D126b67788Dac3AbaD6";
 
   // ==========================================================================
   // MODULE 1: NODE HEALTH, IDENTITY & NETWORK PRIVACY GATE

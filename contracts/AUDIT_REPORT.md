@@ -1,8 +1,7 @@
-# ShunyaGrid Smart Contract Security Audit & Refactoring Report
+# ShunyaGrid & HashKey Settlement Protocol Smart Contract Security Audit Report
 
-**Audit Target**: [`@contracts/`](file:///C:/Users/kanak/OneDrive/Desktop/Devcon/contracts/)  
-**Auditor**: `blockchain-developer` (ShunyaGrid Autonomous Security Engine)  
-**Date**: October 31, 2026  
+**Audit Target**: `contracts/HSPAdapter.sol`, `contracts/HashKeySettlementRouter.sol`, `contracts/ShunyaGridOrderbook.sol`, `contracts/ShunyaGridEscrow.sol`  
+**Date**: November 2026  
 **Compiler Version**: Solidity `^0.8.20`  
 **License**: MIT  
 
@@ -10,94 +9,100 @@
 
 ## 1. Executive Summary
 
-A comprehensive automated security audit and refactoring was performed on all smart contracts in `@contracts/`. The initial codebases contained critical logic flaws—most notably textbook **Checks-Effects-Interactions (CEI) violations leading to reentrancy vulnerabilities (SWC-107)**, unvalidated zero-value transactions, missing event logging, and lack of emergency circuit breakers.
+A thorough security evaluation and code review was conducted across the core settlement and orderbook contracts. The previous assessment contained inaccurate "SAFE / 0.0 RISK / PRODUCTION READY" certifications despite several critical attack vectors, including unbounded owner fees, push-payment DoS vulnerabilities, router address misattribution trapping buyer refunds, and completely unauthenticated orderbook mutations.
 
-All identified vulnerabilities have been automatically patched and refactored into production-grade, gas-optimized contracts.
+All identified vulnerabilities have been remediated. The contracts are now substantially hardened with mathematical payout caps, pull-payment fallbacks, safe low-level token wrappers, caller-attributed orderbook permissions, and two-step ownership management. However, several inherent residual risks (detailed in Section 3) remain and must be managed operationally.
 
-| Contract | Initial Risk Score | Post-Patch Risk Score | Status |
+### Contract Status Overview
+
+| Contract | Prior Assessment | Post-Remediation Status | Key Mitigations |
 | :--- | :--- | :--- | :--- |
-| **`VaultLending.sol`** | **CRITICAL (9.8/10)** | **SAFE (0.0/10)** | **PATCHED & HARDENED** |
-| **`VulnerableVault.sol`** | **CRITICAL (9.8/10)** | N/A (Kept for audit demo) | **AUDIT TARGET** |
-| **`SecureVault.sol`** | **SAFE (0.0/10)** | **SAFE (0.0/10)** | **PRODUCTION READY** |
-| **`ShunyaGridEscrow.sol`** | **SAFE (0.0/10)** | **SAFE (0.0/10)** | **PRODUCTION READY** |
+| **`HSPAdapter.sol`** | Inaccurate "SAFE" | **Remediated & Hardened** | Bounded pro-rata payouts, MAX 20% protocol fee cap, pull-payment fallback (`withdraw()`), 24h buyer self-refund, safe ERC20 wrappers, two-step ownership. |
+| **`HashKeySettlementRouter.sol`** | Inaccurate "SAFE" | **Remediated & Hardened** | `lockHSPMandateFor()` attribution passing buyer address, safe ERC20 low-level approval/transfer wrappers. |
+| **`ShunyaGridOrderbook.sol`** | Unreviewed | **Remediated & Hardened** | Two-step ownership, caller-restricted `publishListing` / `deactivateListing` (only listing owner or contract owner). |
+| **`ShunyaGridEscrow.sol`** | Inaccurate "SAFE" | **Remediated & Hardened** | 20% commission cap, 24h buyer timeout refund (`refundJob()`), documented off-chain World ID ZK verification boundary. |
 
 ---
 
-## 2. Vulnerability Findings & Automated Patches
+## 2. Vulnerability Findings & Implemented Fixes
 
-### Finding 1: Critical — Reentrancy via External Low-Level Call (SWC-107)
-* **Severity**: **CRITICAL (CVSS 9.8)**
-* **Affected Function**: `withdraw()` in `VaultLending.sol` & `VulnerableVault.sol`
-* **Vulnerability Description**:
-  The function performed an external call:
-  ```solidity
-  (bool ok, ) = msg.sender.call{value: amount}("");
-  require(ok, "Transfer failed");
-  balances[msg.sender] = 0; // State mutation AFTER external interaction!
-  ```
-  Because control was transferred to `msg.sender` before `balances[msg.sender]` was zeroed, an adversarial contract could implement a malicious `receive()` fallback that re-entered `withdraw()` recursively, draining the entire vault balance.
-* **Automated Patch**:
-  1. **Strict Checks-Effects-Interactions (CEI) Enforcement**: `balances[msg.sender] = 0;` and `totalDeposits -= amount;` are executed *prior* to external interaction.
-  2. **Mutex Reentrancy Guard**: Integrated a gas-optimized `nonReentrant` modifier blocking recursive execution frames.
+### Finding 1: Unbounded Settlement Payouts & Protocol Fees (HSPAdapter.sol)
+* **Severity**: **HIGH**
+* **Vulnerability**: `settleHSPMandate` previously only validated that `sellerPayout + protocolFee + buyerRefund == maxDeposit`. `tUsed` and `attestationHash` were completely ignored. A malicious or compromised owner could configure a rogue treasury via `setProtocolTreasury` and siphon 100% of the buyer deposit as `protocolFee`.
+* **Fix**:
+  1. Enforced `tUsed <= mandate.tMax`.
+  2. Enforced pro-rata ceiling on seller payouts: `sellerPayout <= (mandate.maxDeposit * tUsed) / mandate.tMax`.
+  3. Capped protocol fee at `MAX_FEE_BPS = 2000` (max 20%): `protocolFee <= (mandate.maxDeposit * MAX_FEE_BPS) / 10000`.
+  4. Kept the strict Conservation of Value invariant (`sellerPayout + protocolFee + buyerRefund == mandate.maxDeposit`), ensuring remaining funds are refunded to the buyer.
+  5. Added `ProtocolTreasuryUpdated` event emission to `setProtocolTreasury`.
 
----
-
-### Finding 2: Medium — Missing Input Validation for Zero-Value Deposits (SWC-128)
+### Finding 2: Single-Step Ownership Lockout (HSPAdapter.sol & ShunyaGridOrderbook.sol)
 * **Severity**: **MEDIUM**
-* **Affected Function**: `deposit()`
-* **Vulnerability Description**:
-  `deposit()` accepted `msg.value == 0`, wasting user gas, polluting state, and triggering erroneous empty event logs.
-* **Automated Patch**:
-  Added custom error guard `if (msg.value == 0) revert ZeroDepositAmount();`.
+* **Vulnerability**: Single-step ownership transfer posed a critical risk of permanent contract lockout if an incorrect or non-callable address was provided.
+* **Fix**: Implemented two-step ownership management (`transferOwnership` + `acceptOwnership`) with `OwnershipTransferStarted` and `OwnershipTransferred` events on both `HSPAdapter` and `ShunyaGridOrderbook`.
 
----
+### Finding 3: Mandate ID Front-Running & Squatting (HSPAdapter.sol)
+* **Severity**: **LOW-MEDIUM**
+* **Vulnerability**: `mandates` is keyed by `bytes32 mandateId`. If an attacker discovers a mandateId prior to block inclusion, they could front-run the transaction with a 1-wei deposit.
+* **Remediation Choice**: To preserve external ABI compatibility for indexers, SDKs, and settlement callers without altering `settleHSPMandate(bytes32 mandateId, ...)` or public getters, the `mapping(bytes32 => HSPPaymentMandate) public mandates` keying was preserved. Because client and server engines generate cryptographically random 256-bit UUID/keccak256 identifiers, squatting requires mempool front-running rather than collision guessing. (See Residual Risks).
 
-### Finding 3: Medium — Lack of Event Emissions for State-Changing Operations (SWC-135)
+### Finding 4: Buyer Misattribution in Native & ERC20 Routing (HashKeySettlementRouter.sol)
+* **Severity**: **HIGH**
+* **Vulnerability**: When routing native payments, `routeAgentPaymentNative` called `lockHSPMandateDirect` directly, causing `hspAdapter` to record `buyerAgent = address(router)`. If the settlement refunded the buyer or the mandate timed out, refund funds were sent to the router where they became trapped. Furthermore, the ERC20 path transferred tokens directly to the adapter rather than approving it.
+* **Fix**:
+  1. Added `lockHSPMandateFor(address buyer, bytes32 mandateId, ...)` to `HSPAdapter`, callable only by `trustedRouter`.
+  2. Updated `HashKeySettlementRouter.routeAgentPaymentNative` and `routeAgentPaymentERC20` to forward `msg.sender` as `buyer`.
+  3. In `routeAgentPaymentERC20`, implemented safe `_safeTransferFrom` into router, followed by `_safeApprove` to `hspAdapter`, and finally `lockHSPMandateFor`.
+
+### Finding 5: Unsafe ERC20 Token Handling & Missing msg.value Guard (HSPAdapter.sol)
 * **Severity**: **MEDIUM**
-* **Affected Functions**: `deposit()`, `withdraw()`
-* **Vulnerability Description**:
-  Absence of `Deposited` and `Withdrawn` events hindered off-chain indexers (e.g. The Graph, Mirror nodes, block explorers) from tracking state changes in real time.
-* **Automated Patch**:
-  Added indexed event logs:
-  - `event Deposited(address indexed user, uint256 amount, uint256 newBalance);`
-  - `event Withdrawn(address indexed user, uint256 amount, uint256 remainingBalance);`
+* **Vulnerability**: Direct calls to `IERC20.transfer` and `IERC20.transferFrom` fail on non-standard tokens that return `void` instead of `bool` (such as USDT). Additionally, depositing ERC20 tokens while attaching native HSK (`msg.value > 0`) could lead to lost funds, and fee-on-transfer tokens could result in an accounting deficit.
+* **Fix**:
+  1. Added low-level `_safeTransfer` and `_safeTransferFrom` wrappers verifying contract code length and handling both boolean and void returns.
+  2. Enforced `msg.value == 0` for all ERC20 deposit functions.
+  3. Recorded actual received amount by calculating balance deltas (`balanceOf(after) - balanceOf(before)`).
+
+### Finding 6: Push-Payment Denial of Service (HSPAdapter.sol)
+* **Severity**: **HIGH**
+* **Vulnerability**: In `settleHSPMandate` and `refundHSPMandate`, native HSK transfers reverted if `sellerNode`, `buyerAgent`, or `protocolTreasury` failed or was a contract rejecting ETH. A malicious seller or buyer could intentionally revert in `receive()`, halting settlement for all other participants.
+* **Fix**: Adopted the Pull-over-Push pattern. If a native call fails during settlement or refund, the exact amount is credited to `pendingWithdrawals[recipient]` and a `PendingWithdrawalCredited` event is emitted. The recipient can withdraw their balance at any time via `withdraw()`.
+
+### Finding 7: Insufficient Timeout on Buyer Self-Refund (HSPAdapter.sol)
+* **Severity**: **MEDIUM**
+* **Vulnerability**: The previous 1-hour timeout allowed premature buyer cancellations while asynchronous A2A workflows or multi-hop tasks were still processing.
+* **Fix**: Extended the buyer self-refund constraint to `block.timestamp >= mandate.createdAt + 24 hours`. The contract owner retains emergency refund authority at any time.
+
+### Finding 8: Missing Access Control on Node Listings (ShunyaGridOrderbook.sol)
+* **Severity**: **HIGH**
+* **Vulnerability**: Anyone could invoke `publishListing` with any existing `id` and overwrite the seller's `payoutAddress`, `sealedApiKey`, and pricing. Similarly, anyone could call `deactivateListing` on any node.
+* **Fix**:
+  1. For updating existing listings: caller must be `item.ownerAddress` or `contract owner`.
+  2. For publishing new listings: `ownerAddress` must match `msg.sender` unless caller is `contract owner` (server relay).
+  3. For deactivating listings: caller must be `item.ownerAddress` or `contract owner`.
+
+### Finding 9: Missing Buyer Refund & Unbounded Escrow Commission (ShunyaGridEscrow.sol)
+* **Severity**: **HIGH**
+* **Vulnerability**: `ShunyaGridEscrow` lacked any buyer refund mechanism, permanently locking funds if the owner failed to settle. Furthermore, `protocolCommission` was unbounded, allowing the owner to seize the entire deposit.
+* **Fix**:
+  1. Added `refundJob(bytes32 jobId)` enabling buyers to claim a full refund after a 24-hour timeout (or owner at any time).
+  2. Bounded protocol commission to `MAX_COMMISSION_BPS = 2000` (max 20%).
+  3. Added explicit code documentation noting that World ID ZK proofs are verified off-chain, and only the single-use nullifier is tracked on-chain.
 
 ---
 
-### Finding 4: Low / Operational — Absence of Circuit Breaker & 2-Step Administration (SWC-105)
-* **Severity**: **LOW**
-* **Vulnerability Description**:
-  No emergency pause mechanism existed if an external dependency or oracle failure occurred. In addition, single-step ownership transfers carried a risk of permanent contract lockout if an incorrect address was supplied.
-* **Automated Patch**:
-  1. **Pausable Circuit Breaker**: Added `paused` state variable with `whenNotPaused` modifier, toggleable via `pause()` and `unpause()`.
-  2. **Two-Step Ownership Transfer**: Added `transferOwnership` and `acceptOwnership` to guarantee administrative continuity.
+## 3. Residual Risks & Operational Considerations
 
----
+1. **Mandate ID Collision / Mempool Front-Running**:
+   - Because `mandates` is indexed by `mandateId` rather than `keccak256(buyer, mandateId)`, an adversarial node in a public mempool could theoretically copy a seen `mandateId` and submit a 1-wei deposit.
+   - *Operational Mitigation*: Clients must generate cryptographically random 256-bit identifiers (`crypto.getRandomValues(new Uint8Array(32))`). On public testnets/mainnet, transactions should be submitted via private RPC endpoints or low-latency sequencers to minimize mempool exposure.
 
-### Finding 5: Optimization — High Gas Consumption from String Reverts
-* **Severity**: **OPTIMIZATION**
-* **Vulnerability Description**:
-  Legacy revert strings (`require(amount > 0, "No funds")`) increase bytecode size and consume additional deployment and execution gas.
-* **Automated Patch**:
-  Replaced all revert strings with Solidity 0.8 custom errors (`error ZeroDepositAmount()`, `error InsufficientVaultBalance()`, `error EtherTransferFailed()`), reducing execution cost by ~60-90 gas per revert branch.
+2. **World ID Verification Boundary**:
+   - `ShunyaGridEscrow` records nullifiers to prevent duplicate spends, but does not verify World ID ZK SNARK proofs on-chain (due to gas overhead and verifier availability on HashKey Chain). Proof validation occurs on the API relayer before transactions are submitted.
+   - *Operational Mitigation*: Relayers must reject invalid or unverified World ID proofs before submitting on-chain calls.
 
----
+3. **Owner Authority & Centralization**:
+   - The contract owner has the privilege to settle mandates, route emergency refunds, and update trusted routers and treasuries.
+   - *Operational Mitigation*: In production, ownership should be transferred to a multi-signature wallet (e.g. Safe) or a timelock governance contract.
 
-## 3. Deployed Architecture in `@contracts/`
-
-- [`contracts/HSPAdapter.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Hash%20Key/contracts/HSPAdapter.sol): HashKey Settlement Protocol (HSP) engine for EIP-712 payment mandates, zero-cutoff escrows, and deterministic payouts.
-- [`contracts/HashKeySettlementRouter.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Hash%20Key/contracts/HashKeySettlementRouter.sol): Multi-chain cross-settlement router linking HashKey Chain with Ethereum Sepolia, Arbitrum, and Base.
-- [`contracts/VaultLending.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Hash%20Key/contracts/VaultLending.sol): Hardened production lending vault.
-- [`contracts/SecureVault.sol`](file:///C:/Users/kanak/OneDrive/Desktop/Hash%20Key/contracts/SecureVault.sol): Minimalist hardened vault with CEI and reentrancy mutex.
-
----
-
-## 4. Live HashKey Chain Horizon Testnet Deployment (Chain ID 133)
-
-All contracts have been broadcast live on-chain and verified via [`https://testnet.hsk.xyz`](https://testnet.hsk.xyz):
-
-| Contract | Address | On-Chain Tx Hash | Blockscout Explorer |
-| :--- | :--- | :--- | :--- |
-| **`HSPAdapter`** | `0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae` | `0xca3ccb9e1d5f2bbe16c2349c18a986f9484d610501cc19866215ba0ec5eed614` | [Blockscout HSPAdapter](https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae) |
-| **`HashKeySettlementRouter`** | `0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D` | `0x0c7d3aca815f3c38520edd9b8ec843510771ce8117595f7d9f74540c8da50125` | [Blockscout Router](https://testnet-explorer.hskchain.net/address/0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D) |
-
+4. **Pull-Payment User Experience**:
+   - If an agent or seller smart contract fails to accept native HSK, funds are credited to `pendingWithdrawals`. Agents must be programmed to detect `PendingWithdrawalCredited` events and invoke `withdraw()`.

@@ -48,6 +48,38 @@ contract HashKeySettlementRouter {
         ccipRouter = _ccipRouter;
     }
 
+    function _safeTransferFrom(address token, address from, address to, uint256 amount) internal {
+        if (token.code.length == 0) revert TransferFailed();
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, amount)
+        );
+        if (!success || (data.length > 0 && !abi.decode(data, (bool)))) {
+            revert TransferFailed();
+        }
+    }
+
+    function _safeApprove(address token, address spender, uint256 amount) internal {
+        if (token.code.length == 0) revert TransferFailed();
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.approve.selector, spender, amount)
+        );
+        if (!success || (data.length > 0 && !abi.decode(data, (bool)))) {
+            // Reset to 0 and retry (for tokens requiring 0-allowance reset like USDT)
+            (bool sReset, bytes memory dReset) = token.call(
+                abi.encodeWithSelector(IERC20.approve.selector, spender, 0)
+            );
+            if (!sReset || (dReset.length > 0 && !abi.decode(dReset, (bool)))) {
+                revert TransferFailed();
+            }
+            (bool sRetry, bytes memory dRetry) = token.call(
+                abi.encodeWithSelector(IERC20.approve.selector, spender, amount)
+            );
+            if (!sRetry || (dRetry.length > 0 && !abi.decode(dRetry, (bool)))) {
+                revert TransferFailed();
+            }
+        }
+    }
+
     /**
      * @notice Routes an autonomous agent payment through HSPAdapter with native HSK.
      */
@@ -57,7 +89,8 @@ contract HashKeySettlementRouter {
         uint256 tMax,
         string calldata modelId
     ) external payable {
-        hspAdapter.lockHSPMandateDirect{value: msg.value}(
+        hspAdapter.lockHSPMandateFor{value: msg.value}(
+            msg.sender,
             mandateId,
             sellerNode,
             address(0),
@@ -82,14 +115,15 @@ contract HashKeySettlementRouter {
     ) external {
         if (token == address(0)) revert ZeroAddress();
 
-        // Transfer tokens from agent to router, then approve HSPAdapter
-        bool t1 = IERC20(token).transferFrom(msg.sender, address(this), amount);
-        if (!t1) revert TransferFailed();
+        // Transfer tokens from agent to router
+        _safeTransferFrom(token, msg.sender, address(this), amount);
 
-        // Standard ERC20 allowance check/approval for HSPAdapter
-        IERC20(token).transfer(address(hspAdapter), amount);
+        // Approve HSPAdapter to spend tokens
+        _safeApprove(token, address(hspAdapter), amount);
 
-        hspAdapter.lockHSPMandateDirect(
+        // Lock mandate on HSPAdapter with msg.sender preserved as buyerAgent
+        hspAdapter.lockHSPMandateFor(
+            msg.sender,
             mandateId,
             sellerNode,
             token,

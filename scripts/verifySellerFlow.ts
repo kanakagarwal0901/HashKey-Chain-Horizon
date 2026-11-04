@@ -6,7 +6,6 @@ import {
   verifyApiKeyWithProvider,
   getModelMetadata,
   arkivDb,
-  DEFAULT_ENCLAVE_KEYPAIR,
 } from "../packages/shunya-core/src/index";
 import crypto from "crypto";
 
@@ -17,10 +16,10 @@ async function runEndToEndVerification() {
 
   // 1. Verify deterministic master enclave keypair
   const { publicKey, privateKey } = getOrCreateEnclaveKeyPair();
-  if (publicKey !== DEFAULT_ENCLAVE_KEYPAIR.publicKey || privateKey !== DEFAULT_ENCLAVE_KEYPAIR.privateKey) {
-    throw new Error("FAIL: getOrCreateEnclaveKeyPair() does not match DEFAULT_ENCLAVE_KEYPAIR!");
+  if (!publicKey.includes("BEGIN PUBLIC KEY") || !privateKey) {
+    throw new Error("FAIL: enclave keypair not loaded from SHUNYA_ENCLAVE_PUBLIC_KEY / SHUNYA_ENCLAVE_PRIVATE_KEY");
   }
-  console.log("✔ [1/6] Master enclave keypair is deterministic and matches DEFAULT_ENCLAVE_KEYPAIR.");
+  console.log("✔ [1/6] Enclave keypair loaded from environment.");
 
   // 2. Test cleanApiKey edge cases
   const dirtyKeys = [

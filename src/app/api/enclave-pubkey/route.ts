@@ -9,6 +9,8 @@ export async function GET() {
   const report = getEnclaveAttestationReport();
   return NextResponse.json({
     enclaveId: "0g-sealed-tee-node-mumbai-01",
+    status: "simulated",
+    teeType: "none (software)",
     publicKeyPem: publicKey,
     publicKey: publicKey,
     signingPublicKeyPem: report.signingPublicKeyPem,

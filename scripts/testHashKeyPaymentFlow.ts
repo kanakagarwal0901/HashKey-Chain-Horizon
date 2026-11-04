@@ -32,7 +32,7 @@ async function runTestSuite() {
 
   const sellerAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
   const buyerAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-  const treasuryAddress = "0x9b3b7375b0591E8A304A8f66D11186Fb07672625";
+  const treasuryAddress = "0xe08798BaCfec631554b02D126b67788Dac3AbaD6";
 
   // --------------------------------------------------------------------------
   // TEST SECTION 1: T_MAX UPFRONT BUYER CHARGE & CONSERVATION OF VALUE
@@ -74,12 +74,13 @@ async function runTestSuite() {
     attestationHashHex: "0xattest_hash_1",
   });
 
-  const expectedHskPayout = Number((split.sellerPayoutUsdc / 0.75).toFixed(4));
+  const hskUsdRate = uniswapService?.getHskUsdRate() || 0.0894;
+  const expectedHskPayout = Number((split.sellerPayoutUsdc / hskUsdRate).toFixed(6));
   assert(settlement.status === "SETTLED", "PAYOUT-01", `Settlement status confirmed as SETTLED on HashKey`);
   assert(
     Math.abs(settlement.sellerPayoutHsk - expectedHskPayout) < 0.001,
     "PAYOUT-02",
-    `Seller received ${settlement.sellerPayoutHsk} HSK (Expected ~${expectedHskPayout} HSK at $0.75 USD/HSK)`
+    `Seller received ${settlement.sellerPayoutHsk} HSK (Expected ~${expectedHskPayout} HSK at $${hskUsdRate} USD/HSK)`
   );
 
   const updatedBalance = hashKeyTreasury.getSellerBalance(sellerAddress);

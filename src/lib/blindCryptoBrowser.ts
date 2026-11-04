@@ -74,7 +74,7 @@ export async function sealSellerApiKeyInBrowser(
   if (!rawApiKey) return "";
 
   if (typeof window === "undefined" || !window.crypto?.subtle) {
-    return `ENCLAVE_SEALED:${rawApiKey}`;
+    throw new Error("WebCrypto subtle is unavailable in this browser environment. Cannot seal API key.");
   }
 
   try {
@@ -88,16 +88,43 @@ export async function sealSellerApiKeyInBrowser(
     );
 
     const encoded = new TextEncoder().encode(rawApiKey);
-    const encrypted = await window.crypto.subtle.encrypt(
+
+    // Direct RSA-OAEP for keys within standard OAEP bounds (<= 180 bytes)
+    if (encoded.byteLength <= 180) {
+      const encrypted = await window.crypto.subtle.encrypt(
+        { name: "RSA-OAEP" },
+        pubKey,
+        encoded as unknown as BufferSource
+      );
+      return bufToBase64(new Uint8Array(encrypted));
+    }
+
+    // Hybrid AES-256-GCM + RSA-OAEP key wrapping for longer keys (> 180 bytes)
+    const aesKey = await window.crypto.subtle.generateKey(
+      { name: "AES-GCM", length: 256 },
+      true,
+      ["encrypt", "decrypt"]
+    );
+    const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
+    const wrappedAesKey = await window.crypto.subtle.encrypt(
       { name: "RSA-OAEP" },
       pubKey,
-      encoded as unknown as BufferSource
+      rawAesKey
     );
-
-    return bufToBase64(new Uint8Array(encrypted));
-  } catch (err) {
-    console.warn("[BlindCryptoBrowser] Sealing fallback:", err);
-    return `ENCLAVE_SEALED:${rawApiKey}`;
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const encryptedData = await window.crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      aesKey,
+      encoded
+    );
+    const payload = {
+      w: bufToBase64(new Uint8Array(wrappedAesKey)),
+      iv: bufToHex(iv),
+      c: bufToBase64(new Uint8Array(encryptedData)),
+    };
+    return `ENCLAVE_HYBRID:${JSON.stringify(payload)}`;
+  } catch (err: any) {
+    throw new Error(`Failed to seal API key in browser: ${err?.message || String(err)}`);
   }
 }
 

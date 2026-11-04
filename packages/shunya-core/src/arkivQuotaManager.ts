@@ -112,19 +112,9 @@ export class ArkivDatabaseEngine {
           if (!existing) {
             this.listings.set(r.id, r);
             updated = true;
-          } else {
-            Object.assign(existing, r);
           }
-        }
-
-        // If remote has entries, prune obsolete non-seed entities not on remote
-        if (remote.length > 0) {
-          for (const [id] of this.listings.entries()) {
-            if (!seedIds.has(id) && !remoteIdSet.has(id)) {
-              this.listings.delete(id);
-              updated = true;
-            }
-          }
+          // Remote sync may only ADD unknown listings; never overwrite payoutAddress,
+          // ownerAddress, sealedApiKey, or reset availableTokens/lockedTokens of known listings.
         }
 
         this.hasSyncedRemote = true;
@@ -508,9 +498,13 @@ export class ArkivDatabaseEngine {
     );
 
     if (existing) {
+      if (existing.ownerAddress.toLowerCase() !== params.ownerAddress.toLowerCase()) {
+        throw new Error("Unauthorized: only the verified owner can upsert");
+      }
       Object.assign(existing, {
         ...params,
-        lockedTokens: 0,
+        // Keep lockedTokens on upsert; do not reset mid-flight!
+        lockedTokens: existing.lockedTokens || 0,
         createdAtBlock: this.currentBlock,
         expiresAtBlock: this.currentBlock + 1200,
         status: "active",
@@ -520,6 +514,19 @@ export class ArkivDatabaseEngine {
         console.warn("[ArkivDatabaseEngine] Background remote sync notice:", err?.message);
       });
       return existing;
+    }
+
+    // Defense-in-depth: Reject create if another owner's listing already has the same sealedApiKey
+    if (params.sealedApiKey) {
+      const duplicateKey = Array.from(this.listings.values()).find(
+        (l) =>
+          l.sealedApiKey &&
+          l.sealedApiKey === params.sealedApiKey &&
+          l.ownerAddress.toLowerCase() !== params.ownerAddress.toLowerCase()
+      );
+      if (duplicateKey) {
+        throw new Error("Rejected: sealedApiKey already registered by another owner");
+      }
     }
 
     const id = `arkiv_entity_${crypto.randomBytes(6).toString("hex")}`;
@@ -549,7 +556,8 @@ export class ArkivDatabaseEngine {
       if (listing.status && listing.status !== "active") continue;
       if (listing.expiresAtBlock && listing.expiresAtBlock > 0 && this.currentBlock >= listing.expiresAtBlock) continue;
       if (listing.model.toLowerCase() !== model.toLowerCase()) continue;
-      if (listing.availableTokens >= requiredTMax) {
+      const effectiveAvailable = listing.availableTokens - (listing.lockedTokens || 0);
+      if (effectiveAvailable >= requiredTMax) {
         if (seenIds.has(listing.id)) continue;
         seenIds.add(listing.id);
         results.push(listing);
@@ -579,13 +587,14 @@ export class ArkivDatabaseEngine {
   }
 
   // Atomic pre-flight lock: guarantees zero concurrent cutoff race condition
+  // Finding 7: atomicLockTokensAsync must enforce availableTokens - lockedTokens >= requested
   public atomicLockTokens(listingId: string, tMax: number): boolean {
     const listing = this.listings.get(listingId);
     if (!listing || listing.status !== "active") return false;
-    if (listing.availableTokens < tMax) return false;
+    const locked = listing.lockedTokens || 0;
+    if (listing.availableTokens - locked < tMax) return false;
 
-    listing.availableTokens -= tMax;
-    listing.lockedTokens += tMax;
+    listing.lockedTokens = locked + tMax;
     this.saveToDisk();
     return true;
   }
@@ -627,11 +636,9 @@ export class ArkivDatabaseEngine {
     const listing = this.listings.get(listingId);
     if (!listing) throw new Error(`Listing ${listingId} not found`);
 
-    const unusedTokens = Math.max(0, tMax - tUsed);
-    // Release the locked amount
-    listing.lockedTokens = Math.max(0, listing.lockedTokens - tMax);
-    // Return unused reservation to available quota
-    listing.availableTokens += unusedTokens;
+    // Release the locked amount and deduct actually used tokens from available balance
+    listing.lockedTokens = Math.max(0, (listing.lockedTokens || 0) - tMax);
+    listing.availableTokens = Math.max(0, listing.availableTokens - tUsed);
 
     if (listing.availableTokens <= 0) {
       listing.status = "exhausted";

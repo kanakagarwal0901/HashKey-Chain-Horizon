@@ -21,9 +21,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: any) {
     console.error("Failed to initialize World ID bridge session:", err);
+    const status = err?.statusCode === 503 || err?.status === 503 ? 503 : 500;
     return NextResponse.json(
       { success: false, error: err.message || "Failed to initialize World ID session" },
-      { status: 500 }
+      { status }
     );
   }
 }

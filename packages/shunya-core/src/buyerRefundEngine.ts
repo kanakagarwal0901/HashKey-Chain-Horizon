@@ -12,6 +12,7 @@ export interface BuyerRefundParams {
   reason: string;
   originalPaymentTxId: string;
   modelId?: string;
+  verifiedPaidMicroUsdc?: number;
 }
 
 export interface BuyerRefundResult {
@@ -28,13 +29,14 @@ export interface BuyerRefundResult {
   reason: string;
   timestamp: string;
   isLiveOnChain: boolean;
+  originalPaymentTxId?: string;
   error?: string;
 }
 
 const SEPOLIA_CIRCLE_USDC_ADDRESS =
   process.env.NEXT_PUBLIC_SEPOLIA_USDC_ADDRESS || "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 const SHUNYA_TREASURY_EVM_ADDRESS =
-  process.env.NEXT_PUBLIC_SHUNYA_TREASURY_EVM_ADDRESS || "0x9b3b7375b0591E8A304A8f66D11186Fb07672625";
+  process.env.NEXT_PUBLIC_SHUNYA_TREASURY_EVM_ADDRESS || "0xe08798BaCfec631554b02D126b67788Dac3AbaD6";
 const SEPOLIA_RPC_URL =
   process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL ||
   process.env.SEPOLIA_RPC_URL ||
@@ -44,9 +46,13 @@ const HASHKEY_TESTNET_RPC = process.env.HASHKEY_TESTNET_RPC || "https://testnet.
 export class BuyerRefundEngine {
   private refundsFilePath: string;
   private refunds: BuyerRefundResult[] = [];
+  private refundedPaymentTxIds: Set<string> = new Set();
 
   constructor() {
-    this.refundsFilePath = typeof process !== "undefined" && typeof process.cwd === "function" ? path.join(process.cwd(), ".data", "buyer_refunds.json") : "";
+    this.refundsFilePath =
+      typeof process !== "undefined" && typeof process.cwd === "function"
+        ? path.join(process.cwd(), ".data", "buyer_refunds.json")
+        : "";
     this.loadFromDisk();
   }
 
@@ -56,9 +62,16 @@ export class BuyerRefundEngine {
       if (this.refundsFilePath && fs && typeof fs.existsSync === "function" && fs.existsSync(this.refundsFilePath)) {
         const raw = fs.readFileSync(this.refundsFilePath, "utf8");
         this.refunds = JSON.parse(raw);
+        this.refundedPaymentTxIds.clear();
+        for (const r of this.refunds) {
+          if (r.originalPaymentTxId) {
+            this.refundedPaymentTxIds.add(r.originalPaymentTxId.trim().toLowerCase());
+          }
+        }
       }
     } catch {
       this.refunds = [];
+      this.refundedPaymentTxIds.clear();
     }
   }
 
@@ -81,12 +94,31 @@ export class BuyerRefundEngine {
     return this.refunds.filter((r) => r.recipientAccount.trim().toLowerCase() === clean);
   }
 
+  public hasRefund(paymentTxId: string): boolean {
+    return this.refundedPaymentTxIds.has((paymentTxId || "").trim().toLowerCase());
+  }
+
   /**
    * Execute an automated full refund back to the buyer's payment account
    * in the original form of payment (HSK, ETH, USDC, etc.) when an AI API
    * inference call is rejected or throws an error.
    */
   public async executeRefund(params: BuyerRefundParams): Promise<BuyerRefundResult> {
+    const cleanPaymentTxId = (params.originalPaymentTxId || "").trim().toLowerCase();
+    if (cleanPaymentTxId && this.refundedPaymentTxIds.has(cleanPaymentTxId)) {
+      throw new Error(
+        `[BuyerRefundEngine] Duplicate refund rejected: transaction ${params.originalPaymentTxId} has already been refunded.`
+      );
+    }
+
+    if (params.verifiedPaidMicroUsdc !== undefined) {
+      if (params.refundAmountMicroUsdc > params.verifiedPaidMicroUsdc) {
+        throw new Error(
+          `[BuyerRefundEngine] Refund amount (${params.refundAmountMicroUsdc} micro-USDC) exceeds verified paid amount (${params.verifiedPaidMicroUsdc} micro-USDC)`
+        );
+      }
+    }
+
     const refundAmountUsdc = params.refundAmountMicroUsdc / 1_000_000;
     const recipient = params.buyerAddress.trim();
     const cleanRail = (params.paymentRail || "hashkey").toLowerCase();
@@ -101,6 +133,26 @@ export class BuyerRefundEngine {
       } else {
         tokenSymbol = "USDC";
       }
+    }
+
+    // Min-refund floor must not pay when the computed refund is 0.
+    if (params.refundAmountMicroUsdc <= 0 || refundAmountUsdc <= 0) {
+      return {
+        success: false,
+        refundTxHash: "",
+        refundAmountMicroUsdc: 0,
+        refundAmountUsdc: 0,
+        tokenSymbol,
+        refundAmountToken: 0,
+        refundAmountTokenFormatted: `0 ${tokenSymbol}`,
+        recipientAccount: recipient,
+        paymentRail: params.paymentRail,
+        explorerUrl: "",
+        reason: "Refund amount is 0; no payout required",
+        timestamp: new Date().toISOString(),
+        isLiveOnChain: false,
+        originalPaymentTxId: params.originalPaymentTxId,
+      };
     }
 
     // Determine Token Amount & Formatted String
@@ -134,23 +186,26 @@ export class BuyerRefundEngine {
     let explorerUrl = "";
     let isLiveOnChain = false;
 
+    // Use only SHUNYA_TREASURY_PRIVATE_KEY (or OPERATOR_PRIVATE_KEY); throw if missing.
     const candidateKeys: string[] = [
       process.env.SHUNYA_TREASURY_PRIVATE_KEY,
       process.env.OPERATOR_PRIVATE_KEY,
-      process.env.HASHKEY_DEPLOYER_PRIVATE_KEY,
-      process.env.SEPOLIA_BUYER_PRIVATE_KEY,
-      "0xbe120668ff04bb7e88e06cc71a66595cfc7876e5eb7b1291d607f0d36899aed2",
-      "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
     ]
-      .filter(Boolean)
-      .map((k) => (k!.startsWith("0x") ? k! : "0x" + k!))
+      .filter((k): k is string => Boolean(k))
+      .map((k) => (k.startsWith("0x") ? k : "0x" + k))
       .filter((k) => k.length === 66);
+
+    if (candidateKeys.length === 0) {
+      throw new Error(
+        "[BuyerRefundEngine] Missing treasury refund signer key. Set SHUNYA_TREASURY_PRIVATE_KEY or OPERATOR_PRIVATE_KEY."
+      );
+    }
 
     // 1. Process HashKey Chain Refund (Native HSK)
     if (cleanRail.includes("hashkey")) {
       const hskRate = uniswapService.getHskUsdRate() || 0.0894;
       const hskAmount = refundAmountUsdc / hskRate;
-      const weiAmount = ethers.parseEther(Math.max(0.0001, hskAmount).toFixed(6));
+      const weiAmount = ethers.parseEther(hskAmount.toFixed(6));
       const provider = new ethers.JsonRpcProvider(HASHKEY_TESTNET_RPC, 133, { staticNetwork: true });
 
       for (const pk of candidateKeys) {
@@ -180,7 +235,7 @@ export class BuyerRefundEngine {
       explorerUrl = `https://testnet-explorer.hskchain.net/tx/${refundTxHash}`;
     } else if (cleanRail.includes("arbitrum")) {
       // Process Arbitrum Sepolia Refund
-      const ethValue = Math.max(0.00001, refundAmountUsdc / 2600);
+      const ethValue = refundAmountUsdc / 2600;
       const weiEth = ethers.parseEther(ethValue.toFixed(6));
       const provider = new ethers.JsonRpcProvider("https://sepolia-rollup.arbitrum.io/rpc", 421614, { staticNetwork: true });
 
@@ -210,7 +265,7 @@ export class BuyerRefundEngine {
       explorerUrl = `https://sepolia.arbiscan.io/tx/${refundTxHash}`;
     } else if (cleanRail.includes("base")) {
       // Process Base Sepolia Refund
-      const ethValue = Math.max(0.00001, refundAmountUsdc / 2600);
+      const ethValue = refundAmountUsdc / 2600;
       const weiEth = ethers.parseEther(ethValue.toFixed(6));
       const provider = new ethers.JsonRpcProvider("https://sepolia.base.org", 84532, { staticNetwork: true });
 
@@ -266,7 +321,7 @@ export class BuyerRefundEngine {
       }
 
       if (!refundTxHash) {
-        const ethValue = Math.max(0.0001, refundAmountUsdc / 2600);
+        const ethValue = refundAmountUsdc / 2600;
         const weiEth = ethers.parseEther(ethValue.toFixed(6));
 
         for (const pk of candidateKeys) {
@@ -311,8 +366,12 @@ export class BuyerRefundEngine {
       reason: params.reason,
       timestamp: new Date().toISOString(),
       isLiveOnChain,
+      originalPaymentTxId: params.originalPaymentTxId,
     };
 
+    if (cleanPaymentTxId) {
+      this.refundedPaymentTxIds.add(cleanPaymentTxId);
+    }
     this.refunds.unshift(result);
     this.saveToDisk();
 

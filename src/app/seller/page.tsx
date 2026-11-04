@@ -30,7 +30,9 @@ import {
   Sliders,
   DollarSign,
 } from "lucide-react";
-import { sealSellerApiKeyInBrowser } from "@/lib/clientCrypto";
+import { sealSellerApiKeyInBrowser } from "@/lib/blindCryptoBrowser";
+import { ethers } from "ethers";
+import { newNonceAndDeadline, typedDataFor } from "@/lib/authSignaturesShared";
 import { useAuth } from "@/context/AuthContext";
 import WorldIdModal from "@/components/WorldIdModal";
 import ArcBridgeDrawer from "@/components/ArcBridgeDrawer";
@@ -290,17 +292,79 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
       .catch(console.error);
   };
 
-  // Clear all listings from orderbook
+  // Clear all listings from orderbook (Requires ADMIN_API_TOKEN)
   const handleClearOrderbook = async () => {
-    if (!confirm("Are you sure you want to clear all entities from the orderbook?")) return;
+    const adminToken = prompt("Enter ADMIN_API_TOKEN to clear all orderbook entities:");
+    if (!adminToken) return;
+
     try {
-      const res = await fetch("/api/listings", { method: "DELETE" });
+      const res = await fetch("/api/listings", {
+        method: "DELETE",
+        headers: { "x-admin-token": adminToken },
+      });
       if (res.ok) {
         setListings([]);
         alert("Orderbook cleared successfully.");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to clear orderbook: ${err.error || res.statusText}`);
       }
     } catch (err: any) {
       alert("Failed to clear orderbook: " + err.message);
+    }
+  };
+
+  // Delete a single listing owned by connected wallet
+  const handleDeleteListing = async (listingId: string) => {
+    const listing = listings.find((l) => l.id === listingId);
+    if (!listing) return;
+    if (!confirm(`Are you sure you want to deactivate and delete listing ${listingId}?`)) return;
+
+    try {
+      if (!walletAddress || !(window as any).ethereum) {
+        alert("Wallet connection required to authorize deletion.");
+        return;
+      }
+
+      const { nonce, deadline } = newNonceAndDeadline();
+      const authMessage = {
+        owner: walletAddress,
+        action: "delete",
+        listingId,
+        model: listing.model || "",
+        payoutAddress: listing.payoutAddress || walletAddress,
+        sealedApiKeyHash: ethers.ZeroHash,
+        pricePer1kMicroUsdc: listing.pricePer1kMicroUsdc || 0,
+        nonce,
+        deadline,
+      };
+
+      const browserProvider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await browserProvider.getSigner();
+      const { domain, types } = typedDataFor("ListingWrite");
+      const signature = await signer.signTypedData(domain, types, authMessage);
+
+      const res = await fetch(`/api/listings?id=${listingId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: listingId,
+          auth: {
+            message: authMessage,
+            signature,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to delete listing");
+      }
+
+      alert(`Listing ${listingId} successfully deleted.`);
+      fetchListings();
+    } catch (err: any) {
+      alert(`Delete failed: ${err.message}`);
     }
   };
 
@@ -470,6 +534,21 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
     handleSealApiKey();
   }, [rawApiKey]);
 
+  // Helper to ensure key is securely sealed to Enclave public key
+  const getSealedApiKey = async (key: string): Promise<string> => {
+    try {
+      const pkRes = await fetch("/api/enclave-pubkey");
+      const pkData = await pkRes.json();
+      if (pkData?.publicKeyPem) {
+        const sealed = await sealSellerApiKeyInBrowser(key.trim(), pkData.publicKeyPem);
+        if (sealed) return sealed;
+      }
+    } catch (err) {
+      console.warn("[SellerPage] Failed to seal with enclave pubkey:", err);
+    }
+    return sealedKeyCiphertext || "";
+  };
+
   // Live test call to verify API key with provider and fetch model & remaining tokens
   const handleTestApiKey = async () => {
     if (!rawApiKey || rawApiKey.trim().length < 15) {
@@ -481,13 +560,20 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
     setKeyVerification(null);
 
     try {
+      const sealed = await getSealedApiKey(rawApiKey);
+      if (!sealed) {
+        alert("Could not seal API key in browser for testing.");
+        setIsTestingKey(false);
+        return;
+      }
+
       const res = await fetch("/api/verify-api-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: currentModelMeta?.provider || provider,
           model,
-          apiKey: rawApiKey.trim(),
+          sealedApiKey: sealed,
         }),
       });
 
@@ -554,6 +640,14 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
     setIsSubmitting(true);
 
     try {
+      // Ensure sealedApiKey is freshly and correctly sealed
+      const finalSealedKey = await getSealedApiKey(rawApiKey);
+      if (!finalSealedKey) {
+        alert("Failed to securely seal API key to Enclave. Aborting.");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Test key if not already tested and confirmed
       if (!keyVerification || !keyVerification.valid) {
         const testRes = await fetch("/api/verify-api-key", {
@@ -562,7 +656,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           body: JSON.stringify({
             provider,
             model,
-            apiKey: rawApiKey.trim(),
+            sealedApiKey: finalSealedKey,
           }),
         });
         const testData = await testRes.json();
@@ -584,21 +678,6 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         }
       }
 
-      // Ensure sealedApiKey is freshly and correctly sealed
-      let finalSealedKey = "";
-      try {
-        const pkRes = await fetch("/api/enclave-pubkey");
-        const pkData = await pkRes.json();
-        if (pkData.publicKeyPem) {
-          finalSealedKey = await sealSellerApiKeyInBrowser(rawApiKey.trim(), pkData.publicKeyPem);
-        }
-      } catch (sealErr) {
-        console.warn("[SellerPage] Failed to fetch enclave pubkey for sealing:", sealErr);
-      }
-      if (!finalSealedKey) {
-        finalSealedKey = sealedKeyCiphertext || `ENCLAVE_SEALED:${rawApiKey.trim()}`;
-      }
-
       const effectiveEns = ensMode === "real" ? customRealEns.trim().toLowerCase() : ensLabel;
 
       if (ensMode === "real") {
@@ -609,6 +688,39 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
         }
       }
 
+      // Build ListingWrite auth message and sign with wallet
+      const pricePer1kMicroUsdc = Math.round(Number(pricePer1kUsdc) * 1_000_000);
+      const sealedApiKeyHash = ethers.keccak256(ethers.toUtf8Bytes(finalSealedKey));
+      const { nonce, deadline } = newNonceAndDeadline();
+
+      const authMessage = {
+        owner: walletAddress,
+        action: "create",
+        listingId: "",
+        model,
+        payoutAddress: effectivePayoutAddress,
+        sealedApiKeyHash,
+        pricePer1kMicroUsdc,
+        nonce,
+        deadline,
+      };
+
+      if (!(window as any).ethereum) {
+        alert("Ethereum provider (MetaMask) required to sign listing authorization.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const browserProvider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await browserProvider.getSigner();
+      const { domain, types } = typedDataFor("ListingWrite");
+      const signature = await signer.signTypedData(domain, types, authMessage);
+
+      const auth = {
+        message: authMessage,
+        signature,
+      };
+
       const res = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -618,7 +730,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
           model,
           provider: currentModelMeta?.provider || provider,
           availableTokens: Number(tokenQuota),
-          pricePer1kMicroUsdc: Math.round(Number(pricePer1kUsdc) * 1_000_000),
+          pricePer1kMicroUsdc,
           sealedApiKey: finalSealedKey,
           payoutAddress: effectivePayoutAddress,
           hedaraPayoutAccount: effectivePayoutAddress,
@@ -628,6 +740,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             proof: proofPayload,
             action: "seller-listing",
           },
+          auth,
         }),
       });
 
@@ -909,7 +1022,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             </div>
 
             <a
-              href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+              href="https://testnet-explorer.hskchain.net/address/0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108"
               target="_blank"
               rel="noreferrer"
               className="text-[11px] text-emerald-400 hover:underline flex items-center justify-center gap-1"
@@ -980,7 +1093,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
             <span>
               HSP Contract:{" "}
               <a
-                href="https://testnet-explorer.hskchain.net/address/0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae"
+                href="https://testnet-explorer.hskchain.net/address/0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108"
                 target="_blank"
                 rel="noreferrer"
                 className="text-emerald-400 hover:underline tabular-data"
@@ -1634,6 +1747,7 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                     <th className="px-6 py-4">Human Verified</th>
                     <th className="px-6 py-4">Payout Address</th>
                     <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.06]">
@@ -1678,6 +1792,17 @@ const [showHowItWorksModal, setShowHowItWorksModal] = useState<boolean>(false);
                         <span className="px-3 py-1 rounded-full bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 text-[10px] font-semibold">
                           {l.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        {(l.payoutAddress || l.ownerAddress)?.toLowerCase() === walletAddress?.toLowerCase() && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteListing(l.id)}
+                            className="text-xs px-2.5 py-1 rounded-lg bg-red-950/40 text-red-400 border border-red-800/40 hover:bg-red-900/40 transition font-medium"
+                          >
+                            Deactivate
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

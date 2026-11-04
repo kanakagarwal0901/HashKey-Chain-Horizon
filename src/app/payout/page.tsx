@@ -23,9 +23,10 @@ import { useAuth } from "@/context/AuthContext";
 import SpatialCard from "@/components/SpatialCard";
 import ShunyaLogo from "@/components/ShunyaLogo";
 import { switchOrAddHashKeyNetwork, SHUNYA_TREASURY_EVM_ADDRESS } from "@/lib/clientSepolia";
+import { newNonceAndDeadline, typedDataFor } from "@/lib/authSignaturesShared";
 
 const HSK_TESTNET_EXPLORER = "https://testnet-explorer.hskchain.net";
-const HSP_ADAPTER_CONTRACT = "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae";
+const HSP_ADAPTER_CONTRACT = "0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108";
 
 interface TokenOption {
   symbol: string;
@@ -142,26 +143,11 @@ export default function SellerPayoutPage() {
     }
     setIsLoadingBalance(true);
     try {
-      // 1. Direct on-chain HashKey RPC query for instant real-time wallet balance
-      if (typeof window !== "undefined" && address.startsWith("0x")) {
-        try {
-          const { ethers } = await import("ethers");
-          const rpcProvider = new ethers.JsonRpcProvider("https://testnet.hsk.xyz", 133);
-          const rawWei = await rpcProvider.getBalance(address);
-          const liveHsk = parseFloat(ethers.formatEther(rawWei));
-          setHskBalance(liveHsk);
-          const rate = hskUsdRate > 0 ? hskUsdRate : 0.0894;
-          setTotalEarnedUsdc(Number((liveHsk * rate).toFixed(2)));
-        } catch (rpcErr) {
-          console.warn("Direct on-chain balance query fallback to API:", rpcErr);
-        }
-      }
-
-      // 2. Fetch full settlement metadata from backend API
+      // Fetch full settlement ledger balance from backend API
       const res = await fetch(`/api/seller/balance?address=${encodeURIComponent(address)}`);
       if (res.ok) {
         const data = await res.json();
-        const effectiveHsk = Number(data.currentBalanceHsk ?? data.onChainHsk ?? data.hskBalance ?? 0);
+        const effectiveHsk = Number(data.currentBalanceHsk ?? 0);
         const rate = Number(data.hskUsdRate) || hskUsdRate || 0.0894;
         if (data.hskUsdRate) setHskUsdRate(data.hskUsdRate);
         setHskBalance(effectiveHsk);
@@ -329,7 +315,7 @@ export default function SellerPayoutPage() {
 
     setIsSweeping(true);
     try {
-      // Step 0: Pre-flight check - verify Treasury destination reserves BEFORE MetaMask debit
+      // Step 0: Pre-flight check - verify Treasury destination reserves BEFORE signature
       const preflightRes = await fetch("/api/bridge/cctp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -345,62 +331,70 @@ export default function SellerPayoutPage() {
       if (!preflightRes.ok || preflightData.error || preflightData.sufficient === false) {
         throw new Error(
           preflightData.error ||
-            `Treasury liquidity check failed: The destination chain (${destinationChain}) does not have sufficient ${selectedToken} reserves. Your HSK was NOT deducted.`
+            `Treasury liquidity check failed: The destination chain (${destinationChain}) does not have sufficient ${selectedToken} reserves.`
         );
       }
 
-      let sourceBurnTxId = "";
-      if (typeof window !== "undefined" && (window as any).ethereum) {
-        // Step 1: Ensure MetaMask is on HashKey Chain Testnet (0x85 / 133)
-        const switched = await switchOrAddHashKeyNetwork();
-        if (!switched) {
-          throw new Error("Please switch your MetaMask to HashKey Chain Testnet to debit your HSK.");
-        }
+      if (typeof window === "undefined" || !(window as any).ethereum) {
+        throw new Error("MetaMask is required to sign the sweep authorization.");
+      }
 
-        // Step 2: Prompt MetaMask to execute on-chain transfer of the swept HSK to Treasury
-        const { ethers } = await import("ethers");
-        const weiAmount = ethers.parseEther(parsedAmount.toFixed(6));
-        const hexValue = "0x" + weiAmount.toString(16);
+      // Step 1: Ensure MetaMask is on HashKey Chain Testnet (0x85 / 133)
+      await switchOrAddHashKeyNetwork().catch(() => null);
 
-        try {
-          sourceBurnTxId = await (window as any).ethereum.request({
-            method: "eth_sendTransaction",
-            params: [
-              {
-                from: currentSellerNode,
-                to: SHUNYA_TREASURY_EVM_ADDRESS,
-                value: hexValue,
-              },
-            ],
-          });
-        } catch (mmErr: any) {
-          if (mmErr.code === 4001 || mmErr.message?.includes("rejected")) {
-            throw new Error("Sweep cancelled: You rejected the HSK debit transaction in MetaMask.");
-          }
-          throw new Error(`MetaMask debit transaction failed: ${mmErr.message || mmErr}`);
-        }
+      // Step 2: Build SellerSweep and sign with connected wallet (Finding 8)
+      const { ethers } = await import("ethers");
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const signerAddress = await signer.getAddress();
+      const seller = currentSellerNode && currentSellerNode.startsWith("0x") ? currentSellerNode : signerAddress;
 
-        // Await 1 confirmation on HashKey Chain so the wallet balance is officially mined & updated
-        if (sourceBurnTxId) {
-          try {
-            const hskProvider = new ethers.JsonRpcProvider("https://testnet.hsk.xyz", 133);
-            await hskProvider.waitForTransaction(sourceBurnTxId, 1, 12000).catch(() => null);
-          } catch {}
+      const { nonce, deadline } = newNonceAndDeadline();
+      const authMessage = {
+        seller,
+        recipient: recipientAddress,
+        amountHsk: parsedAmount.toString(),
+        destinationChain,
+        targetToken: selectedToken,
+        nonce,
+        deadline,
+      };
+
+      const { domain, types } = typedDataFor("SellerSweep");
+      let signature = "";
+      try {
+        signature = await signer.signTypedData(domain, types, authMessage);
+      } catch (signErr: any) {
+        // Clear error if the user rejects (Finding 8)
+        if (
+          signErr?.code === 4001 ||
+          signErr?.code === "ACTION_REJECTED" ||
+          signErr?.message?.toLowerCase().includes("user rejected") ||
+          signErr?.message?.toLowerCase().includes("rejected")
+        ) {
+          setSweepError(null);
+          setIsSweeping(false);
+          return;
         }
+        throw signErr;
       }
 
       const res = await fetch("/api/bridge/cctp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sourceAccount: currentSellerNode,
+          sourceAccount: seller,
+          sellerAddress: seller,
           amountHsk: parsedAmount,
           amountUsdc: parsedAmount * (hskUsdRate > 0 ? hskUsdRate : 0.0894),
           destinationChain,
           targetToken: selectedToken,
           destinationAddress: recipientAddress,
           recipientAddress,
-          sourceBurnTxId,
+          auth: {
+            message: authMessage,
+            signature,
+          },
         }),
       });
 
@@ -412,8 +406,8 @@ export default function SellerPayoutPage() {
       setSweepResult({
         txId: data.bridgeTx?.txHash || data.txHash,
         explorerUrl: data.explorerUrl || data.blockscoutUrl || `${HSK_TESTNET_EXPLORER}/tx/${data.bridgeTx?.txHash || data.txHash || ""}`,
-        sourceBurnTxId: sourceBurnTxId || data.sourceBurnTxId,
-        sourceExplorerUrl: data.sourceExplorerUrl || (sourceBurnTxId ? `${HSK_TESTNET_EXPLORER}/tx/${sourceBurnTxId}` : undefined),
+        sourceBurnTxId: data.sourceBurnTxId,
+        sourceExplorerUrl: data.sourceExplorerUrl,
         settledAmount: parsedAmount,
         targetToken: selectedToken,
         recipientAddress,
@@ -425,7 +419,16 @@ export default function SellerPayoutPage() {
       await fetchHashKeyBalance(currentSellerNode);
       await fetchBridgeHistory();
     } catch (err: any) {
-      setSweepError(err.message || "An unexpected error occurred during sweep.");
+      if (
+        err?.code === 4001 ||
+        err?.code === "ACTION_REJECTED" ||
+        err?.message?.toLowerCase().includes("user rejected") ||
+        err?.message?.toLowerCase().includes("rejected")
+      ) {
+        setSweepError(null);
+      } else {
+        setSweepError(err.message || "An unexpected error occurred during sweep.");
+      }
     } finally {
       setIsSweeping(false);
     }

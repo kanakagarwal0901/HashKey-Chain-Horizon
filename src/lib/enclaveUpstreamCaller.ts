@@ -252,7 +252,7 @@ export async function callSellerAiProviderWithHardCap(params: {
 **Zero-Cutoff Gate Verified**: All operations strictly bounded by $T_{\\max} = ${bounds.totalMaxTokens.toLocaleString()}$ tokens.
 
 **Audit Analysis**:
-1. Successfully received and unwrapped prompt payload in isolated 0G Enclave RAM.
+1. Successfully received and unwrapped prompt payload in isolated Enclave RAM.
 2. Parsed ${parsedAttachments.length} attached file(s) with total client confidentiality:
 ${parsedAttachments.map((a, i) => `   - Attachment #${i + 1}: \`${a.filename}\` (${a.mimeType}, SHA-256: \`${a.sha256Hex.slice(0, 16)}...\`)`).join("\n") || "   - Zero files attached; pure text inference executed."}
 3. Sealed output generated and re-encrypted with Buyer's one-time ephemeral $K_{\\text{return}}$ key before leaving enclave memory. Zero plaintext leaked to Seller proxy stream.`;

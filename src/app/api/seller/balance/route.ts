@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
       // Native HSK balances
       hskBalance: balance.currentBalanceHsk,
       currentBalanceHsk: balance.currentBalanceHsk,
-      onChainHsk: (balance as any).onChainHsk ?? balance.currentBalanceHsk,
+      availableHsk: balance.currentBalanceHsk,
+      onChainHsk: (balance as any).onChainHsk ?? 0,
       lifetimeSettledHsk: balance.lifetimeSettledHsk,
       totalSweptHsk: balance.totalSweptHsk,
       // USD equivalent balances

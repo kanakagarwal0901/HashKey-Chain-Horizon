@@ -43,3 +43,8 @@ Thumbs.db
 
 # Taste Skill inspection artifacts
 .taste-skill/
+
+.enclave_keypair.json
+.data/consumed_*.json
+.data/used_auth_nonces.json
+.data/refunds*.json

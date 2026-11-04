@@ -22,7 +22,13 @@ contract ShunyaGridOrderbook {
         bool active;
     }
 
+    error Unauthorized();
+    error ZeroAddress();
+    error ListingNotFound();
+
     address public owner;
+    address public pendingOwner;
+
     ListingRecord[] public listings;
     mapping(string => uint256) private _indexMap; // id => arrayIndex + 1
 
@@ -36,9 +42,31 @@ contract ShunyaGridOrderbook {
     );
 
     event ListingDeactivated(string indexed id);
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert Unauthorized();
+        _;
+    }
 
     constructor() {
         owner = msg.sender;
+        emit OwnershipTransferred(address(0), msg.sender);
+    }
+
+    function transferOwnership(address newOwner) external onlyOwner {
+        if (newOwner == address(0)) revert ZeroAddress();
+        pendingOwner = newOwner;
+        emit OwnershipTransferStarted(owner, newOwner);
+    }
+
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert Unauthorized();
+        address oldOwner = owner;
+        owner = msg.sender;
+        pendingOwner = address(0);
+        emit OwnershipTransferred(oldOwner, msg.sender);
     }
 
     function publishListing(
@@ -57,6 +85,9 @@ contract ShunyaGridOrderbook {
         if (existingIndex > 0) {
             uint256 idx = existingIndex - 1;
             ListingRecord storage item = listings[idx];
+            if (msg.sender != item.ownerAddress && msg.sender != owner) {
+                revert Unauthorized();
+            }
             item.ownerAddress = ownerAddress;
             item.ensName = ensName;
             item.model = model;
@@ -68,6 +99,9 @@ contract ShunyaGridOrderbook {
             item.payoutAddress = payoutAddress;
             item.active = true;
         } else {
+            if (msg.sender != owner && ownerAddress != msg.sender) {
+                revert Unauthorized();
+            }
             ListingRecord storage item = listings.push();
             item.id = id;
             item.ownerAddress = ownerAddress;
@@ -89,10 +123,14 @@ contract ShunyaGridOrderbook {
 
     function deactivateListing(string calldata id) external {
         uint256 existingIndex = _indexMap[id];
-        if (existingIndex > 0) {
-            listings[existingIndex - 1].active = false;
-            emit ListingDeactivated(id);
+        if (existingIndex == 0) revert ListingNotFound();
+        uint256 idx = existingIndex - 1;
+        ListingRecord storage item = listings[idx];
+        if (msg.sender != item.ownerAddress && msg.sender != owner) {
+            revert Unauthorized();
         }
+        item.active = false;
+        emit ListingDeactivated(id);
     }
 
     function getAllListings() external view returns (ListingRecord[] memory) {

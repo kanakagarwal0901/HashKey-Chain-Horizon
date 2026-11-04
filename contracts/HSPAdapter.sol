@@ -18,6 +18,7 @@ pragma solidity ^0.8.20;
 interface IERC20 {
     function transfer(address to, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function approve(address spender, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
 }
 
@@ -39,6 +40,9 @@ contract HSPAdapter {
     address public constant HSK_MAINNET_USDT = 0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029;
     address public constant HSK_MAINNET_WHSK = 0xB210D2120d57b758EE163cFfb43e73728c471Cf1;
 
+    // Maximum protocol fee bound: 2000 bps = 20%
+    uint256 public constant MAX_FEE_BPS = 2000;
+
     // -------------------------------------------------------------------------
     // Custom Errors
     // -------------------------------------------------------------------------
@@ -53,6 +57,9 @@ contract HSPAdapter {
     error ConservationOfValueFailed();
     error TransferFailed();
     error Reentrancy();
+    error ExceedsTMax();
+    error ExcessivePayout();
+    error ExcessiveFee();
 
     // -------------------------------------------------------------------------
     // Standard HSP Events (Indexed by HashKey Merchant off-chain explorers)
@@ -82,6 +89,13 @@ contract HSPAdapter {
         uint256 tUsed,
         bytes attestationHash
     );
+
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event ProtocolTreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
+    event TrustedRouterUpdated(address indexed previousRouter, address indexed newRouter);
+    event PendingWithdrawalCredited(address indexed recipient, uint256 amount);
+    event WithdrawalExecuted(address indexed recipient, uint256 amount);
 
     // -------------------------------------------------------------------------
     // Enums & Structs
@@ -113,12 +127,15 @@ contract HSPAdapter {
     // State Variables
     // -------------------------------------------------------------------------
     address public owner;
+    address public pendingOwner;
     address public protocolTreasury;
+    address public trustedRouter;
     uint256 public chainId;
     bytes32 public DOMAIN_SEPARATOR;
 
     mapping(bytes32 => HSPPaymentMandate) public mandates;
     mapping(address => uint256) public agentNonces;
+    mapping(address => uint256) public pendingWithdrawals;
 
     uint256 private _reentrancyStatus;
     uint256 private constant _NOT_ENTERED = 1;
@@ -136,10 +153,19 @@ contract HSPAdapter {
         _;
     }
 
+    modifier onlyTrustedRouter() {
+        if (msg.sender != trustedRouter) revert Unauthorized();
+        _;
+    }
+
     constructor(address _protocolTreasury) {
         if (_protocolTreasury == address(0)) revert ZeroAddress();
         owner = msg.sender;
+        emit OwnershipTransferred(address(0), msg.sender);
+
         protocolTreasury = _protocolTreasury;
+        emit ProtocolTreasuryUpdated(address(0), _protocolTreasury);
+
         _reentrancyStatus = _NOT_ENTERED;
 
         uint256 id;
@@ -157,6 +183,29 @@ contract HSPAdapter {
                 address(this)
             )
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // Safe ERC20 Helpers (low-level calls supporting non-standard/no-return tokens)
+    // -------------------------------------------------------------------------
+    function _safeTransfer(address token, address to, uint256 amount) internal {
+        if (token.code.length == 0) revert TransferFailed();
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.transfer.selector, to, amount)
+        );
+        if (!success || (data.length > 0 && !abi.decode(data, (bool)))) {
+            revert TransferFailed();
+        }
+    }
+
+    function _safeTransferFrom(address token, address from, address to, uint256 amount) internal {
+        if (token.code.length == 0) revert TransferFailed();
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, amount)
+        );
+        if (!success || (data.length > 0 && !abi.decode(data, (bool)))) {
+            revert TransferFailed();
+        }
     }
 
     /**
@@ -198,18 +247,22 @@ contract HSPAdapter {
         }
 
         // Receive funds (native HSK or ERC20)
+        uint256 depositAmount = params.maxDeposit;
         if (params.token == address(0)) {
             if (msg.value != params.maxDeposit) revert ZeroAmount();
         } else {
-            bool ok = IERC20(params.token).transferFrom(msg.sender, address(this), params.maxDeposit);
-            if (!ok) revert TransferFailed();
+            if (msg.value != 0) revert ZeroAmount();
+            uint256 balanceBefore = IERC20(params.token).balanceOf(address(this));
+            _safeTransferFrom(params.token, msg.sender, address(this), params.maxDeposit);
+            depositAmount = IERC20(params.token).balanceOf(address(this)) - balanceBefore;
+            if (depositAmount == 0) revert ZeroAmount();
         }
 
         mandates[params.mandateId] = HSPPaymentMandate({
             buyerAgent: msg.sender,
             sellerNode: params.sellerNode,
             token: params.token,
-            maxDeposit: params.maxDeposit,
+            maxDeposit: depositAmount,
             tMax: params.tMax,
             modelId: params.modelId,
             status: MandateStatus.LOCKED,
@@ -221,7 +274,7 @@ contract HSPAdapter {
             msg.sender,
             params.sellerNode,
             params.token,
-            params.maxDeposit,
+            depositAmount,
             params.tMax,
             params.modelId
         );
@@ -229,7 +282,7 @@ contract HSPAdapter {
         emit HSPMessageEmitted(
             params.mandateId,
             1,
-            abi.encode(msg.sender, params.sellerNode, params.maxDeposit, params.tMax, params.modelId)
+            abi.encode(msg.sender, params.sellerNode, depositAmount, params.tMax, params.modelId)
         );
     }
 
@@ -251,8 +304,12 @@ contract HSPAdapter {
         if (token == address(0)) {
             if (msg.value != maxDeposit) revert ZeroAmount();
         } else {
-            bool ok = IERC20(token).transferFrom(msg.sender, address(this), maxDeposit);
-            if (!ok) revert TransferFailed();
+            if (msg.value != 0) revert ZeroAmount();
+            uint256 balanceBefore = IERC20(token).balanceOf(address(this));
+            _safeTransferFrom(token, msg.sender, address(this), maxDeposit);
+            uint256 received = IERC20(token).balanceOf(address(this)) - balanceBefore;
+            if (received == 0) revert ZeroAmount();
+            maxDeposit = received;
         }
 
         mandates[mandateId] = HSPPaymentMandate({
@@ -276,8 +333,57 @@ contract HSPAdapter {
     }
 
     /**
+     * @notice Locks mandate for a specified buyer, callable only by the trusted settlement router.
+     */
+    function lockHSPMandateFor(
+        address buyer,
+        bytes32 mandateId,
+        address sellerNode,
+        address token,
+        uint256 maxDeposit,
+        uint256 tMax,
+        string calldata modelId
+    ) external payable onlyTrustedRouter nonReentrant {
+        if (buyer == address(0)) revert ZeroAddress();
+        if (mandates[mandateId].status != MandateStatus.NONE) revert MandateAlreadyExists();
+        if (sellerNode == address(0)) revert ZeroAddress();
+        if (maxDeposit == 0 || tMax == 0) revert ZeroAmount();
+
+        if (token == address(0)) {
+            if (msg.value != maxDeposit) revert ZeroAmount();
+        } else {
+            if (msg.value != 0) revert ZeroAmount();
+            uint256 balanceBefore = IERC20(token).balanceOf(address(this));
+            _safeTransferFrom(token, msg.sender, address(this), maxDeposit);
+            uint256 received = IERC20(token).balanceOf(address(this)) - balanceBefore;
+            if (received == 0) revert ZeroAmount();
+            maxDeposit = received;
+        }
+
+        mandates[mandateId] = HSPPaymentMandate({
+            buyerAgent: buyer,
+            sellerNode: sellerNode,
+            token: token,
+            maxDeposit: maxDeposit,
+            tMax: tMax,
+            modelId: modelId,
+            status: MandateStatus.LOCKED,
+            createdAt: block.timestamp
+        });
+
+        emit HSPMandateCreated(mandateId, buyer, sellerNode, token, maxDeposit, tMax, modelId);
+
+        emit HSPMessageEmitted(
+            mandateId,
+            1,
+            abi.encode(buyer, sellerNode, maxDeposit, tMax, modelId)
+        );
+    }
+
+    /**
      * @notice Settles an HSP payment mandate post-inference based on exact tokens used (T_used).
      * @dev Strictly enforces Conservation of Value: sellerPayout + protocolFee + buyerRefund == maxDeposit.
+     *      Limits: tUsed <= tMax; sellerPayout <= maxDeposit * tUsed / tMax; protocolFee <= maxDeposit * MAX_FEE_BPS / 10000.
      */
     function settleHSPMandate(
         bytes32 mandateId,
@@ -289,6 +395,14 @@ contract HSPAdapter {
     ) external onlyOwner nonReentrant {
         HSPPaymentMandate storage mandate = mandates[mandateId];
         if (mandate.status != MandateStatus.LOCKED) revert MandateNotFound();
+
+        if (tUsed > mandate.tMax) revert ExceedsTMax();
+        if (sellerPayout > (mandate.maxDeposit * tUsed) / mandate.tMax) {
+            revert ExcessivePayout();
+        }
+        if (protocolFee > (mandate.maxDeposit * MAX_FEE_BPS) / 10000) {
+            revert ExcessiveFee();
+        }
 
         // Mathematical Conservation of Value
         if (sellerPayout + protocolFee + buyerRefund != mandate.maxDeposit) {
@@ -317,41 +431,47 @@ contract HSPAdapter {
         if (mandate.token == address(0)) {
             if (sellerPayout > 0) {
                 (bool s1, ) = mandate.sellerNode.call{value: sellerPayout}("");
-                if (!s1) revert TransferFailed();
+                if (!s1) {
+                    pendingWithdrawals[mandate.sellerNode] += sellerPayout;
+                    emit PendingWithdrawalCredited(mandate.sellerNode, sellerPayout);
+                }
             }
             if (protocolFee > 0) {
                 (bool s2, ) = protocolTreasury.call{value: protocolFee}("");
-                if (!s2) revert TransferFailed();
+                if (!s2) {
+                    pendingWithdrawals[protocolTreasury] += protocolFee;
+                    emit PendingWithdrawalCredited(protocolTreasury, protocolFee);
+                }
             }
             if (buyerRefund > 0) {
                 (bool s3, ) = mandate.buyerAgent.call{value: buyerRefund}("");
-                if (!s3) revert TransferFailed();
+                if (!s3) {
+                    pendingWithdrawals[mandate.buyerAgent] += buyerRefund;
+                    emit PendingWithdrawalCredited(mandate.buyerAgent, buyerRefund);
+                }
             }
         } else {
             if (sellerPayout > 0) {
-                bool t1 = IERC20(mandate.token).transfer(mandate.sellerNode, sellerPayout);
-                if (!t1) revert TransferFailed();
+                _safeTransfer(mandate.token, mandate.sellerNode, sellerPayout);
             }
             if (protocolFee > 0) {
-                bool t2 = IERC20(mandate.token).transfer(protocolTreasury, protocolFee);
-                if (!t2) revert TransferFailed();
+                _safeTransfer(mandate.token, protocolTreasury, protocolFee);
             }
             if (buyerRefund > 0) {
-                bool t3 = IERC20(mandate.token).transfer(mandate.buyerAgent, buyerRefund);
-                if (!t3) revert TransferFailed();
+                _safeTransfer(mandate.token, mandate.buyerAgent, buyerRefund);
             }
         }
     }
 
     /**
-     * @notice Emergency refund if upstream inference fails completely or times out (> 1 hour).
+     * @notice Emergency refund if upstream inference fails completely or times out (> 24 hours for buyer).
      */
     function refundHSPMandate(bytes32 mandateId) external nonReentrant {
         HSPPaymentMandate storage mandate = mandates[mandateId];
         if (mandate.status != MandateStatus.LOCKED) revert MandateNotFound();
 
         if (msg.sender != owner && msg.sender != mandate.buyerAgent) revert Unauthorized();
-        if (msg.sender == mandate.buyerAgent && block.timestamp < mandate.createdAt + 1 hours) {
+        if (msg.sender == mandate.buyerAgent && block.timestamp < mandate.createdAt + 24 hours) {
             revert Unauthorized();
         }
 
@@ -361,16 +481,58 @@ contract HSPAdapter {
 
         if (mandate.token == address(0)) {
             (bool ok, ) = mandate.buyerAgent.call{value: mandate.maxDeposit}("");
-            if (!ok) revert TransferFailed();
+            if (!ok) {
+                pendingWithdrawals[mandate.buyerAgent] += mandate.maxDeposit;
+                emit PendingWithdrawalCredited(mandate.buyerAgent, mandate.maxDeposit);
+            }
         } else {
-            bool ok = IERC20(mandate.token).transfer(mandate.buyerAgent, mandate.maxDeposit);
-            if (!ok) revert TransferFailed();
+            _safeTransfer(mandate.token, mandate.buyerAgent, mandate.maxDeposit);
         }
+    }
+
+    /**
+     * @notice Allows users/treasury to withdraw native funds credited via pull-payments after failed transfers.
+     */
+    function withdraw() external nonReentrant {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        if (amount == 0) revert ZeroAmount();
+
+        pendingWithdrawals[msg.sender] = 0;
+
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        if (!ok) revert TransferFailed();
+
+        emit WithdrawalExecuted(msg.sender, amount);
+    }
+
+    // -------------------------------------------------------------------------
+    // Ownership & Administration
+    // -------------------------------------------------------------------------
+    function transferOwnership(address newOwner) external onlyOwner {
+        if (newOwner == address(0)) revert ZeroAddress();
+        pendingOwner = newOwner;
+        emit OwnershipTransferStarted(owner, newOwner);
+    }
+
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert Unauthorized();
+        address oldOwner = owner;
+        owner = msg.sender;
+        pendingOwner = address(0);
+        emit OwnershipTransferred(oldOwner, msg.sender);
     }
 
     function setProtocolTreasury(address _newTreasury) external onlyOwner {
         if (_newTreasury == address(0)) revert ZeroAddress();
+        address oldTreasury = protocolTreasury;
         protocolTreasury = _newTreasury;
+        emit ProtocolTreasuryUpdated(oldTreasury, _newTreasury);
+    }
+
+    function setTrustedRouter(address _router) external onlyOwner {
+        address oldRouter = trustedRouter;
+        trustedRouter = _router;
+        emit TrustedRouterUpdated(oldRouter, _router);
     }
 
     receive() external payable {}

@@ -33,10 +33,12 @@ const HSP_ADAPTER_ADDRESS = deployments.contracts.HSPAdapter.address;
 const ROUTER_ADDRESS = deployments.contracts.HashKeySettlementRouter.address;
 
 // Deployer key (funded with testnet HSK for live transaction execution)
-const DEFAULT_AGENT_KEY =
+const DEFAULT_AGENT_KEY: string =
   process.env.BUYER_AGENT_PRIVATE_KEY ||
-  process.env.HASHKEY_TESTNET_PRIVATE_KEY ||
-  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+  process.env.HASHKEY_DEPLOYER_PRIVATE_KEY ||
+  process.env.SHUNYA_TREASURY_PRIVATE_KEY ||
+  process.env.OPERATOR_PRIVATE_KEY ||
+  "";
 
 export async function runHashKeyAutonomousAgent() {
   console.log("\n" + "=".repeat(78));
@@ -44,6 +46,9 @@ export async function runHashKeyAutonomousAgent() {
   console.log("   Track 2: Agent Payments & A2A Settlement (HSP Protocol Enabled)");
   console.log("=".repeat(78) + "\n");
 
+  if (!DEFAULT_AGENT_KEY) {
+    throw new Error("Missing agent private key. Set BUYER_AGENT_PRIVATE_KEY or SHUNYA_TREASURY_PRIVATE_KEY.");
+  }
   const provider = new ethers.JsonRpcProvider(HASHKEY_TESTNET_RPC);
   const buyerWallet = new ethers.Wallet(DEFAULT_AGENT_KEY, provider);
   const balanceWei = await provider.getBalance(buyerWallet.address);

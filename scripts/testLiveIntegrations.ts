@@ -54,12 +54,12 @@ async function runLiveIntegrationTests() {
     `HashKey target chain is Testnet (Chain ID: ${hashKeyTreasury.chainId})`
   );
   assert(
-    hashKeyTreasury.hspAdapterAddress.toLowerCase() === "0x40a633eef249f21d95c8803b7144f19aafeef7ae".toLowerCase(),
+    hashKeyTreasury.hspAdapterAddress.toLowerCase() === "0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108".toLowerCase(),
     "HSK-02",
     `HSPAdapter address matches official deployment: ${hashKeyTreasury.hspAdapterAddress}`
   );
   assert(
-    hashKeyTreasury.routerAddress.toLowerCase() === "0x532802f2f9e0e3ee9d5ba70c35e1f43c0498772d".toLowerCase(),
+    hashKeyTreasury.routerAddress.toLowerCase() === "0x56B8BaF4a417A90202021cBAc6ba983c8f96D6F3".toLowerCase(),
     "HSK-03",
     `HashKeySettlementRouter address matches official deployment: ${hashKeyTreasury.routerAddress}`
   );

@@ -6,8 +6,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const report = getEnclaveAttestationReport();
   return NextResponse.json({
-    status: "verified",
     ...report,
+    status: "simulated",
+    teeType: "none (software)",
     publicKey: report.enclavePublicKeyPem,
     publicKeyPem: report.enclavePublicKeyPem,
   });

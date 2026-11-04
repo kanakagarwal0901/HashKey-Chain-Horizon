@@ -41,8 +41,8 @@ export const SUPPORTED_CHAINS: Record<string, ChainMetadata> = {
     rpcUrl: "https://testnet.hsk.xyz",
     explorerUrl: "https://testnet-explorer.hskchain.net",
     nativeCurrency: { name: "HashKey EcoPoints", symbol: "HSK", decimals: 18 },
-    uniswapRouterAddress: "0x532802f2F9E0e3EE9d5Ba70C35E1F43C0498772D", // HashKey Settlement Router
-    uniswapQuoterAddress: "0x40A633EeF249F21D95C8803b7144f19AAfeEF7ae", // HSP Adapter
+    uniswapRouterAddress: "0x56B8BaF4a417A90202021cBAc6ba983c8f96D6F3", // HashKey Settlement Router
+    uniswapQuoterAddress: "0xBe5dDD447CfeA3Ff43ea636F5FCc75434f6f8108", // HSP Adapter
   },
   "arbitrum-sepolia": {
     id: "arbitrum-sepolia",

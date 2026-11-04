@@ -76,33 +76,36 @@ export class RemoteOrderbookSync {
           );
         }
 
-        const listings: ArkivSellerListingEntity[] = [];
+        const existingMap = new Map(this.cachedListings.map((l) => [l.id, l]));
         for (const item of rawList) {
           const isActive = Boolean(item[11]);
           if (!isActive) continue;
 
-          listings.push({
-            id: String(item[0]),
-            ownerAddress: String(item[1]),
-            ensName: String(item[2]),
-            model: String(item[3]),
-            provider: (String(item[4]).toLowerCase() as any) || "gemini",
-            availableTokens: Number(item[5]),
-            lockedTokens: 0,
-            pricePer1kMicroUsdc: Number(item[6]),
-            humanVerified: Boolean(item[7]),
-            sealedApiKey: String(item[8]),
-            payoutAddress: String(item[9]),
-            hedaraPayoutAccount: String(item[9]),
-            createdAtBlock: 35100370,
-            expiresAtBlock: 0, // 0 = Indefinite active while on-chain status is active (prevents block-counter cutoff)
-            status: "active",
-          });
+          const id = String(item[0]);
+          if (!existingMap.has(id)) {
+            existingMap.set(id, {
+              id,
+              ownerAddress: String(item[1]),
+              ensName: String(item[2]),
+              model: String(item[3]),
+              provider: (String(item[4]).toLowerCase() as any) || "gemini",
+              availableTokens: Number(item[5]),
+              lockedTokens: 0,
+              pricePer1kMicroUsdc: Number(item[6]),
+              humanVerified: Boolean(item[7]),
+              sealedApiKey: String(item[8]),
+              payoutAddress: String(item[9]),
+              hedaraPayoutAccount: String(item[9]),
+              createdAtBlock: 35100370,
+              expiresAtBlock: 0, // 0 = Indefinite active while on-chain status is active (prevents block-counter cutoff)
+              status: "active",
+            });
+          }
         }
 
-        this.cachedListings = listings;
+        this.cachedListings = Array.from(existingMap.values());
         this.lastFetchedAt = now;
-        return listings;
+        return this.cachedListings;
       } catch (err: any) {
         console.warn("[RemoteOrderbookSync] Notice during on-chain fetch:", err?.message);
         return this.cachedListings.length > 0 ? this.cachedListings : null;
@@ -131,8 +134,12 @@ export class RemoteOrderbookSync {
         const privateKey =
           process.env.HASHKEY_DEPLOYER_PRIVATE_KEY ||
           process.env.SHUNYA_TREASURY_PRIVATE_KEY ||
-          process.env.OPERATOR_PRIVATE_KEY ||
-          "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+          process.env.OPERATOR_PRIVATE_KEY;
+
+        if (!privateKey) {
+          console.warn("[RemoteOrderbookSync] No deployer/operator private key in env; skipping remote publish");
+          return false;
+        }
 
         const wallet = new ethers.Wallet(privateKey, this.provider);
         const contract = new ethers.Contract(this.contractAddress, SHUNYA_ORDERBOOK_ABI, wallet);
@@ -218,8 +225,12 @@ export class RemoteOrderbookSync {
       const privateKey =
         process.env.HASHKEY_DEPLOYER_PRIVATE_KEY ||
         process.env.SHUNYA_TREASURY_PRIVATE_KEY ||
-        process.env.OPERATOR_PRIVATE_KEY ||
-        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+        process.env.OPERATOR_PRIVATE_KEY;
+
+      if (!privateKey) {
+        console.warn("[RemoteOrderbookSync] No deployer/operator private key in env; skipping remote deactivate");
+        return false;
+      }
 
       const wallet = new ethers.Wallet(privateKey, this.provider);
       const contract = new ethers.Contract(this.contractAddress, SHUNYA_ORDERBOOK_ABI, wallet);
