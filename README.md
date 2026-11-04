@@ -9,6 +9,7 @@
 * **Settlement Router Contract:** [`0x56B8BaF4a417A90202021cBAc6ba983c8f96D6F3`](https://testnet-explorer.hskchain.net/address/0x56B8BaF4a417A90202021cBAc6ba983c8f96D6F3) (Bytecode active on Testnet Chain 133; redeployed 2026-11-03)
 * **Autonomous Agent CLI:** `npm run agent:hsk` (`apps/agent/openclaw-hsk-agent.ts`)
 * **Live Web Application:** [http://localhost:3000](http://localhost:3000)
+* * **Demo Video:** [https://youtu.be/Pb3VDOos478?si=u9s1b7dbv18gHvts](https://youtu.be/Pb3VDOos478?si=u9s1b7dbv18gHvts)
 
 ---
 
